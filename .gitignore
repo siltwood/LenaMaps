@@ -174,4 +174,9 @@ $RECYCLE.BIN/
 # Backup files
 *.backup
 *.bak
-*.tmp 
+*.tmp
+
+# Claude Code todo list
+.claude/
+.claude-todo.json
+todo.json 
