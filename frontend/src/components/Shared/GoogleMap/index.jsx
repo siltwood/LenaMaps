@@ -4,7 +4,7 @@ import MapComponent from './components/MapComponent';
 import MapErrorBoundary from './MapErrorBoundary';
 
 const GoogleMap = (props) => {
-  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState(null);
   

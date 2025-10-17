@@ -5,8 +5,8 @@ import RouteSegmentManager from './RouteSegmentManager';
 import RouteAnimator from '../../../Desktop/RouteAnimator';
 import MapErrorBoundary from '../MapErrorBoundary';
 
-const MapComponent = ({ 
-  onMapClick, 
+const MapComponent = ({
+  onMapClick,
   center,
   shouldCenterMap = false,
   onMapCentered,
@@ -18,7 +18,8 @@ const MapComponent = ({
   showRouteAnimator,
   onHideRouteAnimator,
   onMapReady,
-  onModesAutoUpdate
+  onModesAutoUpdate,
+  isDarkMode = false
 }) => {
   const mapRef = useRef();
   const [map, setMap] = useState(null);
@@ -176,13 +177,22 @@ const MapComponent = ({
       // Only center for initial geolocation, not for markers
       map.setCenter(center);
       map.setZoom(15); // Set a reasonable zoom level when centering
-      
+
       // Notify parent that centering is complete
       if (onMapCentered) {
         onMapCentered();
       }
     }
   }, [map, center, shouldCenterMap, onMapCentered]);
+
+  // Handle dark mode toggle using colorScheme API
+  useEffect(() => {
+    if (map) {
+      map.setOptions({
+        colorScheme: isDarkMode ? 'DARK' : 'LIGHT'
+      });
+    }
+  }, [map, isDarkMode]);
 
   // Show error boundary if there's an error
   if (mapError) {
@@ -198,7 +208,7 @@ const MapComponent = ({
   return (
     <div style={{ height: '100%', position: 'relative' }}>
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
-      
+
       {/* Render child components */}
       <RouteSegmentManager
         map={map}
@@ -209,7 +219,7 @@ const MapComponent = ({
         isMobile={isMobile}
         onModesAutoUpdate={onModesAutoUpdate}
       />
-      
+
       {/* Show RouteAnimator for desktop only - mobile handles it differently */}
       {map && !isMobile && (
         <RouteAnimator
@@ -220,7 +230,7 @@ const MapComponent = ({
           isMobile={false}
         />
       )}
-      
+
     </div>
   );
 };
@@ -235,10 +245,11 @@ export default React.memo(MapComponent, (prevProps, nextProps) => {
     prevProps.directionsRoute?.routeId === nextProps.directionsRoute?.routeId &&
     prevProps.showRouteAnimator === nextProps.showRouteAnimator &&
     prevProps.isMobile === nextProps.isMobile &&
+    prevProps.isDarkMode === nextProps.isDarkMode &&
     // IMPORTANT: Also check if directionsLocations changed!
     JSON.stringify(prevProps.directionsLocations) === JSON.stringify(nextProps.directionsLocations) &&
     JSON.stringify(prevProps.directionsLegModes) === JSON.stringify(nextProps.directionsLegModes)
   );
-  
+
   return shouldSkipRender;
 });

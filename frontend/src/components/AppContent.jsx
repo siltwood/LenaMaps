@@ -8,6 +8,7 @@ import { saveRoute } from '../utils/savedRoutesUtils';
 import Modal from './Desktop/RouteAnimator/Modal';
 import { SaveRouteModal } from './SaveRouteModal';
 import { SavedRoutesModal } from './SavedRoutesModal';
+import DarkModeToggle from './Shared/DarkModeToggle/DarkModeToggle.jsx';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -20,6 +21,7 @@ function AppContent() {
   const isMobile = useMobileDetection();
   const [showRouteAnimator, setShowRouteAnimator] = useState(!isMobile); // Show on desktop by default, hide on mobile
   const [mapInstance, setMapInstance] = useState(null); // Store map instance
+  const [isDarkMode, setIsDarkMode] = useState(false); // Dark mode state
   
   // Undo functionality
   const [history, setHistory] = useState([]);
@@ -359,8 +361,8 @@ function AppContent() {
         </div>
         <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div className="header-search">
-          {process.env.REACT_APP_GOOGLE_MAPS_API_KEY && 
-           process.env.REACT_APP_GOOGLE_MAPS_API_KEY !== "your_google_maps_api_key_here" ? (
+          {import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
+           import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== "your_google_maps_api_key_here" ? (
             <LocationSearch 
               onLocationSelect={handleLocationSearch}
               placeholder="Find location..."
@@ -401,43 +403,57 @@ function AppContent() {
               // When routes are auto-switched to flight, update the UI modes
               setDirectionsLegModes(updatedModes);
             }}
+            isDarkMode={isDarkMode}
           />
           {!isAnimating && (
-            <div className="bmc-button-container" style={{
-              position: 'absolute',
-              top: '10px',
-              right: '60px',
-              zIndex: 1000
-            }}>
-              <a 
-                href="https://www.buymeacoffee.com/lenamaps" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: isMobile ? '6px 10px' : '10px 16px',
-                  backgroundColor: '#FFDD00',
-                  color: '#000000',
-                  fontFamily: 'Cookie, cursive',
-                  fontSize: isMobile ? '14px' : '18px',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                }}
-              >
-                ☕ Buy me a coffee
-              </a>
-            </div>
+            <>
+              <div className="bmc-button-container" style={{
+                position: 'absolute',
+                top: '10px',
+                right: '60px',
+                zIndex: 1000
+              }}>
+                <a
+                  href="https://www.buymeacoffee.com/lenamaps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: isMobile ? '6px 10px' : '10px 16px',
+                    backgroundColor: '#FFDD00',
+                    color: '#000000',
+                    fontFamily: 'Cookie, cursive',
+                    fontSize: isMobile ? '14px' : '18px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                  }}
+                >
+                  ☕ Buy me a coffee
+                </a>
+              </div>
+              <div style={{
+                position: 'absolute',
+                top: '65px',
+                right: '20px',
+                zIndex: 1000
+              }}>
+                <DarkModeToggle
+                  isDark={isDarkMode}
+                  onToggle={() => setIsDarkMode(!isDarkMode)}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>
