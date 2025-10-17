@@ -179,4 +179,7 @@ $RECYCLE.BIN/
 # Claude Code todo list
 .claude/
 .claude-todo.json
-todo.json 
+todo.json
+
+# Implementation guides
+IMPLEMENTATION_GUIDE.md 
