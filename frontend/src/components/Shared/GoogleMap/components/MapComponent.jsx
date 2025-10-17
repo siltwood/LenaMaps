@@ -18,19 +18,18 @@ const MapComponent = ({
   showRouteAnimator,
   onHideRouteAnimator,
   onMapReady,
-  onModesAutoUpdate,
-  isDarkMode = false
+  onModesAutoUpdate
 }) => {
   const mapRef = useRef();
   const [map, setMap] = useState(null);
   const [directionsService, setDirectionsService] = useState(null);
   const [mapError, setMapError] = useState(null);
-  
+
 
   // Initialize map
   const initMap = useCallback(() => {
     if (!mapRef.current) return;
-    
+
     try {
       // Check if map already exists on the DOM element
       if (mapRef.current._mapInstance) {
@@ -185,15 +184,6 @@ const MapComponent = ({
     }
   }, [map, center, shouldCenterMap, onMapCentered]);
 
-  // Handle dark mode toggle using colorScheme API
-  useEffect(() => {
-    if (map) {
-      map.setOptions({
-        colorScheme: isDarkMode ? 'DARK' : 'LIGHT'
-      });
-    }
-  }, [map, isDarkMode]);
-
   // Show error boundary if there's an error
   if (mapError) {
     return <MapErrorBoundary 
@@ -245,7 +235,6 @@ export default React.memo(MapComponent, (prevProps, nextProps) => {
     prevProps.directionsRoute?.routeId === nextProps.directionsRoute?.routeId &&
     prevProps.showRouteAnimator === nextProps.showRouteAnimator &&
     prevProps.isMobile === nextProps.isMobile &&
-    prevProps.isDarkMode === nextProps.isDarkMode &&
     // IMPORTANT: Also check if directionsLocations changed!
     JSON.stringify(prevProps.directionsLocations) === JSON.stringify(nextProps.directionsLocations) &&
     JSON.stringify(prevProps.directionsLegModes) === JSON.stringify(nextProps.directionsLegModes)

@@ -8,7 +8,6 @@ import { saveRoute } from '../utils/savedRoutesUtils';
 import Modal from './Desktop/RouteAnimator/Modal';
 import { SaveRouteModal } from './SaveRouteModal';
 import { SavedRoutesModal } from './SavedRoutesModal';
-import DarkModeToggle from './Shared/DarkModeToggle/DarkModeToggle.jsx';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -21,8 +20,7 @@ function AppContent() {
   const isMobile = useMobileDetection();
   const [showRouteAnimator, setShowRouteAnimator] = useState(!isMobile); // Show on desktop by default, hide on mobile
   const [mapInstance, setMapInstance] = useState(null); // Store map instance
-  const [isDarkMode, setIsDarkMode] = useState(false); // Dark mode state
-  
+
   // Undo functionality
   const [history, setHistory] = useState([]);
   const [lastAction, setLastAction] = useState(null);
@@ -403,7 +401,6 @@ function AppContent() {
               // When routes are auto-switched to flight, update the UI modes
               setDirectionsLegModes(updatedModes);
             }}
-            isDarkMode={isDarkMode}
           />
           {!isAnimating && (
             <>
@@ -441,17 +438,6 @@ function AppContent() {
                 >
                   ☕ Buy me a coffee
                 </a>
-              </div>
-              <div style={{
-                position: 'absolute',
-                top: '65px',
-                right: '20px',
-                zIndex: 1000
-              }}>
-                <DarkModeToggle
-                  isDark={isDarkMode}
-                  onToggle={() => setIsDarkMode(!isDarkMode)}
-                />
               </div>
             </>
           )}
