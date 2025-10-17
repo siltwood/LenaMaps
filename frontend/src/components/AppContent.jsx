@@ -8,6 +8,10 @@ import { saveRoute } from '../utils/savedRoutesUtils';
 import Modal from './Desktop/RouteAnimator/Modal';
 import { SaveRouteModal } from './SaveRouteModal';
 import { SavedRoutesModal } from './SavedRoutesModal';
+import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
+import { initFingerprint } from '../utils/fingerprint';
+import AuthModal from './Shared/AuthModal/AuthModal';
+import UsageIndicator from './Shared/UsageIndicator/UsageIndicator';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -34,6 +38,13 @@ function AppContent() {
   // Save/Load modals
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
+
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('login');
+  const [authModalMessage, setAuthModalMessage] = useState('');
   
   // Listen for route calculation errors
   useEffect(() => {
@@ -75,7 +86,32 @@ function AppContent() {
       window.removeEventListener('routeCalculationError', handleRouteError);
     };
   }, [directionsLocations, history]);
-  
+
+  // Initialize authentication and fingerprinting
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      // Initialize fingerprinting for anonymous users
+      initFingerprint();
+
+      // Check for existing session
+      const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user || null);
+      };
+
+      checkSession();
+
+      // Listen for auth state changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+        setUser(session?.user || null);
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, []);
+
   // Check for shared trip in URL on mount
   useEffect(() => {
     if (hasSharedTrip()) {
@@ -285,6 +321,21 @@ function AppContent() {
     setDirectionsLegModes(newModes);
   }, [saveToHistory]);
 
+  // Handle authentication success
+  const handleAuthSuccess = useCallback((user, session) => {
+    setUser(user);
+    setSession(session);
+    setShowAuthModal(false);
+    // Could refresh usage indicator here if needed
+  }, []);
+
+  // Handle rate limit exceeded - show sign-up modal
+  const handleRateLimitExceeded = useCallback(() => {
+    setAuthModalMode('signup');
+    setAuthModalMessage("You've reached your daily limit. Sign up to get 5 routes per day!");
+    setShowAuthModal(true);
+  }, []);
+
   // Handle saving a route
   const handleSaveRoute = useCallback((routeData) => {
     const filledLocations = directionsLocations.filter(loc => loc !== null);
@@ -380,6 +431,19 @@ function AppContent() {
         </div>
         </header>
       )}
+
+      {/* Usage Indicator - shown between header and main content */}
+      {isSupabaseConfigured() && !isAnimating && (
+        <UsageIndicator
+          user={user}
+          onUpgradeClick={() => {
+            setAuthModalMode('signup');
+            setAuthModalMessage('Sign up to get 5 routes per day instead of 1!');
+            setShowAuthModal(true);
+          }}
+        />
+      )}
+
       <div className="main-content">
         <div className="map-container">
           <GoogleMap
@@ -522,6 +586,17 @@ function AppContent() {
         onClose={() => setShowSavedRoutesModal(false)}
         onLoadRoute={handleLoadRoute}
       />
+
+      {/* Authentication Modal */}
+      {isSupabaseConfigured() && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+          initialMode={authModalMode}
+          message={authModalMessage}
+        />
+      )}
     </div>
   );
 }
