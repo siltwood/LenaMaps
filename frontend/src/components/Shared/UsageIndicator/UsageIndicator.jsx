@@ -9,6 +9,17 @@ const UsageIndicator = ({ user, onUpgradeClick }) => {
 
   useEffect(() => {
     fetchUsage();
+
+    // Listen for usage updates (when routes are created)
+    const handleUsageUpdate = () => {
+      fetchUsage();
+    };
+
+    window.addEventListener('usageUpdated', handleUsageUpdate);
+
+    return () => {
+      window.removeEventListener('usageUpdated', handleUsageUpdate);
+    };
   }, [user]);
 
   const fetchUsage = async () => {

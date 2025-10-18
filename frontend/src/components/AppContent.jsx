@@ -12,6 +12,7 @@ import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 import { initFingerprint } from '../utils/fingerprint';
 import AuthModal from './Shared/AuthModal/AuthModal';
 import UsageIndicator from './Shared/UsageIndicator/UsageIndicator';
+import { checkCanCreateRoute, trackRouteCreation } from '../utils/rateLimitCheck';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -45,6 +46,9 @@ function AppContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('login');
   const [authModalMessage, setAuthModalMessage] = useState('');
+
+  // Track if we've already tracked this route creation
+  const [routeTracked, setRouteTracked] = useState(false);
   
   // Listen for route calculation errors
   useEffect(() => {
@@ -111,6 +115,21 @@ function AppContent() {
       return () => subscription.unsubscribe();
     }
   }, []);
+
+  // Track route creation when a route is successfully calculated
+  useEffect(() => {
+    if (isSupabaseConfigured() && directionsRoute && !routeTracked) {
+      // Only track if we have at least 2 locations (an actual route)
+      const filledLocations = directionsLocations.filter(loc => loc !== null);
+      if (filledLocations.length >= 2) {
+        trackRouteCreation(user).then(() => {
+          setRouteTracked(true);
+          // Optionally trigger a refresh of the usage indicator
+          window.dispatchEvent(new Event('usageUpdated'));
+        });
+      }
+    }
+  }, [directionsRoute, routeTracked, directionsLocations, user]);
 
   // Check for shared trip in URL on mount
   useEffect(() => {
@@ -274,21 +293,53 @@ function AppContent() {
   }, []);
 
   // Wrapped setters that save to history
-  const setDirectionsLocationsWithHistory = useCallback((newLocations, actionType, extraData) => {
+  const setDirectionsLocationsWithHistory = useCallback(async (newLocations, actionType, extraData) => {
+    // Count how many non-null locations we currently have vs will have
+    const currentFilledCount = directionsLocations.filter(loc => loc !== null).length;
+    const newFilledCount = newLocations.filter(loc => loc !== null).length;
+
+    // If going from 1 to 2+ locations (creating a route), check rate limit
+    if (isSupabaseConfigured() && currentFilledCount === 1 && newFilledCount >= 2) {
+      try {
+        const { canCreate, usageData } = await checkCanCreateRoute(user);
+
+        if (!canCreate) {
+          // Rate limit exceeded - show auth modal
+          if (user) {
+            // Authenticated user hit their limit
+            setAuthModalMode('signup'); // Could be a "upgrade" mode in the future
+            setAuthModalMessage(`You've used all ${usageData?.daily_limit || 5} routes today. Come back tomorrow!`);
+          } else {
+            // Anonymous user hit their limit
+            setAuthModalMode('signup');
+            setAuthModalMessage("You've reached your daily limit. Sign up to get 5 routes per day instead of 1!");
+          }
+          setShowAuthModal(true);
+          return; // Don't allow the location change
+        }
+
+        // Can create - reset tracking flag so we track this new route
+        setRouteTracked(false);
+      } catch (error) {
+        console.error('Rate limit check failed:', error);
+        // On error, allow the operation to continue
+      }
+    }
+
     // Only save to history if there's an actual change and an action type
     if (actionType && JSON.stringify(newLocations) !== JSON.stringify(directionsLocations)) {
       // Find what changed by comparing
       let action = { type: actionType };
-      
+
       // Find the index that changed
       for (let i = 0; i < Math.max(newLocations.length, directionsLocations.length); i++) {
         const oldLoc = directionsLocations[i];
         const newLoc = newLocations[i];
-        
+
         // Check if this location changed (comparing coordinates or null state)
         const oldKey = oldLoc ? `${oldLoc.lat},${oldLoc.lng}` : 'null';
         const newKey = newLoc ? `${newLoc.lat},${newLoc.lng}` : 'null';
-        
+
         if (oldKey !== newKey) {
           action.index = i;
           action.oldLocation = oldLoc;
@@ -296,17 +347,17 @@ function AppContent() {
           break;
         }
       }
-      
+
       // Add any extra data
       if (extraData) {
         action = { ...action, ...extraData };
       }
-      
+
       // Save the CURRENT state (before change) to history
       saveToHistory(action);
     }
     setDirectionsLocations(newLocations);
-  }, [saveToHistory, directionsLocations]);
+  }, [saveToHistory, directionsLocations, user]);
 
   const setDirectionsLegModesWithHistory = useCallback((newModes, index) => {
     // Create action for mode change if index is provided
