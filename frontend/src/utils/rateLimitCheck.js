@@ -1,7 +1,7 @@
 import { getFingerprint } from './fingerprint';
 import { supabase } from './supabaseClient';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'http://localhost:5001';
 
 /**
  * Check if user can create a new route based on their daily limit
@@ -34,7 +34,7 @@ export const checkCanCreateRoute = async (user) => {
     const data = await response.json();
 
     return {
-      canCreate: data.can_create_route,
+      canCreate: data.canCreateRoute,
       usageData: data
     };
   } catch (error) {

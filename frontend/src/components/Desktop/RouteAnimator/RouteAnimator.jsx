@@ -17,7 +17,7 @@ import { isMobileDevice } from '../../../utils/deviceDetection';
 import '../../../styles/unified-icons.css';
 import './RouteAnimator.css';
 
-const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, isMobile = false, forceShow = false, onClose, embeddedInModal = false, onMinimize }) => {
+const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimationStart, isMobile = false, forceShow = false, onClose, embeddedInModal = false, onMinimize }) => {
   
   // Start expanded on desktop and when forceShow is true on mobile
   const [isMinimized, setIsMinimized] = useState(() => {
@@ -646,13 +646,21 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, isMobile 
     const locations = directionsRoute.allLocations.filter(loc => loc !== null);
     if (locations.length >= 2) {
       const firstLoc = locations[0];
-      const allSame = locations.every(loc => 
+      const allSame = locations.every(loc =>
         loc.lat === firstLoc.lat && loc.lng === firstLoc.lng
       );
-      
+
       if (allSame) {
         showModal('Cannot animate a route where all locations are the same point.', 'Same Location', 'info');
         return;
+      }
+    }
+
+    // Check rate limit before starting animation
+    if (onAnimationStart) {
+      const canAnimate = await onAnimationStart();
+      if (!canAnimate) {
+        return; // Rate limit exceeded, don't start animation
       }
     }
 

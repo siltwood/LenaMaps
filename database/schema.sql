@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium')),
-    daily_route_limit INTEGER DEFAULT 5, -- 5 routes/day for authenticated users
+    daily_route_limit INTEGER DEFAULT 2, -- TESTING: 2 routes/day for authenticated users (normally 5)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -154,7 +154,7 @@ BEGIN
         AND date = CURRENT_DATE;
     ELSE
         -- Anonymous user: check by anonymous_id OR IP
-        v_limit := 1; -- Anonymous users get 1 route/day
+        v_limit := 1; -- TESTING: Anonymous users get 1 route/day (keep at 1 for testing)
 
         -- Count routes by anonymous_id or IP
         SELECT COALESCE(SUM(route_count), 0)::INTEGER INTO v_routes_used

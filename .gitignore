@@ -181,5 +181,6 @@ $RECYCLE.BIN/
 .claude-todo.json
 todo.json
 
-# Implementation guides
-IMPLEMENTATION_GUIDE.md 
+# Planning and implementation docs
+IMPLEMENTATION_GUIDE.md
+APP_PLANNING.md

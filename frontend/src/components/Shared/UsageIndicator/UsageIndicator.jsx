@@ -29,20 +29,24 @@ const UsageIndicator = ({ user, onUpgradeClick }) => {
     }
 
     try {
-      // Get anonymous ID if not authenticated
-      const anonymousId = user ? null : await getFingerprint();
+      // Build URL with query params for anonymous users
+      let url = 'http://localhost:5001/api/usage/check';
+      const headers = {};
+
+      if (user) {
+        // Authenticated user - use auth header
+        const session = await supabase.auth.getSession();
+        if (session?.data?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.data.session.access_token}`;
+        }
+      } else {
+        // Anonymous user - include fingerprint in query
+        const anonymousId = await getFingerprint();
+        url += `?anonymousId=${anonymousId}`;
+      }
 
       // Fetch usage from backend
-      const response = await fetch(
-        `http://localhost:5000/api/usage/check?anonymousId=${anonymousId || ''}`,
-        {
-          headers: user
-            ? {
-                Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-              }
-            : {}
-        }
-      );
+      const response = await fetch(url, { headers });
 
       if (response.ok) {
         const data = await response.json();

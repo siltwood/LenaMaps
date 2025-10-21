@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LocationSearch } from './Shared';
 import { DirectionsPanel } from './Desktop';
 import { MobileControls } from './Mobile';
@@ -47,8 +47,9 @@ function AppContent() {
   const [authModalMode, setAuthModalMode] = useState('login');
   const [authModalMessage, setAuthModalMessage] = useState('');
 
-  // Track if we've already tracked this route creation
-  const [routeTracked, setRouteTracked] = useState(false);
+  // Route locking state
+  const [isRouteLocked, setIsRouteLocked] = useState(false);
+  const [hasUsedRouteToday, setHasUsedRouteToday] = useState(false); // Track if they've used their daily limit
   
   // Listen for route calculation errors
   useEffect(() => {
@@ -116,20 +117,99 @@ function AppContent() {
     }
   }, []);
 
-  // Track route creation when a route is successfully calculated
-  useEffect(() => {
-    if (isSupabaseConfigured() && directionsRoute && !routeTracked) {
-      // Only track if we have at least 2 locations (an actual route)
-      const filledLocations = directionsLocations.filter(loc => loc !== null);
-      if (filledLocations.length >= 2) {
-        trackRouteCreation(user).then(() => {
-          setRouteTracked(true);
-          // Optionally trigger a refresh of the usage indicator
-          window.dispatchEvent(new Event('usageUpdated'));
-        });
-      }
+  // Callback for route animation start - lock route on FIRST play and track usage
+  const handleAnimationStart = async () => {
+    // DEV MODE: Skip rate limiting
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev || !isSupabaseConfigured()) {
+      return true; // Allow animation in dev mode or if Supabase not configured
     }
-  }, [directionsRoute, routeTracked, directionsLocations, user]);
+
+    // If route is already locked, allow animation (free replays)
+    if (isRouteLocked) {
+      return true;
+    }
+
+    // First time playing - lock the route and track usage
+    try {
+      const { canCreate, usageData } = await checkCanCreateRoute(user);
+
+      if (!canCreate) {
+        // Rate limit exceeded - show modal and don't lock/animate
+        if (user) {
+          setAuthModalMode('signup');
+          setAuthModalMessage(`You've used all ${usageData?.daily_limit || 2} routes today. Come back tomorrow!`);
+        } else {
+          setAuthModalMode('signup');
+          setAuthModalMessage("You've reached your daily limit. Sign up to get more routes per day!");
+        }
+        setShowAuthModal(true);
+        setHasUsedRouteToday(true);
+        return false; // Block animation
+      }
+
+      // Track the route
+      await trackRouteCreation(user);
+      setIsRouteLocked(true); // Lock this route
+      window.dispatchEvent(new Event('usageUpdated'));
+
+      // Check if they're now at their limit
+      const updatedUsage = await checkCanCreateRoute(user);
+      setHasUsedRouteToday(!updatedUsage.canCreate);
+
+      return true; // Allow animation
+    } catch (error) {
+      console.error('Rate limit check failed:', error);
+      return true; // On error, allow the operation
+    }
+  };
+
+  // Auto-lock route when it reaches 10 markers
+  useEffect(() => {
+    // DEV MODE: Skip rate limiting
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev || !isSupabaseConfigured()) {
+      return;
+    }
+
+    const filledLocations = directionsLocations.filter(loc => loc !== null);
+
+    // If route has 10 markers and isn't locked yet, lock it automatically
+    if (filledLocations.length >= 10 && !isRouteLocked && directionsRoute) {
+      const autoLockRoute = async () => {
+        try {
+          const { canCreate, usageData } = await checkCanCreateRoute(user);
+
+          if (!canCreate) {
+            // Rate limit exceeded - show modal
+            if (user) {
+              setAuthModalMode('signup');
+              setAuthModalMessage(`You've used all ${usageData?.daily_limit || 2} routes today. Come back tomorrow!`);
+            } else {
+              setAuthModalMode('signup');
+              setAuthModalMessage("You've reached your daily limit. Sign up to get more routes per day!");
+            }
+            setShowAuthModal(true);
+            setHasUsedRouteToday(true);
+            return;
+          }
+
+          // Track and lock the route
+          await trackRouteCreation(user);
+          setIsRouteLocked(true);
+          window.dispatchEvent(new Event('usageUpdated'));
+
+          // Check if they're now at their limit
+          const updatedUsage = await checkCanCreateRoute(user);
+          setHasUsedRouteToday(!updatedUsage.canCreate);
+        } catch (error) {
+          console.error('Failed to auto-lock route:', error);
+        }
+      };
+
+      autoLockRoute();
+    }
+  }, [directionsLocations, isRouteLocked, directionsRoute, user]);
 
   // Check for shared trip in URL on mount
   useEffect(() => {
@@ -277,7 +357,8 @@ function AppContent() {
 
   const handleLocationSearch = useCallback((location) => {
     setMapCenter({ lat: location.lat, lng: location.lng });
-    setShouldCenterMap(true);
+    // Don't auto-center - let user control the map view
+    // setShouldCenterMap(true);
   }, []);
 
   const handleMapCentered = useCallback(() => {
@@ -294,35 +375,27 @@ function AppContent() {
 
   // Wrapped setters that save to history
   const setDirectionsLocationsWithHistory = useCallback(async (newLocations, actionType, extraData) => {
-    // Count how many non-null locations we currently have vs will have
-    const currentFilledCount = directionsLocations.filter(loc => loc !== null).length;
-    const newFilledCount = newLocations.filter(loc => loc !== null).length;
+    // DEV MODE: Skip locking checks
+    const isDev = process.env.NODE_ENV === 'development';
 
-    // If going from 1 to 2+ locations (creating a route), check rate limit
-    if (isSupabaseConfigured() && currentFilledCount === 1 && newFilledCount >= 2) {
-      try {
-        const { canCreate, usageData } = await checkCanCreateRoute(user);
+    if (!isDev) {
+      // Block editing if route is locked or user is at daily limit
+      if (isRouteLocked) {
+        console.log('Route is locked - cannot edit markers');
+        return;
+      }
 
-        if (!canCreate) {
-          // Rate limit exceeded - show auth modal
-          if (user) {
-            // Authenticated user hit their limit
-            setAuthModalMode('signup'); // Could be a "upgrade" mode in the future
-            setAuthModalMessage(`You've used all ${usageData?.daily_limit || 5} routes today. Come back tomorrow!`);
-          } else {
-            // Anonymous user hit their limit
-            setAuthModalMode('signup');
-            setAuthModalMessage("You've reached your daily limit. Sign up to get 5 routes per day instead of 1!");
-          }
-          setShowAuthModal(true);
-          return; // Don't allow the location change
+      if (hasUsedRouteToday && isSupabaseConfigured()) {
+        // Show modal that they've hit their limit
+        if (user) {
+          setAuthModalMode('signup');
+          setAuthModalMessage("You've used all your routes today. Come back tomorrow or upgrade!");
+        } else {
+          setAuthModalMode('signup');
+          setAuthModalMessage("You've reached your daily limit. Sign up to get more routes per day!");
         }
-
-        // Can create - reset tracking flag so we track this new route
-        setRouteTracked(false);
-      } catch (error) {
-        console.error('Rate limit check failed:', error);
-        // On error, allow the operation to continue
+        setShowAuthModal(true);
+        return;
       }
     }
 
@@ -357,9 +430,26 @@ function AppContent() {
       saveToHistory(action);
     }
     setDirectionsLocations(newLocations);
-  }, [saveToHistory, directionsLocations, user]);
+
+    // If user clears all locations, unlock the route
+    const filledLocations = newLocations.filter(loc => loc !== null);
+    if (filledLocations.length === 0) {
+      setIsRouteLocked(false);
+    }
+  }, [saveToHistory, directionsLocations, user, isRouteLocked, hasUsedRouteToday]);
 
   const setDirectionsLegModesWithHistory = useCallback((newModes, index) => {
+    // DEV MODE: Skip locking checks
+    const isDev = process.env.NODE_ENV === 'development';
+
+    if (!isDev) {
+      // Block editing if route is locked
+      if (isRouteLocked) {
+        console.log('Route is locked - cannot change modes');
+        return;
+      }
+    }
+
     // Create action for mode change if index is provided
     if (index !== undefined) {
       const action = {
@@ -370,7 +460,7 @@ function AppContent() {
       saveToHistory(action);
     }
     setDirectionsLegModes(newModes);
-  }, [saveToHistory]);
+  }, [saveToHistory, isRouteLocked]);
 
   // Handle authentication success
   const handleAuthSuccess = useCallback((user, session) => {
@@ -506,6 +596,7 @@ function AppContent() {
             directionsLocations={directionsLocations}
             directionsLegModes={directionsLegModes}
             onAnimationStateChange={setIsAnimating}
+            onAnimationStart={handleAnimationStart}
             isMobile={isMobile}
             showRouteAnimator={showRouteAnimator}
             onHideRouteAnimator={() => {
@@ -591,6 +682,7 @@ function AppContent() {
           showRouteAnimator={showRouteAnimator}
           map={mapInstance}
           onAnimationStateChange={setIsAnimating}
+          onAnimationStart={handleAnimationStart}
         />
       ) : (
         !isAnimating && (
