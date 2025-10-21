@@ -728,11 +728,16 @@ const RouteSegmentManager = ({
             travelMode: travelMode
           };
           
-          // Add transit preferences - let Google handle the best route including connections
+          // Add transit preferences - only rail-based transit (no buses)
           if (segmentMode === 'transit') {
             request.transitOptions = {
+              modes: [
+                window.google.maps.TransitMode.RAIL,    // All rail
+                window.google.maps.TransitMode.SUBWAY,  // Subway
+                window.google.maps.TransitMode.TRAIN,   // Inter-city trains
+                window.google.maps.TransitMode.TRAM     // Light rail/tram
+              ],
               routingPreference: 'FEWER_TRANSFERS'  // Minimize transfers for better experience
-              // Don't restrict modes - let Google include walking/bus to reach rail stations
             };
           }
           
@@ -771,51 +776,73 @@ const RouteSegmentManager = ({
                 // Cache the successful result
                 directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
             } catch (err) {
-              // If transit fails, always fall back to car route
+              // If transit fails, fall back to flight path with train styling
               if (segmentMode === 'transit') {
-                // Check cache for fallback route
-                const cachedFallback = directionsCache.get(segmentOrigin, segmentDestination, 'car');
-                if (cachedFallback) {
-                  result = cachedFallback;
-                  routeFound = true;
-                  actualModeUsed = 'car';
+                // Generate curved arc path like a flight, but keep train colors
+                const flightPath = generateFlightArc(segmentOrigin, segmentDestination);
+
+                // Create a polyline with TRAIN colors but FLIGHT path
+                const transitPolyline = new window.google.maps.Polyline({
+                  path: flightPath,
+                  geodesic: false,
+                  strokeColor: getTransportationColor('transit'), // Train color
+                  strokeOpacity: 1.0,
+                  strokeWeight: 4,
+                  map: map,
+                  zIndex: 1000
+                });
+
+                // Create markers with TRAIN icon
+                const markers = {};
+                const modeIcon = TRANSPORT_ICONS['transit']; // Train emoji
+                const modeColor = getTransportationColor('transit');
+
+                // Add markers
+                if (i === 0) {
+                  markers.start = createMarker(segmentOrigin, modeIcon, modeColor, 'Start', 5000, false);
                 } else {
-                  try {
-                    const driveRequest = {
-                      origin: request.origin,
-                      destination: request.destination,
-                      travelMode: window.google.maps.TravelMode.DRIVING
-                    };
-                    
-                    result = await new Promise((resolve, reject) => {
-                      directionsService.route(driveRequest, (result, status) => {
-                        if (status === window.google.maps.DirectionsStatus.OK) {
-                          resolve(result);
-                        } else {
-                          reject(status);
-                        }
-                      });
-                    });
-                    
-                    // Keep transit mode for visual styling - it's a "fake train" using roads
-                    routeFound = true;
-                    actualModeUsed = 'car'; // Internally it's a car route
-                    // Cache the fallback result
-                    directionsCache.set(segmentOrigin, segmentDestination, 'car', result);
-                    // But we keep segmentMode as 'transit' for coloring and icons
-                    
-                    // Optional: dispatch an info event
-                    const infoEvent = new CustomEvent('routeInfo', {
-                      detail: {
-                        message: 'No rail route found - using road route with train styling',
-                        type: 'info'
-                      }
-                    });
-                    window.dispatchEvent(infoEvent);
-                  } catch (driveErr) {
-                    routeFound = false;
-                  }
+                  markers.waypoint = createMarker(segmentOrigin, modeIcon, modeColor, `Stop ${i}`, 5000, false);
                 }
+
+                if (i === validLocations.length - 2) {
+                  markers.end = createMarker(segmentDestination, modeIcon, modeColor, 'End', 5001, false);
+                }
+
+                // Store the segment with fake route data
+                const segment = {
+                  id: `segment-${i}`,
+                  index: i,
+                  mode: 'transit', // Keep as transit for styling
+                  startLocation: segmentOrigin,
+                  endLocation: segmentDestination,
+                  polyline: transitPolyline,
+                  markers: markers,
+                  route: {
+                    routes: [{
+                      overview_path: flightPath,
+                      legs: [{
+                        start_location: segmentOrigin,
+                        end_location: segmentDestination,
+                        steps: [{ path: flightPath }],
+                        distance: { text: `${distance.toFixed(0)} km`, value: distance * 1000 },
+                        duration: { text: `${Math.round(distance / 200 * 60)} min`, value: Math.round(distance / 200 * 3600) } // Assume 200km/h train speed
+                      }]
+                    }]
+                  }
+                };
+
+                newSegments.push(segment);
+                routeFound = true;
+
+                // Dispatch info event
+                const infoEvent = new CustomEvent('routeInfo', {
+                  detail: {
+                    message: 'No rail route found - showing straight line with train styling',
+                    type: 'info'
+                  }
+                });
+                window.dispatchEvent(infoEvent);
+                continue; // Skip normal route processing
               }
               // If bike mode fails, try walking or driving as fallback
               else if (segmentMode === 'bike') {
