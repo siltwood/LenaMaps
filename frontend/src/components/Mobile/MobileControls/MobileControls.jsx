@@ -6,6 +6,7 @@ import { generateShareableURL, copyToClipboard } from '../../../utils/shareUtils
 import { saveRoute } from '../../../utils/savedRoutesUtils';
 import { SaveRouteModal } from '../../SaveRouteModal';
 import { SavedRoutesModal } from '../../SavedRoutesModal';
+import CustomRouteDrawer from '../../Shared/GoogleMap/components/CustomRouteDrawer';
 import '../../../styles/unified-icons.css';
 import './MobileControls.css';
 
@@ -40,7 +41,10 @@ const MobileControls = ({
   const initialDragHeight = useRef(40); // Store height at start of drag
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
-  
+  const [customDrawEnabled, setCustomDrawEnabled] = useState([]); // Track which segments have custom drawing enabled
+  const [snapToRoads, setSnapToRoads] = useState([]); // Track snap-to-roads for each segment
+  const [customStrokes, setCustomStrokes] = useState({}); // Store custom strokes per segment
+
   // Reset position when card is shown
   useEffect(() => {
     if (showCard) {
@@ -242,6 +246,48 @@ const MobileControls = ({
     }
   };
 
+  const handleStrokeComplete = (strokeData) => {
+    const { segmentIndex, points, snapped, mode } = strokeData;
+
+    // Add stroke to the customStrokes state
+    setCustomStrokes(prev => {
+      const segmentStrokes = prev[segmentIndex] || [];
+      return {
+        ...prev,
+        [segmentIndex]: [...segmentStrokes, { points, snapped, mode }]
+      };
+    });
+
+    // Notify parent of the action for undo tracking
+    if (onLocationsChange) {
+      onLocationsChange(locations, 'DRAW_CUSTOM_STROKE', {
+        segmentIndex,
+        stroke: { points, snapped, mode }
+      });
+    }
+  };
+
+  const handleUndoStroke = (segmentIndex) => {
+    setCustomStrokes(prev => {
+      const segmentStrokes = prev[segmentIndex] || [];
+      if (segmentStrokes.length === 0) return prev;
+
+      // Remove the last stroke
+      const newSegmentStrokes = segmentStrokes.slice(0, -1);
+
+      if (newSegmentStrokes.length === 0) {
+        // No more strokes for this segment, remove the key
+        const newStrokes = { ...prev };
+        delete newStrokes[segmentIndex];
+        return newStrokes;
+      }
+
+      return {
+        ...prev,
+        [segmentIndex]: newSegmentStrokes
+      };
+    });
+  };
 
   // Handle drag events (both touch and mouse for testing)
   const handleDragStart = (e) => {
@@ -355,12 +401,143 @@ const MobileControls = ({
   };
 
   // Render planner view
+  const handleSetLocations = (startPoint, endPoint) => {
+    // Auto-set Point A and Point B from the drawn stroke
+    const newLocations = [...locations];
+
+    // If startPoint is null, keep existing Point A (for continuous drawing)
+    if (startPoint !== null) {
+      newLocations[0] = startPoint;
+    }
+
+    // Always update Point B
+    newLocations[1] = endPoint;
+
+    if (onLocationsChange) {
+      onLocationsChange(newLocations, 'ADD_LOCATION');
+    }
+  };
+
   const renderPlanner = () => (
     <>
       <div className="mobile-planner-header">
         <h2>Visualize Your Route</h2>
       </div>
       <div className="mobile-planner-content">
+        {/* Mode selector and draw toggle - appears BEFORE location inputs */}
+        <div style={{ marginBottom: '16px', padding: '0 8px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
+            Transportation Mode:
+          </label>
+          <div className="mobile-segment-transport">
+            {Object.entries(TRANSPORTATION_MODES).filter(([mode]) => mode !== 'custom').map(([mode, config]) => (
+              <button
+                key={mode}
+                className={`mobile-transport-btn ${(legModes[0] || 'walk') === mode ? 'active' : ''}`}
+                onClick={() => {
+                  const newModes = [...legModes];
+                  newModes[0] = mode;
+                  onLegModesChange(newModes);
+                }}
+                title={mode}
+              >
+                {config.icon}
+              </button>
+            ))}
+          </div>
+
+          {/* Draw Custom Route toggle */}
+          <div style={{ marginTop: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={customDrawEnabled[0] || false}
+                onChange={(e) => {
+                  const newEnabled = [...customDrawEnabled];
+                  newEnabled[0] = e.target.checked;
+                  setCustomDrawEnabled(newEnabled);
+
+                  if (!e.target.checked) {
+                    const newStrokes = { ...customStrokes };
+                    delete newStrokes[0];
+                    setCustomStrokes(newStrokes);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Draw Custom Route</span>
+            </label>
+
+            {/* Snap to roads toggle */}
+            {customDrawEnabled[0] && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', marginLeft: '24px', marginTop: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={snapToRoads[0] || false}
+                  onChange={(e) => {
+                    const newSnap = [...snapToRoads];
+                    newSnap[0] = e.target.checked;
+                    setSnapToRoads(newSnap);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>Snap to Roads</span>
+              </label>
+            )}
+
+            {/* Stroke controls */}
+            {customDrawEnabled[0] && customStrokes[0] && customStrokes[0].length > 0 && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button
+                  onClick={() => handleUndoStroke(0)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    backgroundColor: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ↩️ Undo ({customStrokes[0].length})
+                </button>
+                <button
+                  onClick={() => {
+                    const newStrokes = { ...customStrokes };
+                    delete newStrokes[0];
+                    setCustomStrokes(newStrokes);
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    backgroundColor: '#fee2e2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🗑️ Clear
+                </button>
+              </div>
+            )}
+
+            {/* Instructions when draw mode is enabled */}
+            {customDrawEnabled[0] && (!customStrokes[0] || customStrokes[0].length === 0) && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#1e40af'
+              }}>
+                💡 Touch and drag on the map to draw your route. Point A will be where you start, Point B where you end.
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="mobile-segments-container">
           {/* Render all location segments */}
           {locations.map((location, index) => (
@@ -508,25 +685,106 @@ const MobileControls = ({
               
               {/* Transport mode selector between segments */}
               {index < locations.length - 1 && (
-                <div className="mobile-segment-transport">
-                  {Object.entries(TRANSPORTATION_MODES).map(([mode, config]) => (
-                    <button
-                      key={mode}
-                      className={`mobile-transport-btn ${legModes[index] === mode ? 'active' : ''}`}
-                      onClick={() => {
-                        const newModes = [...legModes];
-                        newModes[index] = mode;
-                        onLegModesChange(newModes);
-                        if (locations.filter(l => l).length >= 2) {
-                          calculateRoute(locations, newModes);
-                        }
-                      }}
-                      title={mode}
-                    >
-                      {config.icon}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="mobile-segment-transport">
+                    {Object.entries(TRANSPORTATION_MODES).filter(([mode]) => mode !== 'custom').map(([mode, config]) => (
+                      <button
+                        key={mode}
+                        className={`mobile-transport-btn ${legModes[index] === mode ? 'active' : ''}`}
+                        onClick={() => {
+                          const newModes = [...legModes];
+                          newModes[index] = mode;
+                          onLegModesChange(newModes);
+                          if (locations.filter(l => l).length >= 2) {
+                            calculateRoute(locations, newModes);
+                          }
+                        }}
+                        title={mode}
+                      >
+                        {config.icon}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom drawing toggles */}
+                  <div style={{ marginTop: '8px', marginLeft: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={customDrawEnabled[index] || false}
+                        onChange={(e) => {
+                          const newEnabled = [...customDrawEnabled];
+                          newEnabled[index] = e.target.checked;
+                          setCustomDrawEnabled(newEnabled);
+
+                          // Clear custom strokes if disabling
+                          if (!e.target.checked) {
+                            const newStrokes = { ...customStrokes };
+                            delete newStrokes[index];
+                            setCustomStrokes(newStrokes);
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>Draw Custom Route</span>
+                    </label>
+
+                    {/* Snap to roads toggle - only show if custom drawing is enabled */}
+                    {customDrawEnabled[index] && (
+                      <>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', marginLeft: '24px' }}>
+                          <input
+                            type="checkbox"
+                            checked={snapToRoads[index] || false}
+                            onChange={(e) => {
+                              const newSnap = [...snapToRoads];
+                              newSnap[index] = e.target.checked;
+                              setSnapToRoads(newSnap);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span>Snap to Roads</span>
+                        </label>
+
+                        {/* Clear/Undo buttons for custom strokes */}
+                        {customStrokes[index] && customStrokes[index].length > 0 && (
+                          <div style={{ display: 'flex', gap: '8px', marginLeft: '24px', marginTop: '8px' }}>
+                            <button
+                              onClick={() => handleUndoStroke(index)}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '13px',
+                                backgroundColor: '#f3f4f6',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ↩️ Undo ({customStrokes[index].length})
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newStrokes = { ...customStrokes };
+                                delete newStrokes[index];
+                                setCustomStrokes(newStrokes);
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '13px',
+                                backgroundColor: '#fee2e2',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🗑️ Clear
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           ))}
@@ -763,6 +1021,43 @@ const MobileControls = ({
         onClose={() => setShowSavedRoutesModal(false)}
         onLoadRoute={handleLoadRoute}
       />
+
+      {/* Custom Route Drawers - one for each segment with drawing enabled */}
+      {map && locations.map((_, index) => {
+        if (index >= locations.length - 1) return null; // No drawer for last location
+        if (!customDrawEnabled[index]) return null; // Only render if drawing is enabled
+
+        return (
+          <CustomRouteDrawer
+            key={`drawer-${index}`}
+            map={map}
+            segmentIndex={index}
+            isEnabled={customDrawEnabled[index]}
+            snapToRoads={snapToRoads[index] || false}
+            mode={legModes[index] || 'walk'}
+            onStrokeComplete={handleStrokeComplete}
+            onSetLocations={index === 0 ? handleSetLocations : null}
+            previousLocation={index > 0 ? locations[index] : null}
+            existingStrokes={customStrokes[index] || []}
+          />
+        );
+      })}
+
+      {/* ALSO render a drawer even with NO locations if draw mode is enabled */}
+      {map && customDrawEnabled[0] && locations.filter(l => l).length === 0 && (
+        <CustomRouteDrawer
+          key="drawer-initial"
+          map={map}
+          segmentIndex={0}
+          isEnabled={true}
+          snapToRoads={snapToRoads[0] || false}
+          mode={legModes[0] || 'walk'}
+          onStrokeComplete={handleStrokeComplete}
+          onSetLocations={handleSetLocations}
+          previousLocation={null}
+          existingStrokes={customStrokes[0] || []}
+        />
+      )}
     </div>
   );
 };
