@@ -1,9 +1,9 @@
 .route-animator {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+  background: var(--color-bg-white);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
   z-index: 2000;
   width: 400px;
 }
@@ -22,19 +22,19 @@
     max-height: 240px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    border-radius: 12px !important;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-md) !important;
   }
 }
 
 .route-animator-header {
-  padding: 1.25rem 1.5rem;
+  padding: var(--spacing-lg) var(--spacing-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.8));
-  border-radius: 20px 20px 0 0;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+  background: var(--color-bg-gray);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(10px);
   position: relative;
 }
@@ -43,7 +43,7 @@
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-primary);
   flex: 1;
   text-align: left;
 }
@@ -52,7 +52,7 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .minimize-button,
@@ -61,23 +61,23 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
-  color: #666;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .minimize-button:hover,
 .collapse-button:hover,
 .close-button:hover {
-  background: #e9ecef;
-  color: #333;
+  background: var(--color-bg-gray-hover);
+  color: var(--color-text-primary);
 }
 
 /* Mobile header actions */
 .mobile-header-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   z-index: 10;
   position: relative;
 }
@@ -86,22 +86,22 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #666;
-  padding: 8px;
-  border-radius: 4px;
+  color: var(--color-text-secondary);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
   transition: all 0.2s;
   pointer-events: auto;
   z-index: 10;
 }
 
 .mobile-header-btn:hover {
-  background: #e9ecef;
-  color: #333;
+  background: var(--color-bg-gray-hover);
+  color: var(--color-text-primary);
 }
 
 
 .route-animator-content {
-  padding: 16px;
+  padding: var(--spacing-md);
   max-height: 400px;
   overflow-y: auto;
 }
@@ -109,19 +109,19 @@
 .controls-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .playback-controls {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
 .control-btn {
-  padding: 8px 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -133,43 +133,43 @@
 
 .control-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .control-btn.play {
-  background: #4CAF50;
+  background: var(--color-success);
   color: white;
 }
 
 .control-btn.play:hover {
-  background: #45a049;
+  background: #059669;
 }
 
 .control-btn.pause {
-  background: #ff9800;
+  background: var(--color-warning);
   color: white;
 }
 
 .control-btn.pause:hover {
-  background: #e68900;
+  background: #d97706;
 }
 
 .control-btn.stop {
-  background: #f44336;
+  background: var(--color-danger);
   color: white;
 }
 
 .control-btn.stop:hover {
-  background: #da190b;
+  background: var(--color-danger-dark);
 }
 
 .control-btn.record {
-  background: #2196F3;
+  background: var(--color-primary);
   color: white;
 }
 
 .control-btn.record:hover {
-  background: #0b7dda;
+  background: var(--color-primary-hover);
 }
 
 .control-btn.snapshot {
@@ -182,7 +182,7 @@
 }
 
 .control-btn.export {
-  background: #059669;
+  background: var(--color-success);
   color: white;
 }
 
@@ -191,17 +191,17 @@
 }
 
 .export-section {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e9ecef;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
 }
 
 .export-status {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
   background: #f0fdf4;
   border: 1px solid #86efac;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   text-align: center;
 }
 
@@ -212,18 +212,18 @@
 }
 
 .recording-tips {
-  margin-top: 20px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-gray);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .recording-tips h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .recording-tips ul {
@@ -235,7 +235,7 @@
 .recording-tips li {
   margin: 6px 0;
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -248,22 +248,22 @@
 .speed-control > label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 /* Speed control buttons */
 .speed-controls {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   justify-content: center;
 }
 
 .speed-btn {
   padding: 6px 12px;
-  border: 1px solid #ddd;
-  background: #f8f9fa;
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-gray);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
@@ -271,14 +271,14 @@
 }
 
 .speed-btn:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
+  background: var(--color-bg-gray-hover);
+  border-color: var(--color-border-hover);
 }
 
 .speed-btn.active {
-  background: #007bff;
+  background: var(--color-primary);
   color: white;
-  border-color: #007bff;
+  border-color: var(--color-primary);
 }
 
 .speed-btn .default-label {
@@ -292,7 +292,7 @@
 .mobile-section-label {
   font-size: 9px;
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-secondary);
   margin: 0;
   display: block;
   line-height: 1;
@@ -301,9 +301,9 @@
 /* Mobile radio group styling */
 .mobile-radio-group {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .mobile-radio {
@@ -313,22 +313,22 @@
   align-items: center;
   justify-content: center;
   padding: 10px 8px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--color-bg-white);
   position: relative;
   min-height: 55px;
 }
 
 .mobile-radio:hover {
-  border-color: #4285F4;
-  background: #f8f9fa;
+  border-color: var(--color-primary);
+  background: var(--color-bg-gray);
 }
 
 .mobile-radio.active {
-  border-color: #4285F4;
+  border-color: var(--color-primary);
   background: #e8f0fe;
   color: #1967d2;
   font-weight: 500;
@@ -348,13 +348,13 @@
 
 .mobile-radio small {
   font-size: 10px;
-  color: #666;
+  color: var(--color-text-secondary);
   user-select: none;
 }
 
 /* Mobile speed control - inline radio style like desktop */
 .speed-control-mobile {
-  margin: 16px 0;
+  margin: var(--spacing-md) 0;
 }
 
 .speed-radio-inline {
@@ -378,7 +378,7 @@
 }
 
 .speed-inline-radio span {
-  color: #333;
+  color: var(--color-text-primary);
   user-select: none;
 }
 
@@ -389,7 +389,7 @@
 
 .speed-inline-radio small {
   font-size: 11px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-left: 2px;
 }
 
@@ -399,7 +399,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 2px 10px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .mobile-card-header h4 {
@@ -450,18 +450,18 @@
   margin-top: 0;
   margin-bottom: 0;
   padding-top: 0;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .mobile-animator-controls .timeline-track {
   height: 2px;
-  background: #e2e8f0;
+  background: var(--color-border);
   border-radius: 1px;
 }
 
 .mobile-animator-controls .timeline-progress {
   height: 2px;
-  background: #3b82f6;
+  background: var(--color-primary);
   border-radius: 1px;
 }
 
@@ -471,45 +471,45 @@
 }
 
 .mobile-control-btn {
-  padding: 4px 10px;
+  padding: var(--spacing-xs) 10px;
   font-size: 11px;
   font-weight: 500;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
   margin-right: 6px;
 }
 
 .mobile-control-btn.play {
-  background: #4CAF50;
+  background: var(--color-success);
   color: white;
 }
 
 .mobile-control-btn.play:hover {
-  background: #45a049;
+  background: #059669;
 }
 
 .mobile-control-btn.pause {
-  background: #ff9800;
+  background: var(--color-warning);
   color: white;
 }
 
 .mobile-control-btn.pause:hover {
-  background: #e68900;
+  background: #d97706;
 }
 
 .mobile-control-btn.stop {
-  background: #f44336;
+  background: var(--color-danger);
   color: white;
 }
 
 .mobile-control-btn.stop:hover {
-  background: #da190b;
+  background: var(--color-danger-dark);
 }
 
 /* Make zoom controls look good on mobile */
@@ -520,18 +520,18 @@
   align-items: center;
   justify-content: center;
   padding: 3px 3px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 6px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--color-bg-white);
   position: relative;
   min-height: 32px;
 }
 
 .mobile-animator-controls .zoom-radio:hover:not(.disabled) {
-  border-color: #4285F4;
-  background: #f8f9fa;
+  border-color: var(--color-primary);
+  background: var(--color-bg-gray);
 }
 
 .mobile-animator-controls .zoom-radio.disabled {
@@ -541,7 +541,7 @@
 }
 
 .mobile-animator-controls .zoom-radio.active {
-  border-color: #4285F4;
+  border-color: var(--color-primary);
   background: #e8f0fe;
   color: #1967d2;
   font-weight: 500;
@@ -561,13 +561,13 @@
 
 .mobile-animator-controls .zoom-radio small {
   font-size: 7px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-top: 0;
 }
 
 .speed-radio-group {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   width: 100%;
   margin-top: 0;
   margin-bottom: 0;
@@ -579,23 +579,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--color-bg-white);
   position: relative;
   min-height: 70px;
 }
 
 .speed-radio:hover {
-  border-color: #4285F4;
-  background: #f8f9fa;
+  border-color: var(--color-primary);
+  background: var(--color-bg-gray);
 }
 
 .speed-radio.active {
-  border-color: #4285F4;
+  border-color: var(--color-primary);
   background: #e8f0fe;
   color: #1967d2;
   font-weight: 500;
@@ -615,7 +615,7 @@
 
 .speed-radio small {
   font-size: 10px;
-  color: #666;
+  color: var(--color-text-secondary);
   user-select: none;
 }
 
@@ -624,18 +624,18 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: 4px;
+  padding-bottom: var(--spacing-xs);
 }
 
 .zoom-control > label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .zoom-radio-group {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   width: 100%;
   margin-top: 0;
   margin-bottom: 0;
@@ -647,20 +647,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--color-bg-white);
   position: relative;
   gap: 2px;
   min-height: 70px;
 }
 
 .zoom-radio:hover:not(.disabled) {
-  border-color: #4285F4;
-  background: #f8f9fa;
+  border-color: var(--color-primary);
+  background: var(--color-bg-gray);
 }
 
 .zoom-radio.disabled {
@@ -670,7 +670,7 @@
 }
 
 .zoom-radio.active {
-  border-color: #4285F4;
+  border-color: var(--color-primary);
   background: #e8f0fe;
   color: #1967d2;
   font-weight: 500;
@@ -694,31 +694,31 @@
 
 .zoom-radio small {
   font-size: 10px;
-  color: #666;
+  color: var(--color-text-secondary);
   user-select: none;
 }
 
 .progress-bar {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
 .progress-label {
   font-size: 12px;
-  color: #666;
-  margin-bottom: 4px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .progress-track {
   width: 100%;
   height: 8px;
-  background: #e0e0e0;
-  border-radius: 4px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #4285F4;
+  background: var(--color-primary);
   transition: width 0.1s ease;
 }
 
@@ -734,22 +734,22 @@
   width: 56px;
   height: 56px;
   border-radius: 28px;
-  background: white;
-  border: 2px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-white);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   font-size: 20px;
-  color: #ff4444;
+  color: var(--color-danger);
 }
 
 .route-animator-minimized .expand-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  background: #f8f9fa;
+  box-shadow: var(--shadow-lg);
+  background: var(--color-bg-gray);
 }
 
 /* Pretty camera icon button for recording mode */
@@ -802,14 +802,14 @@
   right: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: center;
 }
 
 .progress-indicator {
   background: rgba(0, 0, 0, 0.8);
   color: white;
-  padding: 4px 12px;
+  padding: var(--spacing-xs) var(--spacing-md);
   border-radius: 16px;
   font-size: 12px;
   font-weight: 500;
@@ -820,29 +820,29 @@
   width: 40px;
   height: 40px;
   border-radius: 20px;
-  background: white;
-  border: 2px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--color-bg-white);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .mini-control:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .mini-control.stop {
-  color: #f44336;
+  color: var(--color-danger);
 }
 
 .mini-control.stop:hover {
   background: #ffebee;
-  border-color: #f44336;
+  border-color: var(--color-danger);
 }
 
 /* Timeline control styles */
@@ -850,16 +850,16 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid #e0e0e0;
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid var(--color-border);
 }
 
 .timeline-control > label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .timeline-container {
@@ -876,7 +876,7 @@
   left: 0;
   right: 0;
   height: 6px;
-  background: #e0e0e0;
+  background: var(--color-border);
   border-radius: 3px;
   transform: translateY(-50%);
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
@@ -887,9 +887,8 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #4285F4 0%, #1a73e8 100%);
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   border-radius: 3px;
-  /* No transition for real-time updates */
   box-shadow: 0 1px 2px rgba(66, 133, 244, 0.3);
 }
 
@@ -951,7 +950,6 @@
   cursor: pointer;
 }
 
-/* Hide the slider thumb completely while keeping drag functionality */
 .timeline-slider.no-thumb::-moz-range-thumb {
   width: 0;
   height: 0;
@@ -960,7 +958,6 @@
   cursor: pointer;
 }
 
-/* Hide thumb for IE/Edge */
 .timeline-slider.no-thumb::-ms-thumb {
   width: 0;
   height: 0;
@@ -975,21 +972,21 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: white;
+  background: var(--color-bg-white);
   cursor: grab;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  border: 2px solid #4285F4;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--color-primary);
   transition: all 0.2s ease;
   position: relative;
   z-index: 2;
-  margin-top: -4px; /* Center it vertically on the track */
+  margin-top: -4px;
 }
 
 .timeline-slider.mobile-thumb::-webkit-slider-thumb:hover {
   transform: scale(1.15);
   background: #f0f7ff;
-  border-color: #1a73e8;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .timeline-slider.mobile-thumb::-webkit-slider-thumb:active {
@@ -1001,10 +998,10 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: white;
+  background: var(--color-bg-white);
   cursor: grab;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  border: 2px solid #4285F4;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--color-primary);
   transition: all 0.2s ease;
   position: relative;
   z-index: 2;
@@ -1013,8 +1010,8 @@
 .timeline-slider.mobile-thumb::-moz-range-thumb:hover {
   transform: scale(1.15);
   background: #f0f7ff;
-  border-color: #1a73e8;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .timeline-slider.mobile-thumb::-moz-range-thumb:active {
@@ -1026,26 +1023,26 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: white;
+  background: var(--color-bg-white);
   cursor: grab;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  border: 2px solid #4285F4;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--color-primary);
 }
 
 .timeline-labels {
   display: flex;
   justify-content: space-between;
   font-size: 10px;
-  color: #666;
+  color: var(--color-text-secondary);
   padding: 0 2px;
   margin-top: -2px;
 }
 
 .timeline-tips {
-  margin-top: 8px;
-  padding: 8px 12px;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   background: #f0f8ff;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   color: #1967d2;
   display: flex;
@@ -1062,46 +1059,46 @@
   .route-animator-header {
     padding: 10px 12px;
   }
-  
+
   .route-animator-header h4 {
     font-size: 14px;
   }
-  
+
   .route-animator-content {
-    padding: 8px;
+    padding: var(--spacing-sm);
     max-height: none;
   }
-  
+
   .controls-section {
     gap: 10px;
   }
-  
+
   .control-btn {
     padding: 5px 10px;
     font-size: 12px;
     min-height: 32px;
   }
-  
+
   .playback-controls {
     gap: 6px;
   }
-  
+
   .speed-radio-group,
   .zoom-radio-group {
     gap: 3px;
   }
-  
+
   .speed-radio,
   .zoom-radio {
     padding: 5px 6px;
     min-height: 32px;
   }
-  
+
   .speed-radio span,
   .zoom-radio span {
     font-size: 11px;
   }
-  
+
   .speed-radio small,
   .zoom-radio small {
     font-size: 8px;
@@ -1110,31 +1107,31 @@
   .zoom-control > label {
     display: none; /* Hide "Zoom Level" label on mobile */
   }
-  
+
   .timeline-control {
     margin-top: 10px;
     padding-top: 10px;
   }
-  
+
   .timeline-control > label {
     font-size: 12px;
     margin-bottom: 2px;
   }
-  
+
   .timeline-tips {
     padding: 6px 10px;
     font-size: 11px;
     margin-top: 6px;
   }
-  
+
   .timeline-tips small {
     font-size: 11px;
   }
-  
+
   .timeline-labels {
     font-size: 10px;
   }
-  
+
   /* Make the whole animator more compact on mobile */
   .route-animator {
     max-height: 280px;
