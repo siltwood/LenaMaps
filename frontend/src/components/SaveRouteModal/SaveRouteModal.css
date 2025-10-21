@@ -16,11 +16,11 @@
 }
 
 .save-route-modal {
-  background: white;
-  border-radius: 8px; /* Reduced border radius */
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
   touch-action: auto;
   pointer-events: auto;
   overflow-y: auto;
@@ -32,21 +32,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .save-route-header h2 {
   margin: 0;
   font-size: 24px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .close-button {
   background: none;
   border: none;
   font-size: 28px;
-  color: #999;
+  color: var(--color-text-light);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -54,21 +54,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: background 0.2s;
 }
 
 .close-button:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--color-bg-gray);
+  color: var(--color-text-primary);
 }
 
 .save-route-content {
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .input-group:last-child {
@@ -77,18 +77,18 @@
 
 .input-group label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .input-group input,
 .input-group textarea {
   width: 100%;
   padding: 10px 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   font-size: 16px;
   font-family: inherit;
   outline: none;
@@ -97,7 +97,7 @@
 
 .input-group input:focus,
 .input-group textarea:focus {
-  border-color: #4285f4;
+  border-color: var(--color-primary);
 }
 
 .input-group textarea {
@@ -109,15 +109,15 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 20px;
-  border-top: 1px solid #e0e0e0;
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
 }
 
 .cancel-button,
 .save-button {
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -125,21 +125,21 @@
 }
 
 .cancel-button {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--color-bg-gray);
+  color: var(--color-text-primary);
 }
 
 .cancel-button:hover {
-  background: #e0e0e0;
+  background: var(--color-bg-gray-hover);
 }
 
 .save-button {
-  background: #4285f4;
+  background: var(--color-primary);
   color: white;
 }
 
 .save-button:hover:not(:disabled) {
-  background: #3c78dc;
+  background: var(--color-primary-hover);
 }
 
 .save-button:disabled {
@@ -152,7 +152,7 @@
     width: 95%;
     max-height: 85vh;
   }
-  
+
   .save-route-modal-overlay {
     align-items: flex-start;
     padding-top: 10vh;
