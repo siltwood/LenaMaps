@@ -181,6 +181,50 @@ const DirectionsPanel = ({
     console.log('  Final newLocations:', newLocations.map((l, i) => `${i}: ${l ? 'SET' : 'NULL'}`));
     onLocationsChange(newLocations, 'ADD_LOCATION');
 
+    // Check if we just filled a location that completes a segment with draw mode enabled
+    // If so, initialize the straight line points
+    if (activeInput === null) {
+      const emptyIndex = locations.findIndex(loc => !loc);
+      if (emptyIndex !== -1) {
+        // We just added a location at emptyIndex
+        // Check if this completes a segment with draw mode enabled
+
+        // Case 1: This is the END of a segment (emptyIndex is segment's endIndex)
+        if (emptyIndex > 0 && customDrawEnabled[emptyIndex - 1] === true) {
+          const segmentIndex = emptyIndex - 1;
+          if (!customPoints[segmentIndex] || customPoints[segmentIndex].length === 0) {
+            console.log(`  Initializing straight line for segment ${segmentIndex} (just filled end location)`);
+            const startLoc = newLocations[segmentIndex];
+            const endLoc = clickedLocation;
+            setCustomPoints(prev => ({
+              ...prev,
+              [segmentIndex]: [
+                { lat: startLoc.lat, lng: startLoc.lng },
+                { lat: endLoc.lat, lng: endLoc.lng }
+              ]
+            }));
+          }
+        }
+
+        // Case 2: This is the START of a segment (emptyIndex is segment's startIndex)
+        if (emptyIndex < newLocations.length - 1 && newLocations[emptyIndex + 1] && customDrawEnabled[emptyIndex] === true) {
+          const segmentIndex = emptyIndex;
+          if (!customPoints[segmentIndex] || customPoints[segmentIndex].length === 0) {
+            console.log(`  Initializing straight line for segment ${segmentIndex} (just filled start location)`);
+            const startLoc = clickedLocation;
+            const endLoc = newLocations[emptyIndex + 1];
+            setCustomPoints(prev => ({
+              ...prev,
+              [segmentIndex]: [
+                { lat: startLoc.lat, lng: startLoc.lng },
+                { lat: endLoc.lat, lng: endLoc.lng }
+              ]
+            }));
+          }
+        }
+      }
+    }
+
     // Auto-calculate route
     const filledLocations = newLocations.filter(loc => loc !== null);
 
