@@ -869,13 +869,16 @@ const RouteSegmentManager = ({
           let routeFound = false;
           
           try {
-            
+            console.log(`  Requesting route for segment ${i}: ${segmentMode} (${actualModeUsed})`);
+
             // Check cache first
             const cachedResult = directionsCache.get(segmentOrigin, segmentDestination, actualModeUsed);
             if (cachedResult) {
+              console.log(`  Using cached result for segment ${i}`);
               result = cachedResult;
               routeFound = true;
             } else {
+              console.log(`  No cache - calling DirectionsService for segment ${i}`);
               // First try the requested mode
               try {
                 result = await new Promise((resolve, reject) => {
@@ -886,9 +889,12 @@ const RouteSegmentManager = ({
                   }
                   
                   directionsService.route(request, (result, status) => {
+                    console.log(`  DirectionsService callback for segment ${i}: status=${status}`);
                     if (status === window.google.maps.DirectionsStatus.OK) {
+                      console.log(`  ✅ Route found for segment ${i}`);
                       resolve(result);
                     } else {
+                      console.log(`  ❌ Route failed for segment ${i}: ${status}`);
                       reject(status);
                     }
                   });
@@ -1106,12 +1112,14 @@ const RouteSegmentManager = ({
             }, 0);
             
             // Create markers for this segment
+            console.log(`  Creating markers for regular segment ${i} (mode=${segmentMode})`);
             const markers = {};
             const modeIcon = TRANSPORT_ICONS[segmentMode] || '🚶';
             const modeColor = getTransportationColor(segmentMode);
-            
+
             // Add start marker (only for first segment)
             if (i === 0) {
+              console.log(`  Should create START marker for segment ${i}`);
               // Check if we can reuse an existing start marker from the same location
               const existingStartMarker = canReuseSegments &&
                 segmentsToReuse[0] &&
@@ -1208,6 +1216,7 @@ const RouteSegmentManager = ({
             
             // Add end marker for last segment
             if (isLastSegment) {
+              console.log(`  Creating END marker for segment ${i}`);
               markers.end = createMarker(
                 segmentDestination,
                 modeIcon,
