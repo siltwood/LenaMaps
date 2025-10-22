@@ -219,6 +219,159 @@ const DirectionsPanel = ({
   }, [routeSegments]);
 
   /**
+   * Add next leg to route (extends with empty segment)
+   */
+  const addNextLegToSegments = useCallback(() => {
+    console.log('🆕 ADD NEXT LEG TO SEGMENTS');
+    console.log('  Current segments:', routeSegments);
+
+    setRouteSegments(prevSegments => {
+      if (prevSegments.length === 0) {
+        console.log('  No segments exist - creating first empty segment');
+        return [{
+          id: generateSegmentId(),
+          startLocation: null,
+          endLocation: null,
+          mode: 'walk',
+          isCustom: false,
+          isLocked: false,
+          snapToRoads: false,
+          customPoints: []
+        }];
+      }
+
+      const lastSegment = prevSegments[prevSegments.length - 1];
+
+      // Lock the last segment if it's in custom draw mode
+      const updatedSegments = prevSegments.map((seg, i) =>
+        i === prevSegments.length - 1 && seg.isCustom
+          ? { ...seg, isLocked: true }
+          : seg
+      );
+
+      // Add new segment
+      const newSegment = {
+        id: generateSegmentId(),
+        startLocation: lastSegment.endLocation,
+        endLocation: null,
+        mode: 'walk',
+        isCustom: false,
+        isLocked: false,
+        snapToRoads: false,
+        customPoints: []
+      };
+
+      return [...updatedSegments, newSegment];
+    });
+  }, [routeSegments]);
+
+  /**
+   * Remove a location from the route (can't remove A or B)
+   * Removes the segment ending at that location
+   */
+  const removeLocationFromSegments = useCallback((locationIndex) => {
+    console.log('🆕 REMOVE LOCATION FROM SEGMENTS:', locationIndex);
+
+    if (locationIndex === 0 || locationIndex === 1) {
+      console.log('  Cannot remove location A or B');
+      return;
+    }
+
+    setRouteSegments(prevSegments => {
+      // Location C (index 2) corresponds to segment 1 (A→B→C, so remove segment 1)
+      // Remove the segment that ends at this location
+      const segmentToRemove = locationIndex - 1;
+
+      console.log('  Removing segment', segmentToRemove);
+      return prevSegments.filter((_, i) => i !== segmentToRemove);
+    });
+  }, []);
+
+  /**
+   * Update the mode for a specific segment
+   */
+  const updateSegmentMode = useCallback((segmentIndex, mode) => {
+    console.log('🆕 UPDATE SEGMENT MODE:', segmentIndex, mode);
+
+    setRouteSegments(prevSegments => prevSegments.map((seg, i) =>
+      i === segmentIndex ? { ...seg, mode } : seg
+    ));
+  }, []);
+
+  /**
+   * Toggle custom drawing for a segment
+   * If enabling and both locations exist, initialize straight line
+   */
+  const toggleSegmentDrawMode = useCallback((segmentIndex) => {
+    console.log('🆕 TOGGLE DRAW MODE:', segmentIndex);
+
+    setRouteSegments(prevSegments => prevSegments.map((seg, i) => {
+      if (i !== segmentIndex) return seg;
+
+      const newIsCustom = !seg.isCustom;
+
+      // If enabling draw mode and both locations exist, create straight line
+      if (newIsCustom && seg.startLocation && seg.endLocation) {
+        console.log('  Enabling draw mode - creating straight line');
+        return {
+          ...seg,
+          isCustom: true,
+          customPoints: [
+            { lat: seg.startLocation.lat, lng: seg.startLocation.lng },
+            { lat: seg.endLocation.lat, lng: seg.endLocation.lng }
+          ]
+        };
+      }
+
+      // If disabling draw mode, clear custom points
+      if (!newIsCustom) {
+        console.log('  Disabling draw mode - clearing points');
+        return {
+          ...seg,
+          isCustom: false,
+          customPoints: []
+        };
+      }
+
+      return { ...seg, isCustom: newIsCustom };
+    }));
+  }, []);
+
+  /**
+   * Add a point to a segment's custom route
+   */
+  const addPointToSegment = useCallback((segmentIndex, point) => {
+    console.log('🆕 ADD POINT TO SEGMENT:', segmentIndex, point);
+
+    setRouteSegments(prevSegments => prevSegments.map((seg, i) => {
+      if (i !== segmentIndex) return seg;
+
+      return {
+        ...seg,
+        customPoints: [...seg.customPoints, point]
+      };
+    }));
+  }, []);
+
+  /**
+   * Undo last point from a segment's custom route
+   */
+  const undoPointFromSegment = useCallback((segmentIndex) => {
+    console.log('🆕 UNDO POINT FROM SEGMENT:', segmentIndex);
+
+    setRouteSegments(prevSegments => prevSegments.map((seg, i) => {
+      if (i !== segmentIndex) return seg;
+
+      if (seg.customPoints.length === 0) return seg;
+
+      return {
+        ...seg,
+        customPoints: seg.customPoints.slice(0, -1)
+      };
+    }));
+  }, []);
+
+  /**
    * Update a specific location in the segments
    * Used for edit mode
    */
