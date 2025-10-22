@@ -1,23 +1,22 @@
 .drag-handle {
   cursor: grab;
-  color: #999;
   display: flex;
   align-items: center;
-  padding: 0 4px;
-  user-select: none;
-  transition: color 0.2s ease;
+  padding: 4px;
+  color: #6b7280;
+  transition: color 0.2s;
+  margin-right: 8px;
 }
 
 .drag-handle:hover {
-  color: #666;
+  color: #374151;
 }
 
 .drag-handle:active {
   cursor: grabbing;
-  color: #333;
+  color: #1f2937;
 }
 
 .drag-handle svg {
-  width: 20px;
-  height: 20px;
+  pointer-events: none;
 }

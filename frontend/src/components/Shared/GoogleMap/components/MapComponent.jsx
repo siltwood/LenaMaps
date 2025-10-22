@@ -13,6 +13,7 @@ const MapComponent = ({
   directionsRoute,
   directionsLocations = [],
   directionsLegModes = [],
+  customDrawEnabled = [],
   onAnimationStateChange,
   isMobile = false,
   showRouteAnimator,
@@ -206,6 +207,7 @@ const MapComponent = ({
         directionsRoute={directionsRoute}
         directionsLocations={directionsLocations}
         directionsLegModes={directionsLegModes}
+        customDrawEnabled={customDrawEnabled}
         isMobile={isMobile}
         onModesAutoUpdate={onModesAutoUpdate}
       />

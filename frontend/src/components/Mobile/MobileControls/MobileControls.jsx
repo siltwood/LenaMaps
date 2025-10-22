@@ -43,7 +43,7 @@ const MobileControls = ({
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
   const [customDrawEnabled, setCustomDrawEnabled] = useState([]); // Track which segments have custom drawing enabled
   const [snapToRoads, setSnapToRoads] = useState([]); // Track snap-to-roads for each segment
-  const [customStrokes, setCustomStrokes] = useState({}); // Store custom strokes per segment
+  const [customPoints, setCustomPoints] = useState({}); // Store custom strokes per segment
 
   // Reset position when card is shown
   useEffect(() => {
@@ -129,7 +129,8 @@ const MobileControls = ({
         segments.push({
           mode: modes[i] || 'walk',
           startIndex: i,
-          endIndex: i + 1
+          endIndex: i + 1,
+          ...(customDrawEnabled[i] && { isCustom: true })
         });
       }
       
@@ -148,6 +149,32 @@ const MobileControls = ({
     }
   };
 
+  // Recalculate route when custom draw mode is toggled
+  useEffect(() => {
+    const filledLocations = locations.filter(loc => loc !== null);
+    if (filledLocations.length >= 2 && onDirectionsCalculated) {
+      const segments = [];
+      for (let i = 0; i < filledLocations.length - 1; i++) {
+        segments.push({
+          mode: legModes[i] || 'walk',
+          startIndex: i,
+          endIndex: i + 1,
+          ...(customDrawEnabled[i] && { isCustom: true })
+        });
+      }
+      const routeData = {
+        origin: filledLocations[0],
+        destination: filledLocations[filledLocations.length - 1],
+        waypoints: filledLocations.slice(1, -1),
+        mode: legModes[0],
+        segments,
+        allLocations: locations,
+        allModes: legModes,
+        routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + legModes.join('-') + '_' + customDrawEnabled.join('-')
+      };
+      onDirectionsCalculated(routeData);
+    }
+  }, [customDrawEnabled, locations, legModes, onDirectionsCalculated]);
 
   const handleClear = () => {
     try {
@@ -196,7 +223,8 @@ const MobileControls = ({
           segments.push({
             mode: route.modes[i] || 'walk',
             startIndex: i,
-            endIndex: i + 1
+            endIndex: i + 1,
+            ...(customDrawEnabled[i] && { isCustom: true })
           });
         }
         
@@ -246,11 +274,11 @@ const MobileControls = ({
     }
   };
 
-  const handleStrokeComplete = (strokeData) => {
+  const handlePointAdded = (strokeData) => {
     const { segmentIndex, points, snapped, mode } = strokeData;
 
-    // Add stroke to the customStrokes state
-    setCustomStrokes(prev => {
+    // Add stroke to the customPoints state
+    setCustomPoints(prev => {
       const segmentStrokes = prev[segmentIndex] || [];
       return {
         ...prev,
@@ -267,8 +295,8 @@ const MobileControls = ({
     }
   };
 
-  const handleUndoStroke = (segmentIndex) => {
-    setCustomStrokes(prev => {
+  const handleUndoPoint = (segmentIndex) => {
+    setCustomPoints(prev => {
       const segmentStrokes = prev[segmentIndex] || [];
       if (segmentStrokes.length === 0) return prev;
 
@@ -277,9 +305,9 @@ const MobileControls = ({
 
       if (newSegmentStrokes.length === 0) {
         // No more strokes for this segment, remove the key
-        const newStrokes = { ...prev };
-        delete newStrokes[segmentIndex];
-        return newStrokes;
+        const newPoints = { ...prev };
+        delete newPoints[segmentIndex];
+        return newPoints;
       }
 
       return {
@@ -401,17 +429,17 @@ const MobileControls = ({
   };
 
   // Render planner view
-  const handleSetLocations = (startPoint, endPoint) => {
-    // Auto-set Point A and Point B from the drawn stroke
+  const handleSetLocations = (segmentIndex, startPoint, endPoint) => {
+    // Auto-set locations from the drawn points
     const newLocations = [...locations];
 
-    // If startPoint is null, keep existing Point A (for continuous drawing)
+    // If startPoint is null, keep existing start location (for continuous drawing)
     if (startPoint !== null) {
-      newLocations[0] = startPoint;
+      newLocations[segmentIndex] = startPoint;
     }
 
-    // Always update Point B
-    newLocations[1] = endPoint;
+    // Always update end location
+    newLocations[segmentIndex + 1] = endPoint;
 
     if (onLocationsChange) {
       onLocationsChange(newLocations, 'ADD_LOCATION');
@@ -424,120 +452,6 @@ const MobileControls = ({
         <h2>Visualize Your Route</h2>
       </div>
       <div className="mobile-planner-content">
-        {/* Mode selector and draw toggle - appears BEFORE location inputs */}
-        <div style={{ marginBottom: '16px', padding: '0 8px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
-            Transportation Mode:
-          </label>
-          <div className="mobile-segment-transport">
-            {Object.entries(TRANSPORTATION_MODES).filter(([mode]) => mode !== 'custom').map(([mode, config]) => (
-              <button
-                key={mode}
-                className={`mobile-transport-btn ${(legModes[0] || 'walk') === mode ? 'active' : ''}`}
-                onClick={() => {
-                  const newModes = [...legModes];
-                  newModes[0] = mode;
-                  onLegModesChange(newModes);
-                }}
-                title={mode}
-              >
-                {config.icon}
-              </button>
-            ))}
-          </div>
-
-          {/* Draw Custom Route toggle */}
-          <div style={{ marginTop: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={customDrawEnabled[0] || false}
-                onChange={(e) => {
-                  const newEnabled = [...customDrawEnabled];
-                  newEnabled[0] = e.target.checked;
-                  setCustomDrawEnabled(newEnabled);
-
-                  if (!e.target.checked) {
-                    const newStrokes = { ...customStrokes };
-                    delete newStrokes[0];
-                    setCustomStrokes(newStrokes);
-                  }
-                }}
-                style={{ cursor: 'pointer' }}
-              />
-              <span>Draw Custom Route</span>
-            </label>
-
-            {/* Snap to roads toggle */}
-            {customDrawEnabled[0] && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', marginLeft: '24px', marginTop: '8px' }}>
-                <input
-                  type="checkbox"
-                  checked={snapToRoads[0] || false}
-                  onChange={(e) => {
-                    const newSnap = [...snapToRoads];
-                    newSnap[0] = e.target.checked;
-                    setSnapToRoads(newSnap);
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <span>Snap to Roads</span>
-              </label>
-            )}
-
-            {/* Stroke controls */}
-            {customDrawEnabled[0] && customStrokes[0] && customStrokes[0].length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button
-                  onClick={() => handleUndoStroke(0)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '13px',
-                    backgroundColor: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ↩️ Undo ({customStrokes[0].length})
-                </button>
-                <button
-                  onClick={() => {
-                    const newStrokes = { ...customStrokes };
-                    delete newStrokes[0];
-                    setCustomStrokes(newStrokes);
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '13px',
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  🗑️ Clear
-                </button>
-              </div>
-            )}
-
-            {/* Instructions when draw mode is enabled */}
-            {customDrawEnabled[0] && (!customStrokes[0] || customStrokes[0].length === 0) && (
-              <div style={{
-                marginTop: '8px',
-                padding: '8px 12px',
-                backgroundColor: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: '#1e40af'
-              }}>
-                💡 Touch and drag on the map to draw your route. Point A will be where you start, Point B where you end.
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="mobile-segments-container">
           {/* Render all location segments */}
           {locations.map((location, index) => (
@@ -719,9 +633,9 @@ const MobileControls = ({
 
                           // Clear custom strokes if disabling
                           if (!e.target.checked) {
-                            const newStrokes = { ...customStrokes };
-                            delete newStrokes[index];
-                            setCustomStrokes(newStrokes);
+                            const newPoints = { ...customPoints };
+                            delete newPoints[index];
+                            setCustomPoints(newPoints);
                           }
                         }}
                         style={{ cursor: 'pointer' }}
@@ -747,10 +661,10 @@ const MobileControls = ({
                         </label>
 
                         {/* Clear/Undo buttons for custom strokes */}
-                        {customStrokes[index] && customStrokes[index].length > 0 && (
+                        {customPoints[index] && customPoints[index].length > 0 && (
                           <div style={{ display: 'flex', gap: '8px', marginLeft: '24px', marginTop: '8px' }}>
                             <button
-                              onClick={() => handleUndoStroke(index)}
+                              onClick={() => handleUndoPoint(index)}
                               style={{
                                 padding: '6px 12px',
                                 fontSize: '13px',
@@ -760,13 +674,13 @@ const MobileControls = ({
                                 cursor: 'pointer'
                               }}
                             >
-                              ↩️ Undo ({customStrokes[index].length})
+                              ↩️ Undo ({customPoints[index].length})
                             </button>
                             <button
                               onClick={() => {
-                                const newStrokes = { ...customStrokes };
-                                delete newStrokes[index];
-                                setCustomStrokes(newStrokes);
+                                const newPoints = { ...customPoints };
+                                delete newPoints[index];
+                                setCustomPoints(newPoints);
                               }}
                               style={{
                                 padding: '6px 12px',
@@ -779,6 +693,40 @@ const MobileControls = ({
                             >
                               🗑️ Clear
                             </button>
+                            <button
+                              onClick={() => {
+                                // Finish route - just disable draw mode
+                                const newEnabled = [...customDrawEnabled];
+                                newEnabled[index] = false;
+                                setCustomDrawEnabled(newEnabled);
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '13px',
+                                backgroundColor: '#dbeafe',
+                                border: '1px solid #93c5fd',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ✓ Finish
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Instructions when draw mode is enabled */}
+                        {customDrawEnabled[index] && (!customPoints[index] || customPoints[index].length === 0) && (
+                          <div style={{
+                            marginTop: '8px',
+                            marginLeft: '24px',
+                            padding: '8px 12px',
+                            backgroundColor: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#1e40af'
+                          }}>
+                            💡 Tap on the map to add points and create your route.
                           </div>
                         )}
                       </>
@@ -1035,10 +983,10 @@ const MobileControls = ({
             isEnabled={customDrawEnabled[index]}
             snapToRoads={snapToRoads[index] || false}
             mode={legModes[index] || 'walk'}
-            onStrokeComplete={handleStrokeComplete}
-            onSetLocations={index === 0 ? handleSetLocations : null}
+            onPointAdded={handlePointAdded}
+            onSetLocations={handleSetLocations}
             previousLocation={index > 0 ? locations[index] : null}
-            existingStrokes={customStrokes[index] || []}
+            points={customPoints[index] || []}
           />
         );
       })}
@@ -1052,10 +1000,10 @@ const MobileControls = ({
           isEnabled={true}
           snapToRoads={snapToRoads[0] || false}
           mode={legModes[0] || 'walk'}
-          onStrokeComplete={handleStrokeComplete}
+          onPointAdded={handlePointAdded}
           onSetLocations={handleSetLocations}
           previousLocation={null}
-          existingStrokes={customStrokes[0] || []}
+          points={customPoints[0] || []}
         />
       )}
     </div>

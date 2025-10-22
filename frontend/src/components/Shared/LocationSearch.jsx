@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Custom autocomplete implementation using Places Service
-const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or location...", enableInlineComplete = false, hideDropdown = false, autoFocus = false }) => {
-  const [searchInput, setSearchInput] = useState('');
+const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or location...", enableInlineComplete = false, hideDropdown = false, autoFocus = false, defaultValue = '' }) => {
+  const [searchInput, setSearchInput] = useState(defaultValue);
   const [predictions, setPredictions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -17,6 +17,16 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
   const [dropdownPosition, setDropdownPosition] = useState({});
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef(null);
+  const initialDefaultValue = useRef(defaultValue);
+
+  // Update searchInput when defaultValue changes (for edit mode)
+  // Only set once when component receives a new defaultValue (entering edit mode)
+  useEffect(() => {
+    if (defaultValue && defaultValue !== initialDefaultValue.current) {
+      setSearchInput(defaultValue);
+      initialDefaultValue.current = defaultValue;
+    }
+  }, [defaultValue]);
 
   // Handle overflow of parent container when dropdown is shown
   useEffect(() => {

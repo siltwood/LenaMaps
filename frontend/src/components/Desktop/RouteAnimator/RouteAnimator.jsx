@@ -709,15 +709,32 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       
       // First check if we have stored route segments with actual route data
       if (window._routeSegments && window._routeSegments.length > 0) {
-        
+
         for (let i = 0; i < window._routeSegments.length; i++) {
           const segment = window._routeSegments[i];
           const mode = segment.mode || allModes[i] || 'walk';
-          
-          if (segment.route && segment.route.routes && segment.route.routes[0]) {
+
+          // Check if this is a custom drawn segment
+          if (segment.isCustom && segment.customPath) {
+            // Use the custom drawn path from the segment
+            const customPath = segment.customPath.map(p =>
+              new window.google.maps.LatLng(p.lat, p.lng)
+            );
+
+            const segmentStartIndex = fullPath.length;
+            fullPath = fullPath.concat(customPath);
+
+            segmentInfo.push({
+              startIndex: segmentStartIndex,
+              endIndex: fullPath.length,
+              mode: mode,
+              locationIndex: i,
+              isCustom: true
+            });
+          } else if (segment.route && segment.route.routes && segment.route.routes[0]) {
             const route = segment.route.routes[0];
             let segmentPath = [];
-            
+
             // Always try to get detailed path first
             if (route.legs) {
               // Get detailed path from steps for accuracy
@@ -733,17 +750,17 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
                 }
               });
             }
-            
+
             // Fallback to overview_path if no steps
             if (segmentPath.length === 0) {
               segmentPath = route.overview_path || [];
             } else {
             }
-            
+
             // Store segment info
             const segmentStartIndex = fullPath.length;
             fullPath = fullPath.concat(segmentPath);
-            
+
             segmentInfo.push({
               startIndex: segmentStartIndex,
               endIndex: fullPath.length,
@@ -752,7 +769,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             });
           }
         }
-        
+
       }
       
       // Fallback: If no segments or incomplete path, create simple straight lines
@@ -1357,7 +1374,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       });
       e.preventDefault();
     }
-  }
+  };
 
   const handleMouseMove = useCallback((e) => {
     if (!isDragging) return;

@@ -10,9 +10,6 @@ import { SaveRouteModal } from './SaveRouteModal';
 import { SavedRoutesModal } from './SavedRoutesModal';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 import { initFingerprint } from '../utils/fingerprint';
-import AuthModal from './Shared/AuthModal/AuthModal';
-import UsageIndicator from './Shared/UsageIndicator/UsageIndicator';
-import { checkCanCreateRoute, trackRouteCreation } from '../utils/rateLimitCheck';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -43,13 +40,6 @@ function AppContent() {
   // Authentication state
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState('login');
-  const [authModalMessage, setAuthModalMessage] = useState('');
-
-  // Route locking state
-  const [isRouteLocked, setIsRouteLocked] = useState(false);
-  const [hasUsedRouteToday, setHasUsedRouteToday] = useState(false); // Track if they've used their daily limit
   
   // Listen for route calculation errors
   useEffect(() => {
@@ -117,99 +107,10 @@ function AppContent() {
     }
   }, []);
 
-  // Callback for route animation start - lock route on FIRST play and track usage
+  // Callback for route animation start
   const handleAnimationStart = async () => {
-    // DEV MODE: Skip rate limiting
-    const isDev = process.env.NODE_ENV === 'development';
-    if (isDev || !isSupabaseConfigured()) {
-      return true; // Allow animation in dev mode or if Supabase not configured
-    }
-
-    // If route is already locked, allow animation (free replays)
-    if (isRouteLocked) {
-      return true;
-    }
-
-    // First time playing - lock the route and track usage
-    try {
-      const { canCreate, usageData } = await checkCanCreateRoute(user);
-
-      if (!canCreate) {
-        // Rate limit exceeded - show modal and don't lock/animate
-        if (user) {
-          setAuthModalMode('signup');
-          setAuthModalMessage(`You've used all ${usageData?.daily_limit || 2} routes today. Come back tomorrow!`);
-        } else {
-          setAuthModalMode('signup');
-          setAuthModalMessage("You've reached your daily limit. Sign up to get more routes per day!");
-        }
-        setShowAuthModal(true);
-        setHasUsedRouteToday(true);
-        return false; // Block animation
-      }
-
-      // Track the route
-      await trackRouteCreation(user);
-      setIsRouteLocked(true); // Lock this route
-      window.dispatchEvent(new Event('usageUpdated'));
-
-      // Check if they're now at their limit
-      const updatedUsage = await checkCanCreateRoute(user);
-      setHasUsedRouteToday(!updatedUsage.canCreate);
-
-      return true; // Allow animation
-    } catch (error) {
-      console.error('Rate limit check failed:', error);
-      return true; // On error, allow the operation
-    }
+    return true; // Allow animation
   };
-
-  // Auto-lock route when it reaches 10 markers
-  useEffect(() => {
-    // DEV MODE: Skip rate limiting
-    const isDev = process.env.NODE_ENV === 'development';
-    if (isDev || !isSupabaseConfigured()) {
-      return;
-    }
-
-    const filledLocations = directionsLocations.filter(loc => loc !== null);
-
-    // If route has 10 markers and isn't locked yet, lock it automatically
-    if (filledLocations.length >= 10 && !isRouteLocked && directionsRoute) {
-      const autoLockRoute = async () => {
-        try {
-          const { canCreate, usageData } = await checkCanCreateRoute(user);
-
-          if (!canCreate) {
-            // Rate limit exceeded - show modal
-            if (user) {
-              setAuthModalMode('signup');
-              setAuthModalMessage(`You've used all ${usageData?.daily_limit || 2} routes today. Come back tomorrow!`);
-            } else {
-              setAuthModalMode('signup');
-              setAuthModalMessage("You've reached your daily limit. Sign up to get more routes per day!");
-            }
-            setShowAuthModal(true);
-            setHasUsedRouteToday(true);
-            return;
-          }
-
-          // Track and lock the route
-          await trackRouteCreation(user);
-          setIsRouteLocked(true);
-          window.dispatchEvent(new Event('usageUpdated'));
-
-          // Check if they're now at their limit
-          const updatedUsage = await checkCanCreateRoute(user);
-          setHasUsedRouteToday(!updatedUsage.canCreate);
-        } catch (error) {
-          console.error('Failed to auto-lock route:', error);
-        }
-      };
-
-      autoLockRoute();
-    }
-  }, [directionsLocations, isRouteLocked, directionsRoute, user]);
 
   // Check for shared trip in URL on mount
   useEffect(() => {
@@ -375,30 +276,6 @@ function AppContent() {
 
   // Wrapped setters that save to history
   const setDirectionsLocationsWithHistory = useCallback(async (newLocations, actionType, extraData) => {
-    // DEV MODE: Skip locking checks
-    const isDev = process.env.NODE_ENV === 'development';
-
-    if (!isDev) {
-      // Block editing if route is locked or user is at daily limit
-      if (isRouteLocked) {
-        console.log('Route is locked - cannot edit markers');
-        return;
-      }
-
-      if (hasUsedRouteToday && isSupabaseConfigured()) {
-        // Show modal that they've hit their limit
-        if (user) {
-          setAuthModalMode('signup');
-          setAuthModalMessage("You've used all your routes today. Come back tomorrow or upgrade!");
-        } else {
-          setAuthModalMode('signup');
-          setAuthModalMessage("You've reached your daily limit. Sign up to get more routes per day!");
-        }
-        setShowAuthModal(true);
-        return;
-      }
-    }
-
     // Only save to history if there's an actual change and an action type
     if (actionType && JSON.stringify(newLocations) !== JSON.stringify(directionsLocations)) {
       // Find what changed by comparing
@@ -430,26 +307,9 @@ function AppContent() {
       saveToHistory(action);
     }
     setDirectionsLocations(newLocations);
-
-    // If user clears all locations, unlock the route
-    const filledLocations = newLocations.filter(loc => loc !== null);
-    if (filledLocations.length === 0) {
-      setIsRouteLocked(false);
-    }
-  }, [saveToHistory, directionsLocations, user, isRouteLocked, hasUsedRouteToday]);
+  }, [saveToHistory, directionsLocations]);
 
   const setDirectionsLegModesWithHistory = useCallback((newModes, index) => {
-    // DEV MODE: Skip locking checks
-    const isDev = process.env.NODE_ENV === 'development';
-
-    if (!isDev) {
-      // Block editing if route is locked
-      if (isRouteLocked) {
-        console.log('Route is locked - cannot change modes');
-        return;
-      }
-    }
-
     // Create action for mode change if index is provided
     if (index !== undefined) {
       const action = {
@@ -460,22 +320,7 @@ function AppContent() {
       saveToHistory(action);
     }
     setDirectionsLegModes(newModes);
-  }, [saveToHistory, isRouteLocked]);
-
-  // Handle authentication success
-  const handleAuthSuccess = useCallback((user, session) => {
-    setUser(user);
-    setSession(session);
-    setShowAuthModal(false);
-    // Could refresh usage indicator here if needed
-  }, []);
-
-  // Handle rate limit exceeded - show sign-up modal
-  const handleRateLimitExceeded = useCallback(() => {
-    setAuthModalMode('signup');
-    setAuthModalMessage("You've reached your daily limit. Sign up to get 5 routes per day!");
-    setShowAuthModal(true);
-  }, []);
+  }, [saveToHistory]);
 
   // Handle saving a route
   const handleSaveRoute = useCallback((routeData) => {
@@ -544,45 +389,42 @@ function AppContent() {
     <div className="app">
       {!isAnimating && (
         <header className={`header ${isMobile ? 'header-mobile' : ''}`}>
-        <div className="header-left">
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>💋 LenaMaps - Animate your Google Maps Route</span>
-          </h1>
-        </div>
-        <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div className="header-search">
-          {import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
-           import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== "your_google_maps_api_key_here" ? (
-            <LocationSearch 
-              onLocationSelect={handleLocationSearch}
-              placeholder="Find location..."
-            />
-          ) : (
-            <div style={{ 
-              padding: '0.5rem 1rem', 
-              backgroundColor: 'rgba(255,255,255,0.2)', 
-              borderRadius: '25px',
-              fontSize: '0.9rem',
-              color: 'rgba(255,255,255,0.8)'
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+            padding: '0 1rem'
+          }}>
+            <div style={{
+              fontSize: '0.75rem',
+              color: '#1e293b',
+              fontWeight: 500,
+              whiteSpace: 'nowrap'
             }}>
-              Set up Google Maps API to enable search
+              💋 LenaMaps - Animate your Google Maps Route
             </div>
-          )}
+            <div className="header-search">
+            {import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
+             import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== "your_google_maps_api_key_here" ? (
+              <LocationSearch
+                onLocationSelect={handleLocationSearch}
+                placeholder="Find location..."
+              />
+            ) : (
+              <div style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                borderRadius: '25px',
+                fontSize: '0.9rem',
+                color: 'rgba(255,255,255,0.8)'
+              }}>
+                Set up Google Maps API to enable search
+              </div>
+            )}
+            </div>
           </div>
-        </div>
         </header>
-      )}
-
-      {/* Usage Indicator - shown between header and main content */}
-      {isSupabaseConfigured() && !isAnimating && (
-        <UsageIndicator
-          user={user}
-          onUpgradeClick={() => {
-            setAuthModalMode('signup');
-            setAuthModalMessage('Sign up to get 5 routes per day instead of 1!');
-            setShowAuthModal(true);
-          }}
-        />
       )}
 
       <div className="main-content">
@@ -685,25 +527,23 @@ function AppContent() {
           onAnimationStart={handleAnimationStart}
         />
       ) : (
-        !isAnimating && (
-          <DirectionsPanel
-            key="directions-panel"
-            isOpen={true}
-            onDirectionsCalculated={setDirectionsRoute}
-            directionsRoute={directionsRoute}
-            clickedLocation={clickedLocation}
-            onLocationUsed={handleLocationUsed}
-            locations={directionsLocations}
-            legModes={directionsLegModes}
-            onLocationsChange={setDirectionsLocationsWithHistory}
-            onLegModesChange={setDirectionsLegModesWithHistory}
-            onUndo={handleUndo}
-            onClearHistory={handleClearHistory}
-            canUndo={history.length > 0}
-            lastAction={lastAction}
-            map={mapInstance}
-          />
-        )
+        <DirectionsPanel
+          key="directions-panel"
+          isOpen={!isAnimating}
+          onDirectionsCalculated={setDirectionsRoute}
+          directionsRoute={directionsRoute}
+          clickedLocation={clickedLocation}
+          onLocationUsed={handleLocationUsed}
+          locations={directionsLocations}
+          legModes={directionsLegModes}
+          onLocationsChange={setDirectionsLocationsWithHistory}
+          onLegModesChange={setDirectionsLegModesWithHistory}
+          onUndo={handleUndo}
+          onClearHistory={handleClearHistory}
+          canUndo={history.length > 0}
+          lastAction={lastAction}
+          map={mapInstance}
+        />
       )}
       
       {/* Route Error Modal */}
@@ -729,17 +569,6 @@ function AppContent() {
         onClose={() => setShowSavedRoutesModal(false)}
         onLoadRoute={handleLoadRoute}
       />
-
-      {/* Authentication Modal */}
-      {isSupabaseConfigured() && (
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={handleAuthSuccess}
-          initialMode={authModalMode}
-          message={authModalMessage}
-        />
-      )}
     </div>
   );
 }
