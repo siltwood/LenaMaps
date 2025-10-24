@@ -386,20 +386,23 @@ const RouteSegmentManager = ({
         const icon = TRANSPORT_ICONS[mode] || TRANSPORT_ICONS.walk;
         const color = getTransportationColor(mode);
 
-        if (!segmentStateRef.current['single-marker']) {
-          segmentStateRef.current['single-marker'] = { markers: {}, polyline: null, isCustom: false };
-        }
-
         const scale = getMarkerScale(currentZoomRef.current);
         const markerContent = createMarkerContent(icon, color, false, null, null, scale);
 
-        segmentStateRef.current['single-marker'].markers.start = new window.google.maps.marker.AdvancedMarkerElement({
-          map,
-          position: location,
-          content: markerContent,
-          title: 'Start',
-          zIndex: 5000
-        });
+        // Store in segmentsRef
+        if (!segmentsRef.current['single-marker']) {
+          segmentsRef.current['single-marker'] = { markers: {}, polyline: null };
+        }
+
+        segmentsRef.current['single-marker'].markers = {
+          start: new window.google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: location,
+            content: markerContent,
+            title: 'Start',
+            zIndex: 5000
+          })
+        };
       }
       return;
     }
