@@ -70,12 +70,19 @@ const DirectionsPanel = ({
    */
   const saveToUndoHistory = useCallback((actionType) => {
     console.log('💾 SAVE TO UNDO HISTORY:', actionType);
+
+    // Deep copy customPoints (object with array values)
+    const customPointsCopy = {};
+    for (const key in customPoints) {
+      customPointsCopy[key] = [...customPoints[key]];
+    }
+
     const snapshot = {
       locations: [...locations],
       legModes: [...legModes],
       customDrawEnabled: [...customDrawEnabled],
       snapToRoads: [...snapToRoads],
-      customPoints: { ...customPoints },
+      customPoints: customPointsCopy,
       lockedSegments: [...lockedSegments],
       actionType,
       timestamp: Date.now()
