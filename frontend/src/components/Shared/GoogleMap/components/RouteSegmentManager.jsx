@@ -383,20 +383,23 @@ const RouteSegmentManager = ({
       const location = allLocations.find(l => l !== null);
       if (location) {
         const mode = allModes[0] || 'walk';
-        const { icon, color } = getModeIconAndColor(mode);
+        const icon = TRANSPORT_ICONS[mode] || TRANSPORT_ICONS.walk;
+        const color = getTransportationColor(mode);
 
         if (!segmentStateRef.current['single-marker']) {
           segmentStateRef.current['single-marker'] = { markers: {}, polyline: null, isCustom: false };
         }
 
-        segmentStateRef.current['single-marker'].markers.start = createMarker(
-          location,
-          icon,
-          color,
-          'Start',
-          5000,
-          false
-        );
+        const scale = getMarkerScale(currentZoomRef.current);
+        const markerContent = createMarkerContent(icon, color, false, null, null, scale);
+
+        segmentStateRef.current['single-marker'].markers.start = new window.google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: location,
+          content: markerContent,
+          title: 'Start',
+          zIndex: 5000
+        });
       }
       return;
     }
