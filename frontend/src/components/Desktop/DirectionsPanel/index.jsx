@@ -479,9 +479,33 @@ const DirectionsPanel = ({
       } else {
         console.log('🗺️ AUTO-CALC skipped (same routeId):', routeId);
       }
-    } else if (filledLocations.length < 2) {
+    } else if (filledLocations.length === 1) {
+      // Special case: 1 location in draw mode - still pass route to show marker
+      const hasDrawMode = routeSegments.some(s => s.isCustom);
+      if (hasDrawMode && onDirectionsCalculated) {
+        console.log('🗺️ AUTO-CALC single location with draw mode - showing marker');
+        const routeData = {
+          origin: filledLocations[0],
+          destination: null,
+          waypoints: [],
+          mode: uiModes[0],
+          segments: [],
+          allLocations: uiLocations,
+          allModes: uiModes,
+          customPaths: customPoints,
+          routeId: `single-${Date.now()}`,
+          singleLocationDrawMode: true
+        };
+        lastRouteIdRef.current = 'single';
+        onDirectionsCalculated(routeData);
+      } else if (lastRouteIdRef.current !== null) {
+        console.log('🗺️ AUTO-CALC clearing route (1 location, no draw mode)');
+        lastRouteIdRef.current = null;
+        onDirectionsCalculated(null);
+      }
+    } else if (filledLocations.length === 0) {
       if (lastRouteIdRef.current !== null) {
-        console.log('🗺️ AUTO-CALC clearing route (less than 2 locations)');
+        console.log('🗺️ AUTO-CALC clearing route (no locations)');
         lastRouteIdRef.current = null;
         onDirectionsCalculated(null);
       }

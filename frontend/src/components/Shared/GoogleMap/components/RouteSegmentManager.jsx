@@ -366,12 +366,40 @@ const RouteSegmentManager = ({
       return;
     }
 
-    const { allLocations, allModes } = directionsRoute;
+    const { allLocations, allModes, singleLocationDrawMode } = directionsRoute;
     console.log('RouteSegmentManager processing route:', {
       allLocations: allLocations.length,
       allModes: allModes.length,
-      segments: directionsRoute.segments?.map(s => `[${s.startIndex}→${s.endIndex}] isCustom=${s.isCustom}`)
+      segments: directionsRoute.segments?.map(s => `[${s.startIndex}→${s.endIndex}] isCustom=${s.isCustom}`),
+      singleLocationDrawMode
     });
+
+    // Special case: single location in draw mode - just show start marker
+    if (singleLocationDrawMode) {
+      console.log('RouteSegmentManager rendering single location for draw mode');
+      clearAllSegments();
+
+      // Create just the start marker
+      const location = allLocations.find(l => l !== null);
+      if (location) {
+        const mode = allModes[0] || 'walk';
+        const { icon, color } = getModeIconAndColor(mode);
+
+        if (!segmentStateRef.current['single-marker']) {
+          segmentStateRef.current['single-marker'] = { markers: {}, polyline: null, isCustom: false };
+        }
+
+        segmentStateRef.current['single-marker'].markers.start = createMarker(
+          location,
+          icon,
+          color,
+          'Start',
+          5000,
+          false
+        );
+      }
+      return;
+    }
     
     // Additional check: if all locations are null, clear everything
     if (allLocations.every(loc => !loc)) {
