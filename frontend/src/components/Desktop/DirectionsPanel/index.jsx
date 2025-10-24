@@ -243,6 +243,10 @@ const DirectionsPanel = ({
    */
   const addNextLegToSegments = useCallback(() => {
     console.log('🆕 ADD NEXT LEG (via old function)');
+
+    // Save to undo history BEFORE changing
+    saveToUndoHistory('ADD_DESTINATION');
+
     // Lock the last segment if it's in custom draw mode
     const lastSegmentIndex = locations.length - 2;
     if (lastSegmentIndex >= 0 && customDrawEnabled[lastSegmentIndex]) {
@@ -250,9 +254,22 @@ const DirectionsPanel = ({
       newLockedSegments[lastSegmentIndex] = true;
       setLockedSegments(newLockedSegments);
     }
-    // Use the old addNextLeg function
-    addNextLeg();
-  }, [locations, customDrawEnabled, lockedSegments]);
+
+    // Add new location and mode
+    const newLocations = [...locations, null];
+    const newModes = [...legModes, 'walk'];
+
+    setLocations(newLocations);
+    setLegModes(newModes);
+
+    // Notify parent via deprecated callbacks (will be removed later)
+    if (onLocationsChange) {
+      onLocationsChange(newLocations, 'ADD_DESTINATION');
+    }
+    if (onLegModesChange) {
+      onLegModesChange(newModes);
+    }
+  }, [locations, customDrawEnabled, lockedSegments, legModes, saveToUndoHistory, onLocationsChange, onLegModesChange]);
 
   /**
    * Update the mode for a specific segment
@@ -263,9 +280,35 @@ const DirectionsPanel = ({
     // Save to undo history BEFORE changing
     saveToUndoHistory('CHANGE_MODE');
 
-    // Update mode
-    updateLegMode(segmentIndex, mode);
-  }, [saveToUndoHistory]);
+    // Update mode directly
+    const newModes = [...legModes];
+    newModes[segmentIndex] = mode;
+
+    setLegModes(newModes);
+
+    // Notify parent via deprecated callback (will be removed later)
+    if (onLegModesChange) {
+      onLegModesChange(newModes, segmentIndex);
+    }
+
+    // Update route for visual feedback
+    const filledLocations = locations.filter(loc => loc !== null);
+    if (filledLocations.length >= 2 && onDirectionsCalculated) {
+      const segments = buildSegments(filledLocations);
+      const routeData = {
+        origin: filledLocations[0],
+        destination: filledLocations[filledLocations.length - 1],
+        waypoints: filledLocations.slice(1, -1),
+        mode: newModes[0],
+        segments,
+        allLocations: filledLocations,
+        allModes: newModes,
+        customPaths: customPoints,
+        routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + newModes.join('-')
+      };
+      onDirectionsCalculated(routeData);
+    }
+  }, [saveToUndoHistory, legModes, onLegModesChange, locations, onDirectionsCalculated, buildSegments, customPoints]);
 
   /**
    * Toggle custom drawing for a segment
@@ -599,42 +642,6 @@ const DirectionsPanel = ({
   // }, [customDrawEnabled, legModes, onDirectionsCalculated, customPoints, buildSegments]);
 
 
-  const addNextLeg = () => {
-    console.log('ADD NEXT LEG CALLED');
-    console.log('  Current locations:', locations.map((l, i) => `${i}: ${l ? 'SET' : 'NULL'}`));
-    console.log('  Current customDrawEnabled:', customDrawEnabled);
-    console.log('  Current lockedSegments:', lockedSegments);
-
-    // Save to undo history BEFORE changing
-    saveToUndoHistory('ADD_DESTINATION');
-
-    // Lock the previous segment (if it was in draw mode)
-    const lastSegmentIndex = locations.length - 2; // The segment we're finishing
-    if (lastSegmentIndex >= 0) {
-      console.log('  Locking segment at index:', lastSegmentIndex);
-      // Lock this segment so it can't be toggled
-      const newLockedSegments = [...lockedSegments];
-      newLockedSegments[lastSegmentIndex] = true;
-      setLockedSegments(newLockedSegments);
-    }
-
-    // Add a new destination
-    console.log('  Adding new null location');
-    const newLocations = [...locations, null];
-    const newModes = [...legModes, 'walk'];
-
-    setLocations(newLocations);
-    setLegModes(newModes);
-
-    // Notify parent via deprecated callbacks (will be removed later)
-    if (onLocationsChange) {
-      onLocationsChange(newLocations, 'ADD_DESTINATION');
-    }
-    if (onLegModesChange) {
-      onLegModesChange(newModes);
-    }
-  };
-
   const removeLocation = (index) => {
     if (index === 0 || index === 1) return; // Can't remove A or B
 
@@ -699,40 +706,6 @@ const DirectionsPanel = ({
     }
   };
 
-  const updateLegMode = (index, mode) => {
-    const newModes = [...legModes];
-    newModes[index] = mode;
-
-    setLegModes(newModes);
-
-    // Notify parent via deprecated callback (will be removed later)
-    if (onLegModesChange) {
-      onLegModesChange(newModes, index); // Pass index for action tracking
-    }
-
-    // Update the route data immediately with new modes (visual update only)
-    const filledLocations = locations.filter(loc => loc !== null);
-    if (filledLocations.length === 1) {
-      // Single location - don't calculate route, just let the marker show
-      // The marker will be handled by RouteSegmentManager
-    } else if (filledLocations.length >= 2 && onDirectionsCalculated) {
-      const segments = buildSegments(filledLocations);
-      const routeData = {
-        origin: filledLocations[0],
-        destination: filledLocations[filledLocations.length - 1],
-        waypoints: filledLocations.slice(1, -1),
-        mode: newModes[0],
-        segments,
-        allLocations: filledLocations,
-        allModes: newModes,
-        customPaths: customPoints,
-        routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + newModes.join('-')
-      };
-      onDirectionsCalculated(routeData);
-    }
-  };
-
-  
   const getUndoTooltip = (lastAction) => {
     if (!lastAction) return "Undo last action";
     
