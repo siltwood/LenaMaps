@@ -354,8 +354,9 @@ const RouteSegmentManager = ({
       return;
     }
 
-    // If no directionsRoute, don't clear - let the marker effect handle single locations
+    // If no directionsRoute, clear all segments (user cleared route or undid to < 2 locations)
     if (!directionsRoute) {
+      clearAllSegments();
       return;
     }
 

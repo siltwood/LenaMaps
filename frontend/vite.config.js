@@ -25,6 +25,11 @@ export default defineConfig({
   server: {
     port: 3000,
     open: false,
+    host: true,
+    allowedHosts: [
+      'chromous-unattributably-yee.ngrok-free.dev',
+      '.ngrok-free.dev'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:5001',

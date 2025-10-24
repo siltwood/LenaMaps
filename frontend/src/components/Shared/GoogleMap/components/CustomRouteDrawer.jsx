@@ -154,13 +154,13 @@ const CustomRouteDrawer = ({
       console.log('    segmentIndex:', segmentIndex);
 
       if (segmentIndex === 0) {
-        // First segment (A→B): set both start and end from clicks
+        // First segment (A→B): set start on first click, end on subsequent clicks
         if (allPoints.length === 1) {
-          // First click - set both A and B to this point for now
-          console.log('    First click - setting both A and B to same point');
-          onSetLocations(segmentIndex, point, point);
+          // First click - set only A (don't set B yet, no markers needed)
+          console.log('    First click - setting only A');
+          onSetLocations(segmentIndex, point, null);
         } else {
-          // Subsequent clicks - update B, keep A
+          // Second+ clicks - update B, keep A
           console.log('    Subsequent click - updating only B');
           onSetLocations(segmentIndex, null, point);
         }

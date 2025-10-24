@@ -16,16 +16,14 @@ function AppContent() {
   const [mapCenter, setMapCenter] = useState({ lat: 48.1181, lng: -123.4307 }); // Default: Port Angeles, WA
   const [shouldCenterMap, setShouldCenterMap] = useState(false);
   const [clickedLocation, setClickedLocation] = useState(null);
-  const [directionsLocations, setDirectionsLocations] = useState([null, null]);
-  const [directionsLegModes, setDirectionsLegModes] = useState(['walk']);
   const [isAnimating, setIsAnimating] = useState(false);
   const isMobile = useMobileDetection();
   const [showRouteAnimator, setShowRouteAnimator] = useState(!isMobile); // Show on desktop by default, hide on mobile
   const [mapInstance, setMapInstance] = useState(null); // Store map instance
 
-  // Undo functionality
-  const [history, setHistory] = useState([]);
-  const [lastAction, setLastAction] = useState(null);
+  // DEPRECATED: Old parallel array state - moved to DirectionsPanel
+  const [directionsLocations, setDirectionsLocations] = useState([null, null]);
+  const [directionsLegModes, setDirectionsLegModes] = useState(['walk']);
   
   // Route error modal
   const [routeErrorModal, setRouteErrorModal] = useState({
@@ -49,7 +47,7 @@ function AppContent() {
         isOpen: true,
         message: event.detail.message
       });
-      
+
       // Clear the second location if route calculation failed
       if (event.detail.shouldClearSecondLocation) {
         // Keep only the first location, clear the rest
@@ -62,25 +60,15 @@ function AppContent() {
         }
         setDirectionsLocations(newLocations);
         setDirectionsRoute(null);
-        
-        // Remove the last action from history since the route failed
-        // This prevents having to undo a "phantom" action
-        setHistory(prev => {
-          if (prev.length > 0) {
-            return prev.slice(0, -1);
-          }
-          return prev;
-        });
-        setLastAction(history.length > 1 ? history[history.length - 2] : null);
       }
     };
-    
+
     window.addEventListener('routeCalculationError', handleRouteError);
-    
+
     return () => {
       window.removeEventListener('routeCalculationError', handleRouteError);
     };
-  }, [directionsLocations, history]);
+  }, [directionsLocations]);
 
   // Initialize authentication and fingerprinting
   useEffect(() => {
@@ -191,70 +179,8 @@ function AppContent() {
     }
   }, []); // Run only once on mount
 
-  // Save state to history before making changes
-  const saveToHistory = useCallback((action) => {
-    // Only save valid states to history
-    if (directionsLocations && directionsLegModes) {
-      setHistory(prev => [...prev, {
-        locations: directionsLocations,
-        legModes: directionsLegModes,
-        // Don't save the full route object - it has Google Maps objects that don't serialize well
-        // Just save the essential data needed to recreate it
-        routeId: directionsRoute?.routeId || null,
-        action: action
-      }]);
-      setLastAction(action);
-    }
-  }, [directionsLocations, directionsLegModes, directionsRoute]);
-
-  // Undo last action
-  const handleUndo = useCallback(() => {
-    if (history.length > 0) {
-      const previousState = history[history.length - 1];
-      // Validate state before restoring
-      if (previousState.locations && previousState.legModes) {
-        // Use the raw setters (not the WithHistory versions) to avoid creating new history entries
-        setDirectionsLocations(previousState.locations);
-        setDirectionsLegModes(previousState.legModes);
-        
-        // Recreate the route from locations and modes
-        const filledLocations = previousState.locations.filter(loc => loc !== null);
-        if (filledLocations.length >= 1) {
-          const segments = [];
-          for (let i = 0; i < filledLocations.length - 1; i++) {
-            segments.push({
-              mode: previousState.legModes[i] || 'walk',
-              startIndex: i,
-              endIndex: i + 1
-            });
-          }
-          
-          const routeData = {
-            origin: filledLocations[0],
-            destination: filledLocations.length > 1 ? filledLocations[filledLocations.length - 1] : null,
-            waypoints: filledLocations.slice(1, -1),
-            mode: previousState.legModes[0] || 'walk',
-            segments,
-            allLocations: previousState.locations,
-            allModes: previousState.legModes,
-            routeId: previousState.routeId || `undo_${Date.now()}`
-          };
-          setDirectionsRoute(routeData);
-        } else {
-          setDirectionsRoute(null);
-        }
-        
-        setHistory(prev => prev.slice(0, -1));
-        setLastAction(null);
-      }
-    }
-  }, [history]);
-
-  // Clear history (for reset)
-  const handleClearHistory = useCallback(() => {
-    setHistory([]);
-    setLastAction(null);
-  }, []);
+  // DEPRECATED: Old undo system - moved to DirectionsPanel
+  // Keeping minimal stubs for compatibility during migration
 
   const handleLocationSearch = useCallback((location) => {
     setMapCenter({ lat: location.lat, lng: location.lng });
@@ -274,53 +200,15 @@ function AppContent() {
     setClickedLocation(null);
   }, []);
 
-  // Wrapped setters that save to history
-  const setDirectionsLocationsWithHistory = useCallback(async (newLocations, actionType, extraData) => {
-    // Only save to history if there's an actual change and an action type
-    if (actionType && JSON.stringify(newLocations) !== JSON.stringify(directionsLocations)) {
-      // Find what changed by comparing
-      let action = { type: actionType };
-
-      // Find the index that changed
-      for (let i = 0; i < Math.max(newLocations.length, directionsLocations.length); i++) {
-        const oldLoc = directionsLocations[i];
-        const newLoc = newLocations[i];
-
-        // Check if this location changed (comparing coordinates or null state)
-        const oldKey = oldLoc ? `${oldLoc.lat},${oldLoc.lng}` : 'null';
-        const newKey = newLoc ? `${newLoc.lat},${newLoc.lng}` : 'null';
-
-        if (oldKey !== newKey) {
-          action.index = i;
-          action.oldLocation = oldLoc;
-          action.newLocation = newLoc;
-          break;
-        }
-      }
-
-      // Add any extra data
-      if (extraData) {
-        action = { ...action, ...extraData };
-      }
-
-      // Save the CURRENT state (before change) to history
-      saveToHistory(action);
-    }
+  // DEPRECATED: Old history wrappers - moved to DirectionsPanel
+  // Simple pass-through for compatibility during migration
+  const setDirectionsLocationsWithHistory = useCallback((newLocations, actionType) => {
     setDirectionsLocations(newLocations);
-  }, [saveToHistory, directionsLocations]);
+  }, []);
 
   const setDirectionsLegModesWithHistory = useCallback((newModes, index) => {
-    // Create action for mode change if index is provided
-    if (index !== undefined) {
-      const action = {
-        type: 'mode_change',
-        index: index,
-        newMode: newModes[index]
-      };
-      saveToHistory(action);
-    }
     setDirectionsLegModes(newModes);
-  }, [saveToHistory]);
+  }, []);
 
   // Handle saving a route
   const handleSaveRoute = useCallback((routeData) => {
@@ -503,9 +391,6 @@ function AppContent() {
           onLocationsChange={setDirectionsLocationsWithHistory}
           onLegModesChange={setDirectionsLegModesWithHistory}
           directionsRoute={directionsRoute}
-          onUndo={handleUndo}
-          onClearHistory={handleClearHistory}
-          canUndo={history.length > 0}
           onShowAnimator={() => {
             // Center on first marker when entering animation mode on mobile
             if (mapInstance && directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
@@ -538,10 +423,6 @@ function AppContent() {
           legModes={directionsLegModes}
           onLocationsChange={setDirectionsLocationsWithHistory}
           onLegModesChange={setDirectionsLegModesWithHistory}
-          onUndo={handleUndo}
-          onClearHistory={handleClearHistory}
-          canUndo={history.length > 0}
-          lastAction={lastAction}
           map={mapInstance}
         />
       )}
