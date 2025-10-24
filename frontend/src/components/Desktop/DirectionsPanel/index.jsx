@@ -60,19 +60,6 @@ const DirectionsPanel = ({
   const [undoHistory, setUndoHistory] = useState([]);
   const [lastActionType, setLastActionType] = useState(null);
 
-  // Sync initial props to internal state (only once)
-  useEffect(() => {
-    if (propsLocations && propsLocations !== locations) {
-      setLocations(propsLocations);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (propsLegModes && propsLegModes !== legModes) {
-      setLegModes(propsLegModes);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // ============================================================================
   // UNDO SYSTEM - Tracks routeSegments snapshots
   // ============================================================================
@@ -391,43 +378,44 @@ const DirectionsPanel = ({
 
   /**
    * Undo last point from a segment's custom route
+   * NOTE: This is the old per-point undo, NOT the new full-state undo
+   * TODO: Remove this once main undo button works
    */
   const undoPointFromSegment = useCallback((segmentIndex) => {
     console.log('🆕 UNDO POINT FROM SEGMENT:', segmentIndex);
 
-    setCustomPoints(prev => {
-      const points = prev[segmentIndex] || [];
-      if (points.length === 0) return prev;
+    const points = customPoints[segmentIndex] || [];
+    if (points.length === 0) return;
 
-      const newPoints = points.slice(0, -1);
+    const newPoints = points.slice(0, -1);
 
-      // Update location B to match the new last point
-      if (newPoints.length > 1) {
-        // More than 1 point left - update B to the new last point
-        const newEndPoint = newPoints[newPoints.length - 1];
-        const newLocations = [...locations];
-        newLocations[segmentIndex + 1] = {
-          lat: newEndPoint.lat,
-          lng: newEndPoint.lng
-        };
-        if (onLocationsChange) {
-          onLocationsChange(newLocations, 'UNDO_POINT');
-        }
-      } else {
-        // Only 1 or 0 points left - clear location B
-        const newLocations = [...locations];
-        newLocations[segmentIndex + 1] = null;
-        if (onLocationsChange) {
-          onLocationsChange(newLocations, 'UNDO_POINT');
-        }
-      }
+    // Update customPoints
+    setCustomPoints(prev => ({
+      ...prev,
+      [segmentIndex]: newPoints
+    }));
 
-      return {
-        ...prev,
-        [segmentIndex]: newPoints
+    // Update location B to match the new last point
+    const newLocations = [...locations];
+    if (newPoints.length > 1) {
+      // More than 1 point left - update B to the new last point
+      const newEndPoint = newPoints[newPoints.length - 1];
+      newLocations[segmentIndex + 1] = {
+        lat: newEndPoint.lat,
+        lng: newEndPoint.lng
       };
-    });
-  }, [locations, onLocationsChange]);
+    } else {
+      // Only 1 or 0 points left - clear location B
+      newLocations[segmentIndex + 1] = null;
+    }
+
+    setLocations(newLocations);
+
+    // Notify parent via deprecated callback
+    if (onLocationsChange) {
+      onLocationsChange(newLocations, 'UNDO_POINT');
+    }
+  }, [locations, customPoints, onLocationsChange]);
 
   /**
    * Update location - save to undo history before changing
@@ -834,43 +822,50 @@ const DirectionsPanel = ({
   };
 
   const handleUndoPoint = (segmentIndex) => {
-    setCustomPoints(prev => {
-      const segmentPoints = prev[segmentIndex] || [];
-      if (segmentPoints.length === 0) return prev;
+    const segmentPoints = customPoints[segmentIndex] || [];
+    if (segmentPoints.length === 0) return;
 
-      // Remove the last point
-      const newSegmentPoints = segmentPoints.slice(0, -1);
+    // Remove the last point
+    const newSegmentPoints = segmentPoints.slice(0, -1);
 
-      // Update the end location marker to follow the undo
-      if (newSegmentPoints.length > 0) {
-        // Move end marker to the new last point
-        const newEndPoint = newSegmentPoints[newSegmentPoints.length - 1];
-        handleSetLocations(segmentIndex, null, newEndPoint);
-      } else {
-        // No more points - reset both markers to the same position if this is the first segment
-        if (segmentIndex === 0) {
-          // For segment A→B with no points, reset both A and B to null
-          const newLocations = [...locations];
-          newLocations[segmentIndex] = null;
-          newLocations[segmentIndex + 1] = null;
-          if (onLocationsChange) {
-            onLocationsChange(newLocations, 'CLEAR_LOCATION');
-          }
-        }
-      }
-
-      if (newSegmentPoints.length === 0) {
-        // No more points for this segment, remove the key
+    // Update customPoints
+    if (newSegmentPoints.length === 0) {
+      // No more points for this segment, remove the key
+      setCustomPoints(prev => {
         const newPoints = { ...prev };
         delete newPoints[segmentIndex];
         return newPoints;
-      }
-
-      return {
+      });
+    } else {
+      setCustomPoints(prev => ({
         ...prev,
         [segmentIndex]: newSegmentPoints
+      }));
+    }
+
+    // Update the end location marker to follow the undo
+    const newLocations = [...locations];
+    if (newSegmentPoints.length > 0) {
+      // Move end marker to the new last point
+      const newEndPoint = newSegmentPoints[newSegmentPoints.length - 1];
+      newLocations[segmentIndex + 1] = {
+        lat: newEndPoint.lat,
+        lng: newEndPoint.lng
       };
-    });
+    } else {
+      // No more points - reset both markers if this is the first segment
+      if (segmentIndex === 0) {
+        newLocations[segmentIndex] = null;
+        newLocations[segmentIndex + 1] = null;
+      }
+    }
+
+    setLocations(newLocations);
+
+    // Notify parent via deprecated callback
+    if (onLocationsChange) {
+      onLocationsChange(newLocations, 'CLEAR_LOCATION');
+    }
   };
 
   const handleSetLocations = (segmentIndex, startPoint, endPoint) => {
