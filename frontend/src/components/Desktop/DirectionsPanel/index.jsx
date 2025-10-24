@@ -70,6 +70,12 @@ const DirectionsPanel = ({
    */
   const saveToUndoHistory = useCallback((actionType) => {
     console.log('💾 SAVE TO UNDO HISTORY:', actionType);
+    console.log('  📸 Current state BEFORE action:');
+    console.log('    locations:', locations.map((l, i) => `${i}=${l ? 'SET' : 'NULL'}`).join(', '));
+    console.log('    legModes:', legModes);
+    console.log('    customDrawEnabled:', customDrawEnabled);
+    console.log('    customPoints:', Object.keys(customPoints).map(k => `seg${k}=${customPoints[k].length}pts`).join(', '));
+    console.log('    lockedSegments:', lockedSegments);
 
     // Deep copy customPoints (object with array values)
     const customPointsCopy = {};
@@ -87,8 +93,12 @@ const DirectionsPanel = ({
       actionType,
       timestamp: Date.now()
     };
-    console.log('  Snapshot:', snapshot);
-    setUndoHistory(prev => [...prev, snapshot]);
+
+    setUndoHistory(prev => {
+      const newHistory = [...prev, snapshot];
+      console.log('  📚 Undo history length:', newHistory.length);
+      return newHistory;
+    });
     setLastActionType(actionType);
   }, [locations, legModes, customDrawEnabled, snapToRoads, customPoints, lockedSegments]);
 
@@ -96,14 +106,22 @@ const DirectionsPanel = ({
    * Undo last action - restore previous snapshot
    */
   const handleUndo = useCallback(() => {
+    console.log('⏮️ ⏮️ ⏮️ UNDO BUTTON CLICKED ⏮️ ⏮️ ⏮️');
+    console.log('  Current undo history length:', undoHistory.length);
+
     if (undoHistory.length === 0) {
-      console.log('⏮️ UNDO: No history available');
+      console.log('  ❌ No history available - UNDO DISABLED');
       return;
     }
 
     const previousSnapshot = undoHistory[undoHistory.length - 1];
-    console.log('⏮️ UNDO:', previousSnapshot.actionType);
-    console.log('  Restoring snapshot:', previousSnapshot);
+    console.log('  📼 Undoing action:', previousSnapshot.actionType);
+    console.log('  📼 Restoring state to:');
+    console.log('    locations:', previousSnapshot.locations.map((l, i) => `${i}=${l ? 'SET' : 'NULL'}`).join(', '));
+    console.log('    legModes:', previousSnapshot.legModes);
+    console.log('    customDrawEnabled:', previousSnapshot.customDrawEnabled);
+    console.log('    customPoints:', Object.keys(previousSnapshot.customPoints).map(k => `seg${k}=${previousSnapshot.customPoints[k].length}pts`).join(', '));
+    console.log('    lockedSegments:', previousSnapshot.lockedSegments);
 
     // Restore all state from snapshot
     setLocations(previousSnapshot.locations);
@@ -114,8 +132,14 @@ const DirectionsPanel = ({
     setLockedSegments(previousSnapshot.lockedSegments);
 
     // Remove this snapshot from history
-    setUndoHistory(prev => prev.slice(0, -1));
+    setUndoHistory(prev => {
+      const newHistory = prev.slice(0, -1);
+      console.log('  📚 New undo history length:', newHistory.length);
+      return newHistory;
+    });
     setLastActionType(undoHistory.length > 1 ? undoHistory[undoHistory.length - 2].actionType : null);
+
+    console.log('  ✅ UNDO COMPLETE');
   }, [undoHistory]);
 
   /**
@@ -428,7 +452,10 @@ const DirectionsPanel = ({
    * Update location - save to undo history before changing
    */
   const updateLocation = useCallback((index, location) => {
-    console.log('🆕 UPDATE LOCATION:', index, location);
+    console.log('🔵 🔵 🔵 UPDATE LOCATION CALLED 🔵 🔵 🔵');
+    console.log('  Index:', index);
+    console.log('  New location:', location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'NULL');
+    console.log('  Current locations BEFORE:', locations.map((l, i) => `${i}=${l ? 'SET' : 'NULL'}`).join(', '));
 
     // Save current state to undo history BEFORE making changes
     const actionType = location ? 'ADD_LOCATION' : 'CLEAR_LOCATION';
@@ -438,6 +465,7 @@ const DirectionsPanel = ({
     const newLocations = [...locations];
     newLocations[index] = location;
     setLocations(newLocations);
+    console.log('  New locations AFTER:', newLocations.map((l, i) => `${i}=${l ? 'SET' : 'NULL'}`).join(', '));
 
     // Notify parent via deprecated callback (will be removed later)
     if (onLocationsChange) {
