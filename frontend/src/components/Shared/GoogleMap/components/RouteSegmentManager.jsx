@@ -161,7 +161,7 @@ const RouteSegmentManager = ({
       title: title,
       content: markerContent,
       zIndex: zIndex,
-      collisionBehavior: window.google.maps.CollisionBehavior.REQUIRED
+      collisionBehavior: window.google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL
     });
     
     
@@ -199,7 +199,7 @@ const RouteSegmentManager = ({
       title: `Transfer`,
       content: transitionContent,
       zIndex: 5100, // Higher than regular markers
-      collisionBehavior: window.google.maps.CollisionBehavior.REQUIRED
+      collisionBehavior: window.google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL
     });
     
     // Store the icons and colors for updates
@@ -386,23 +386,16 @@ const RouteSegmentManager = ({
         const icon = TRANSPORT_ICONS[mode] || TRANSPORT_ICONS.walk;
         const color = getTransportationColor(mode);
 
-        const scale = getMarkerScale(currentZoomRef.current);
-        const markerContent = createMarkerContent(icon, color, false, null, null, scale);
+        // Use centralized marker creation function
+        const startMarker = createMarker(location, icon, color, 'Start', 5000, false);
 
-        // Store in segmentsRef
-        if (!segmentsRef.current['single-marker']) {
-          segmentsRef.current['single-marker'] = { markers: {}, polyline: null };
-        }
-
-        segmentsRef.current['single-marker'].markers = {
-          start: new window.google.maps.marker.AdvancedMarkerElement({
-            map,
-            position: location,
-            content: markerContent,
-            title: 'Start',
-            zIndex: 5000
-          })
-        };
+        // Store in segmentsRef as an ARRAY element (not object property!)
+        segmentsRef.current = [{
+          id: 'single-marker',
+          markers: { start: startMarker },
+          startLocation: location,
+          mode: mode
+        }];
       }
       return;
     }
@@ -699,7 +692,7 @@ const RouteSegmentManager = ({
               );
             }
 
-            // Add end marker (only for last segment)
+            // Add end marker (only for last segment overall)
             if (i === validLocations.length - 2) {
               console.log(`  Creating END marker for custom segment ${i}`);
               markers.end = createMarker(
@@ -711,9 +704,9 @@ const RouteSegmentManager = ({
                 false
               );
             }
-
-            // Add waypoint marker for intermediate points (not first, not last)
-            if (i > 0 && i < validLocations.length - 2) {
+            // Add waypoint marker for intermediate custom segments
+            // Don't create waypoint if this is the last segment (END marker covers it)
+            else if (i > 0) {
               console.log(`  Creating WAYPOINT marker for custom segment ${i}`);
               markers.waypoint = createMarker(
                 segmentDestination,
@@ -1115,7 +1108,7 @@ const RouteSegmentManager = ({
               suppressInfoWindows: true,
               suppressBicyclingLayer: true
             };
-            
+
             // For bus routes, suppress transit layer to avoid label conflicts
             if (segmentMode === 'bus') {
               rendererOptions.suppressPolylines = false;
@@ -1123,29 +1116,19 @@ const RouteSegmentManager = ({
                 visible: false
               };
             }
-            
+
             // Only create DirectionsRenderer if we have a valid result
             if (!result || !result.routes || !result.routes[0]) {
               throw new Error('Invalid directions result');
             }
-            
-            // Store current view to prevent any movement
-            const savedCenter = map.getCenter();
-            const savedZoom = map.getZoom();
-            
+
             // Hide transit labels once before rendering
             hideTransitLabels();
-            
+
             const segmentRenderer = new window.google.maps.DirectionsRenderer(rendererOptions);
             segmentRenderer.setMap(map);
             segmentRenderer.setDirections(result);
-            
-            // Force restore the view - Google Maps sometimes ignores preserveViewport
-            setTimeout(() => {
-              map.setCenter(savedCenter);
-              map.setZoom(savedZoom);
-            }, 0);
-            
+
             // Create markers for this segment
             console.log(`  Creating markers for regular segment ${i} (mode=${segmentMode})`);
             const markers = {};

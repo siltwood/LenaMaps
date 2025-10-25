@@ -643,24 +643,10 @@ const MobileControls = ({
                       <span>Draw Custom Route</span>
                     </label>
 
-                    {/* Snap to roads toggle - only show if custom drawing is enabled */}
+                    {/* Clear/Undo buttons for custom strokes */}
                     {customDrawEnabled[index] && (
                       <>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', marginLeft: '24px' }}>
-                          <input
-                            type="checkbox"
-                            checked={snapToRoads[index] || false}
-                            onChange={(e) => {
-                              const newSnap = [...snapToRoads];
-                              newSnap[index] = e.target.checked;
-                              setSnapToRoads(newSnap);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <span>Snap to Roads</span>
-                        </label>
 
-                        {/* Clear/Undo buttons for custom strokes */}
                         {customPoints[index] && customPoints[index].length > 0 && (
                           <div style={{ display: 'flex', gap: '8px', marginLeft: '24px', marginTop: '8px' }}>
                             <button

@@ -193,6 +193,7 @@ function AppContent() {
   }, []);
 
   const handleMapClick = useCallback((lat, lng, locationInfo) => {
+    console.log('🗺️ MAP CLICK in AppContent - lat:', lat, 'lng:', lng, 'locationInfo:', locationInfo);
     setClickedLocation({ lat, lng, ...locationInfo });
   }, []);
 

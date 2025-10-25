@@ -38,8 +38,8 @@ const CustomRouteDrawer = ({
 
   // Render polyline and point markers from points array
   useEffect(() => {
-    if (!map || !isEnabled) {
-      // Clean up
+    if (!map) {
+      // Clean up if no map
       if (mainPolylineRef.current) {
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;
@@ -55,7 +55,7 @@ const CustomRouteDrawer = ({
     }
     pathPoints.push(...points);
 
-    // Update or create polyline
+    // Update or create polyline (render even when locked/disabled)
     if (pathPoints.length >= 2) {
       if (!mainPolylineRef.current) {
         mainPolylineRef.current = new window.google.maps.Polyline({
@@ -79,23 +79,26 @@ const CustomRouteDrawer = ({
     clearPointMarkers();
 
     // Add point markers for each clicked point (not previousLocation)
-    points.forEach((point, idx) => {
-      const marker = new window.google.maps.Marker({
-        position: point,
-        map: map,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 5,
-          fillColor: strokeColor,
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        },
-        zIndex: 3000 + idx,
-        draggable: false
+    // Only show point markers when NOT locked (when isEnabled is true)
+    if (isEnabled) {
+      points.forEach((point, idx) => {
+        const marker = new window.google.maps.Marker({
+          position: point,
+          map: map,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 5,
+            fillColor: strokeColor,
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+          },
+          zIndex: 3000 + idx,
+          draggable: false
+        });
+        pointMarkersRef.current.push(marker);
       });
-      pointMarkersRef.current.push(marker);
-    });
+    }
 
     return () => {
       if (mainPolylineRef.current) {
@@ -126,16 +129,12 @@ const CustomRouteDrawer = ({
   const handleClick = async (e) => {
     if (!isEnabled || !map) return;
 
-    console.log('CUSTOM ROUTE DRAWER CLICK:');
-    console.log('  Segment index:', segmentIndex);
-    console.log('  isEnabled:', isEnabled);
-    console.log('  Current points count:', points.length);
-
     const latLng = e.latLng;
 
     // Optionally snap to road
     const point = await snapPointToRoad(latLng);
-    console.log('  Adding point:', point);
+
+    console.log('✏️ DRAW MODE: Adding point to segment', segmentIndex);
 
     // Notify parent to add this point
     if (onPointAdded) {
@@ -149,25 +148,19 @@ const CustomRouteDrawer = ({
     // AUTO-SET LOCATIONS: First point = start, Last point = end
     if (onSetLocations) {
       const allPoints = [...points, point];
-      console.log('  AUTO-SET LOCATIONS logic:');
-      console.log('    allPoints length:', allPoints.length);
-      console.log('    segmentIndex:', segmentIndex);
 
       if (segmentIndex === 0) {
         // First segment (A→B): set start on first click, end on subsequent clicks
         if (allPoints.length === 1) {
           // First click - set only A (don't set B yet, no markers needed)
-          console.log('    First click - setting only A');
           onSetLocations(segmentIndex, point, null);
         } else {
           // Second+ clicks - update B, keep A
-          console.log('    Subsequent click - updating only B');
           onSetLocations(segmentIndex, null, point);
         }
       } else {
         // Later segments (B→C, C→D, etc.): only update the end point
         // Start point already exists from previous segment
-        console.log('    Later segment - updating only end point');
         onSetLocations(segmentIndex, null, point);
       }
     }

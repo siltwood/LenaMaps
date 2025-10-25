@@ -17,7 +17,7 @@ export const createMarkerContent = (icon, color, isTransition = false, icon2 = n
   const content = document.createElement('div');
   
   if (isTransition && icon2 && color2) {
-    // Transition marker with two icons - no background
+    // Transition marker with two icons - with white borders for consistency
     content.style.cssText = `
       display: flex;
       align-items: center;
@@ -25,33 +25,37 @@ export const createMarkerContent = (icon, color, isTransition = false, icon2 = n
       gap: ${4 * scale}px;
       position: relative;
     `;
-    
+
     const leftDiv = document.createElement('div');
     leftDiv.style.cssText = `
-      width: ${36 * scale}px;
-      height: ${36 * scale}px;
+      width: ${44 * scale}px;
+      height: ${44 * scale}px;
       background-color: ${color};
+      border: ${3 * scale}px solid white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: ${18 * scale}px;
+      font-size: ${20 * scale}px;
+      box-shadow: 0 ${2 * scale}px ${6 * scale}px rgba(0,0,0,0.3);
     `;
     leftDiv.textContent = icon;
-    
+
     const rightDiv = document.createElement('div');
     rightDiv.style.cssText = `
-      width: ${36 * scale}px;
-      height: ${36 * scale}px;
+      width: ${44 * scale}px;
+      height: ${44 * scale}px;
       background-color: ${color2};
+      border: ${3 * scale}px solid white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: ${18 * scale}px;
+      font-size: ${20 * scale}px;
+      box-shadow: 0 ${2 * scale}px ${6 * scale}px rgba(0,0,0,0.3);
     `;
     rightDiv.textContent = icon2;
-    
+
     content.appendChild(leftDiv);
     content.appendChild(rightDiv);
   } else {
