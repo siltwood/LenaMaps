@@ -82,10 +82,10 @@ export const createMarkerContent = (icon, color, isTransition = false, icon2 = n
 export const createPolylineOptions = (mode, color) => {
   const baseOptions = {
     strokeColor: color || getTransportationColor(mode),
-    strokeWeight: 5,
-    strokeOpacity: 0.8
+    strokeWeight: 8, // Thicker base line
+    strokeOpacity: 0.9
   };
-  
+
   // Make walking routes dotted
   if (mode === 'walk') {
     baseOptions.strokeOpacity = 0;
@@ -94,18 +94,18 @@ export const createPolylineOptions = (mode, color) => {
         path: 'M 0,-1 0,1',
         strokeOpacity: 1,
         strokeColor: color || getTransportationColor(mode),
-        scale: 3
+        scale: 5 // Bigger dots
       },
       offset: '0',
-      repeat: '20px'
+      repeat: '18px' // Slightly closer together
     }];
   }
-  
+
   // Add train symbols for transit routes
   if (mode === 'transit') {
     baseOptions.strokeColor = '#ec4899'; // Pink color for transit
-    baseOptions.strokeWeight = 6;
-    baseOptions.strokeOpacity = 0.7;
+    baseOptions.strokeWeight = 9; // Thicker transit line
+    baseOptions.strokeOpacity = 0.8;
     baseOptions.icons = [
       // Railroad track pattern
       {
@@ -113,11 +113,11 @@ export const createPolylineOptions = (mode, color) => {
           path: 'M -2,-1 L 2,-1 M -2,1 L 2,1', // Railroad ties
           strokeColor: '#ec4899',
           strokeOpacity: 1,
-          strokeWeight: 2,
-          scale: 2
+          strokeWeight: 3, // Thicker railroad ties
+          scale: 2.5 // Bigger railroad ties
         },
         offset: '0',
-        repeat: '20px'
+        repeat: '18px'
       }
     ];
   }
@@ -125,7 +125,7 @@ export const createPolylineOptions = (mode, color) => {
   // Add wave pattern for ferry routes (rotated 90 degrees for vertical waves)
   if (mode === 'ferry') {
     baseOptions.strokeColor = '#06b6d4'; // Cyan/teal for water
-    baseOptions.strokeWeight = 5;
+    baseOptions.strokeWeight = 8;
     baseOptions.strokeOpacity = 0;
     baseOptions.icons = [
       // Vertical wave pattern (rotated 90 degrees)
@@ -134,11 +134,11 @@ export const createPolylineOptions = (mode, color) => {
           path: 'M -1,0 Q -2,1 -1,2 Q 0,3 -1,4', // Vertical wave curve
           strokeColor: '#06b6d4',
           strokeOpacity: 1,
-          strokeWeight: 2,
-          scale: 1.5
+          strokeWeight: 3, // Thicker waves
+          scale: 2 // Bigger waves
         },
         offset: '0',
-        repeat: '15px' // More frequent waves
+        repeat: '14px' // More frequent waves
       }
     ];
   }
