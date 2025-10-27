@@ -22,63 +22,26 @@ const CustomRouteDrawer = ({
   points = [] // Array of clicked points
 }) => {
   const mainPolylineRef = useRef(null); // One continuous polyline for the entire path
-  const pointMarkersRef = useRef([]); // Markers for each clicked point
   const clickListenerRef = useRef(null);
-
-  // Keep a persistent array of ALL markers ever created for this instance
-  // This ensures cleanup works even if React timing issues occur
-  const allMarkersEverCreatedRef = useRef([]);
 
   // Get color for the current mode
   const strokeColor = getTransportationColor(mode);
 
-  // Clean up markers
-  const clearPointMarkers = () => {
-    const totalMarkers = pointMarkersRef.current.length;
-    console.log(`🧹 CustomRouteDrawer: Clearing ${totalMarkers} point markers for segment ${segmentIndex}`);
-
-    // Clear from both refs to ensure thorough cleanup
-    pointMarkersRef.current.forEach(marker => {
-      if (marker) marker.setMap(null);
-    });
-    pointMarkersRef.current = [];
-  };
-
-  // Complete cleanup of ALL markers ever created (for unmount)
-  const clearAllMarkers = () => {
-    const total = allMarkersEverCreatedRef.current.length;
-    console.log(`🧹🧹 CustomRouteDrawer: COMPLETE CLEANUP of ${total} markers for segment ${segmentIndex}`);
-
-    allMarkersEverCreatedRef.current.forEach(marker => {
-      if (marker) {
-        try {
-          marker.setMap(null);
-        } catch (e) {
-          // Marker might already be removed
-        }
-      }
-    });
-    allMarkersEverCreatedRef.current = [];
-    pointMarkersRef.current = [];
-  };
-
-  // Render polyline and point markers from points array
+  // Render polyline from points array
   useEffect(() => {
     console.log(`🎨 CustomRouteDrawer segment ${segmentIndex} effect:`, {
       hasMap: !!map,
       isEnabled,
-      pointsCount: points.length,
-      currentMarkers: pointMarkersRef.current.length
+      pointsCount: points.length
     });
 
     if (!map) {
       // Clean up if no map
-      console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: No map, clearing ALL`);
+      console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: No map, clearing polyline`);
       if (mainPolylineRef.current) {
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;
       }
-      clearAllMarkers();
       return;
     }
 
@@ -99,7 +62,7 @@ const CustomRouteDrawer = ({
           strokeOpacity: 1.0,
           strokeWeight: 4,
           map: map,
-          zIndex: 5000 // Higher zIndex to stay above animation polyline
+          zIndex: 200 // Below animation marker but above other route elements
         });
       } else {
         mainPolylineRef.current.setPath(pathPoints);
@@ -109,37 +72,7 @@ const CustomRouteDrawer = ({
       mainPolylineRef.current = null;
     }
 
-    // Clear old markers ALWAYS (even if disabled) to ensure cleanup on undo
-    console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: Clearing old markers before redraw`);
-    clearPointMarkers();
-
-    // Add point markers for each clicked point (not previousLocation)
-    // Only show point markers when NOT locked (when isEnabled is true)
-    console.log(`🎨 CustomRouteDrawer segment ${segmentIndex}: isEnabled=${isEnabled}, will create ${points.length} markers`);
-    if (isEnabled && points.length > 0) {
-      points.forEach((point, idx) => {
-        const marker = new window.google.maps.Marker({
-          position: point,
-          map: map,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 5,
-            fillColor: strokeColor,
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2
-          },
-          zIndex: 3000 + idx,
-          draggable: false
-        });
-        pointMarkersRef.current.push(marker);
-        allMarkersEverCreatedRef.current.push(marker); // Track for cleanup
-
-        // Store globally for force cleanup
-        if (!window._customMarkers) window._customMarkers = [];
-        window._customMarkers.push(marker);
-      });
-    }
+    // Joint markers removed - no longer needed
 
     // Store polyline globally for force cleanup
     if (mainPolylineRef.current) {
@@ -155,7 +88,6 @@ const CustomRouteDrawer = ({
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;
       }
-      clearAllMarkers(); // Use complete cleanup to ensure all markers removed
     };
   }, [map, isEnabled, points, previousLocation, strokeColor, segmentIndex]);
 

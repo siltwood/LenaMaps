@@ -424,6 +424,7 @@ function AppContent() {
           onLocationsChange={setDirectionsLocationsWithHistory}
           onLegModesChange={setDirectionsLegModesWithHistory}
           map={mapInstance}
+          isAnimating={isAnimating}
         />
       )}
       

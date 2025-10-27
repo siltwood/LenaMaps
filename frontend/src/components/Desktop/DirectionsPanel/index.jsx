@@ -22,6 +22,7 @@ const DirectionsPanel = ({
   isEditing = false,
   editingTrip = null,
   map,
+  isAnimating = false,
   // DEPRECATED PROPS - Will be removed after refactor
   waypoints = [],
   waypointModes = [],
@@ -166,13 +167,15 @@ const DirectionsPanel = ({
   // This ensures they're ALWAYS in sync, no complex state management needed
   const routeSegments = React.useMemo(() => {
     const segments = [];
+    console.log('🏗️ Building routeSegments from locations:', locations.length, 'locations');
     for (let i = 0; i < locations.length - 1; i++) {
       // Skip ONLY if both locations are null AND custom draw is NOT enabled
       // If draw mode is enabled, we need the segment to exist even without locations
       if (locations[i] === null && locations[i + 1] === null && !customDrawEnabled[i]) {
+        console.log(`⏭️ Skipping segment ${i} (both locations null, not custom)`);
         continue;
       }
-      segments.push({
+      const seg = {
         id: `seg-${i}`,
         startLocation: locations[i],
         endLocation: locations[i + 1],
@@ -181,8 +184,15 @@ const DirectionsPanel = ({
         isLocked: lockedSegments[i] === true,
         snapToRoads: snapToRoads[i] === true,
         customPoints: customPoints[i] || []
+      };
+      console.log(`✅ Created segment ${i}:`, {
+        mode: seg.mode,
+        isCustom: seg.isCustom,
+        customPointsCount: seg.customPoints.length
       });
+      segments.push(seg);
     }
+    console.log('🔄 routeSegments rebuilt:', segments.length, 'segments with modes:', segments.map(s => s.mode));
     return segments;
   }, [locations, legModes, customDrawEnabled, lockedSegments, snapToRoads, customPoints]);
 
@@ -211,14 +221,18 @@ const DirectionsPanel = ({
 
   const uiModes = React.useMemo(() => {
     if (!routeSegments || routeSegments.length === 0) {
-      return ['walk'];
+      // Use legModes directly when no route segments (no locations yet)
+      return legModes.length > 0 ? legModes : ['walk'];
     }
-    return routeSegments.map(seg => seg?.mode || 'walk');
-  }, [routeSegments]);
+    const modes = routeSegments.map(seg => seg?.mode || 'walk');
+    console.log('🎨 uiModes computed:', modes);
+    return modes;
+  }, [routeSegments, legModes]);
 
   // NEW: Build segments for map rendering directly from routeSegments
   // Much simpler than before - just convert our internal structure to map format
   const buildSegments = useCallback((filledLocations) => {
+    console.log('🗺️ buildSegments called with routeSegments:', routeSegments?.length, 'segments');
     if (!routeSegments || routeSegments.length === 0) {
       return [];
     }
@@ -242,11 +256,13 @@ const DirectionsPanel = ({
         }
         pathPoints.push(...seg.customPoints);
         segment.customPath = pathPoints;
+        console.log(`📍 Segment ${i} customPath:`, pathPoints.length, 'points');
       }
 
       return segment;
     }).filter(Boolean); // Remove null segments
 
+    console.log('🗺️ buildSegments returning:', segments.length, 'segments');
     return segments;
   }, [routeSegments]);
 
@@ -287,8 +303,17 @@ const DirectionsPanel = ({
     const newLocations = [...locations, null];
     const newModes = [...legModes, 'walk'];
 
+    // CRITICAL: Also extend the custom draw arrays to match the new segment count
+    // Without this, the custom segment data gets lost or misaligned
+    const newCustomDrawEnabled = [...(customDrawEnabled || []), false];
+    const newSnapToRoads = [...(snapToRoads || []), false];
+    // Note: customPoints is an object, not an array, so we don't extend it
+
     setLocations(newLocations);
     setLegModes(newModes);
+    setCustomDrawEnabled(newCustomDrawEnabled);
+    setSnapToRoads(newSnapToRoads);
+    // customPoints doesn't need to be updated - new segments just won't have entries yet
 
     // Notify parent via deprecated callbacks (will be removed later)
     if (onLocationsChange) {
@@ -297,12 +322,13 @@ const DirectionsPanel = ({
     if (onLegModesChange) {
       onLegModesChange(newModes);
     }
-  }, [locations, customDrawEnabled, lockedSegments, legModes, saveToUndoHistory, onLocationsChange, onLegModesChange]);
+  }, [locations, customDrawEnabled, lockedSegments, legModes, snapToRoads, saveToUndoHistory, onLocationsChange, onLegModesChange]);
 
   /**
    * Update the mode for a specific segment
    */
   const updateSegmentMode = useCallback((segmentIndex, mode) => {
+    console.log('⚡ updateSegmentMode START:', { segmentIndex, mode, currentLegModes: legModes });
 
     // Save to undo history BEFORE changing
     saveToUndoHistory('CHANGE_MODE');
@@ -311,6 +337,7 @@ const DirectionsPanel = ({
     const newModes = [...legModes];
     newModes[segmentIndex] = mode;
 
+    console.log('🔧 Setting legModes:', newModes, 'previous:', legModes);
     setLegModes(newModes);
 
     // Notify parent via deprecated callback (will be removed later)
@@ -1262,18 +1289,26 @@ const DirectionsPanel = ({
                         bus: 'Bus',
                         car: 'Driving',
                         transit: 'Rail Transit',
+                        ferry: 'Ferry',
                         flight: 'Flight'
                       };
+                      const isActive = uiModes[index] === mode;
+                      if (mode === 'ferry') {
+                        console.log('🚢 Ferry button render:', { uiMode: uiModes[index], buttonMode: mode, isActive, config });
+                      }
                       return (
                         <button
                           key={mode}
-                          className={`mode-button compact ${uiModes[index] === mode ? 'active' : ''}`}
-                          onClick={() => updateSegmentMode(index, mode)} // NOW USING NEW FUNCTION!
+                          className={`mode-button compact ${isActive ? 'active' : ''}`}
+                          onClick={() => {
+                            console.log('🖱️ Button clicked:', mode, 'at index', index);
+                            updateSegmentMode(index, mode);
+                          }}
                           title={modeLabels[mode]}
                           style={{
-                            backgroundColor: uiModes[index] === mode ? config.color : 'transparent',
+                            backgroundColor: isActive ? config.color : 'transparent',
                             borderColor: config.color,
-                            color: uiModes[index] === mode ? 'white' : config.color
+                            color: isActive ? 'white' : config.color
                           }}
                         >
                           <span className="mode-icon">{config.icon}</span>

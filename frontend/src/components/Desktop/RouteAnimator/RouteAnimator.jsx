@@ -709,6 +709,13 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       
       // First check if we have stored route segments with actual route data
       if (window._routeSegments && window._routeSegments.length > 0) {
+        console.log('📦 window._routeSegments:', window._routeSegments.map(s => ({
+          isCustom: s.isCustom,
+          mode: s.mode,
+          hasRoute: !!s.route,
+          hasCustomPath: !!s.customPath,
+          customPathLength: s.customPath?.length
+        })));
 
         for (let i = 0; i < window._routeSegments.length; i++) {
           const segment = window._routeSegments[i];
@@ -720,6 +727,8 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             const customPath = segment.customPath.map(p =>
               new window.google.maps.LatLng(p.lat, p.lng)
             );
+
+            console.log(`🎨 Animation: Adding custom segment ${i}, points: ${customPath.length}`);
 
             const segmentStartIndex = fullPath.length;
             fullPath = fullPath.concat(customPath);
@@ -801,11 +810,21 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
           });
         }
       }
-      
+
+      console.log('🎯 Animation path built:', {
+        totalPoints: fullPath.length,
+        segments: segmentInfo.length,
+        segmentDetails: segmentInfo.map(s => ({
+          mode: s.mode,
+          isCustom: s.isCustom,
+          points: s.endIndex - s.startIndex
+        }))
+      });
+
       if (fullPath.length === 0) {
         throw new Error('No path generated');
       }
-      
+
       // Calculate total distance first
       let routeDistance = 0;
       for (let i = 0; i < fullPath.length - 1; i++) {
@@ -978,7 +997,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
         }],
         map: map,
         clickable: true,
-        zIndex: 5000  // Higher z-index to ensure marker appears above route segments
+        zIndex: 999999  // Maximum z-index to ensure animation marker appears above everything including draw mode joint markers
       });
       
       // Add click listener to jump to position
@@ -1162,9 +1181,12 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
         } else if (routeDistanceKm > 10) {
           // Short routes: Moderate speed
           baseSpeed = 400; // 400m/s for short routes
+        } else if (routeDistanceKm > 1) {
+          // Short routes: Slower for detail
+          baseSpeed = 100; // 100m/s for short routes (1-10km)
         } else {
-          // Very short routes: Slower for detail
-          baseSpeed = 150; // 150m/s for very short routes
+          // Very short routes (< 1km): Much slower for detail (custom draw segments)
+          baseSpeed = 30; // 30m/s for very short routes like custom draw
         }
       } else {
         // Follow Marker mode - progressive speed based on route length

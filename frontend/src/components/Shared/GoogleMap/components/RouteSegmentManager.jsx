@@ -169,7 +169,7 @@ const RouteSegmentManager = ({
   }, [map, forceCleanupMap]);
 
   // Create a marker
-  const createMarker = useCallback((location, icon, color, title, zIndex = 5000, isBusStop = false) => {
+  const createMarker = useCallback((location, icon, color, title, zIndex = 100, isBusStop = false) => {
     if (!map) {
       return null;
     }
@@ -257,6 +257,26 @@ const RouteSegmentManager = ({
     marker._isTransition = true;
 
     return marker;
+  };
+
+  /**
+   * Create a straight line route object (fallback when directions API fails)
+   * Returns a mock route object that works with DirectionsRenderer
+   */
+  const createStraightLineRoute = (origin, destination) => {
+    return {
+      routes: [{
+        overview_path: [origin, destination],
+        legs: [{
+          start_location: origin,
+          end_location: destination,
+          steps: [],
+          distance: { text: 'Direct path', value: 0 },
+          duration: { text: '', value: 0 }
+        }],
+        warnings: ['No route found - showing direct path']
+      }]
+    };
   };
 
   /**
@@ -504,7 +524,7 @@ const RouteSegmentManager = ({
         const color = getTransportationColor(mode);
 
         // Use centralized marker creation function
-        const startMarker = createMarker(location, icon, color, 'Start', 5000, false);
+        const startMarker = createMarker(location, icon, color, 'Start', 100, false);
 
         // Store in segmentsRef as an ARRAY element (not object property!)
         segmentsRef.current = [{
@@ -741,6 +761,16 @@ const RouteSegmentManager = ({
             // For custom segments, the customPoints and endLocation changing doesn't affect the RouteSegmentManager marker
             // CustomRouteDrawer handles point markers separately
             console.log(`♻️ Reusing segment ${i} (custom=${newIsCustom})`);
+
+            // IMPORTANT: For custom segments, update the customPath for animation even when reusing
+            if (newIsCustom) {
+              const segmentData = directionsRoute?.segments?.find(seg => seg.startIndex === i);
+              if (segmentData?.customPath) {
+                existingSegment.customPath = segmentData.customPath;
+                console.log(`🔄 Updated customPath for reused segment ${i}:`, segmentData.customPath.length, 'points');
+              }
+            }
+
             newSegments[i] = existingSegment;
             continue;
           } else if (existingSegment) {
@@ -857,6 +887,7 @@ const RouteSegmentManager = ({
             // NO END MARKER - markers only at segment START
 
             // Create segment object (no polyline, just markers)
+            const segmentData = directionsRoute?.segments?.find(seg => seg.startIndex === i);
             const segment = {
               mode: segmentMode,
               markers: markers,
@@ -864,8 +895,10 @@ const RouteSegmentManager = ({
               endLocation: segmentDestination,
               isCustom: true,
               // Include custom path from directionsRoute for animation
-              customPath: directionsRoute?.segments?.[i]?.customPath || null
+              customPath: segmentData?.customPath || null
             };
+
+            console.log(`📍 Creating new custom segment ${i}, customPath:`, segment.customPath?.length || 0, 'points');
 
             newSegments[i] = segment;
             continue; // Skip route calculation
@@ -992,6 +1025,9 @@ const RouteSegmentManager = ({
               case 'transit': // Use Google's TRANSIT mode for real public transit
                 travelMode = window.google.maps.TravelMode.TRANSIT;
                 break;
+              case 'ferry': // Use TRANSIT mode with ferry preference
+                travelMode = window.google.maps.TravelMode.TRANSIT;
+                break;
               case 'walk':
               default:
                 travelMode = window.google.maps.TravelMode.WALKING;
@@ -1024,6 +1060,14 @@ const RouteSegmentManager = ({
               ],
               routingPreference: 'FEWER_TRANSFERS'  // Minimize transfers for better experience
             };
+          }
+
+          // Add ferry preferences - ferry is NOT a separate transit mode in Google Maps API
+          // Ferry routes are part of general TRANSIT, so we just use TRANSIT mode for ferries
+          // Google will include ferries in transit results automatically
+          if (segmentMode === 'ferry') {
+            // Don't set transitOptions - let it use default TRANSIT which includes ferries
+            // We'll style it with wave pattern regardless
           }
           
           // Create polyline options
@@ -1061,164 +1105,62 @@ const RouteSegmentManager = ({
                 // Cache the successful result
                 directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
             } catch (err) {
-              // If transit fails, fall back to flight path with train styling
-              if (segmentMode === 'transit') {
-                // Generate curved arc path like a flight, but keep train colors
-                const flightPath = generateFlightArc(segmentOrigin, segmentDestination);
-
-                // Create a polyline with TRAIN colors but FLIGHT path
-                const transitPolyline = new window.google.maps.Polyline({
-                  path: flightPath,
-                  geodesic: false,
-                  strokeColor: getTransportationColor('transit'), // Train color
-                  strokeOpacity: 1.0,
-                  strokeWeight: 4,
-                  map: map,
-                  zIndex: 1000
-                });
-
-                // Create markers with TRAIN icon
-                const markers = {};
-                const modeIcon = TRANSPORT_ICONS['transit']; // Train emoji
-                const modeColor = getTransportationColor('transit');
-
-                // Add markers - only at segment START
-                if (i === 0) {
-                  markers.start = createMarker(segmentOrigin, modeIcon, modeColor, 'Start', 5000, false);
-                } else {
-                  markers.waypoint = createMarker(segmentOrigin, modeIcon, modeColor, `Stop ${i}`, 5000, false);
-                }
-
-                // NO END MARKER - markers only at segment START
-
-                // Store the segment with fake route data
-                const segment = {
-                  id: `segment-${i}`,
-                  index: i,
-                  mode: 'transit', // Keep as transit for styling
-                  startLocation: segmentOrigin,
-                  endLocation: segmentDestination,
-                  polyline: transitPolyline,
-                  markers: markers,
-                  route: {
-                    routes: [{
-                      overview_path: flightPath,
-                      legs: [{
-                        start_location: segmentOrigin,
-                        end_location: segmentDestination,
-                        steps: [{ path: flightPath }],
-                        distance: { text: `${distance.toFixed(0)} km`, value: distance * 1000 },
-                        duration: { text: `${Math.round(distance / 200 * 60)} min`, value: Math.round(distance / 200 * 3600) } // Assume 200km/h train speed
-                      }]
-                    }]
-                  }
-                };
-
-                newSegments.push(segment);
-                routeFound = true;
-
-                // Dispatch info event
-                const infoEvent = new CustomEvent('routeInfo', {
-                  detail: {
-                    message: 'No rail route found - showing straight line with train styling',
-                    type: 'info'
-                  }
-                });
-                window.dispatchEvent(infoEvent);
-                continue; // Skip normal route processing
-              }
-              // If bike mode fails, try walking or driving as fallback
-              else if (segmentMode === 'bike') {
-                const fallbackMode = distance > 30 ? 'car' : 'walk';
-                const cachedFallback = directionsCache.get(segmentOrigin, segmentDestination, fallbackMode);
-                if (cachedFallback) {
-                  result = cachedFallback;
-                  routeFound = true;
-                } else {
-                  try {
-                    // For short distances try walking, for long distances try driving
-                    const altRequest = {
-                      origin: request.origin,
-                      destination: request.destination,
-                      travelMode: distance > 30 ? 
-                        window.google.maps.TravelMode.DRIVING : 
-                        window.google.maps.TravelMode.WALKING
-                    };
-                    
-                    result = await new Promise((resolve, reject) => {
-                      directionsService.route(altRequest, (result, status) => {
-                        if (status === window.google.maps.DirectionsStatus.OK) {
-                          resolve(result);
-                        } else {
-                          reject(status);
-                        }
-                      });
-                    });
-                    
-                    routeFound = true;
-                    // Cache the fallback result
-                    directionsCache.set(segmentOrigin, segmentDestination, fallbackMode, result);
-                  } catch (altErr) {
-                  }
-                }
-              } else if (segmentMode === 'walk' && distance > 30) {
-                // For long walking routes, try driving
-                const cachedFallback = directionsCache.get(segmentOrigin, segmentDestination, 'car');
-                if (cachedFallback) {
-                  result = cachedFallback;
-                  routeFound = true;
-                } else {
-                  try {
-                    const altRequest = {
-                      origin: request.origin,
-                      destination: request.destination,
-                      travelMode: window.google.maps.TravelMode.DRIVING
-                    };
-                    
-                    result = await new Promise((resolve, reject) => {
-                      directionsService.route(altRequest, (result, status) => {
-                        if (status === window.google.maps.DirectionsStatus.OK) {
-                          resolve(result);
-                        } else {
-                          reject(status);
-                        }
-                      });
-                    });
-                    
-                    routeFound = true;
-                    // Cache the fallback result
-                    directionsCache.set(segmentOrigin, segmentDestination, 'car', result);
-                  } catch (altErr) {
-                  }
-                }
-              }
+              // No mode-specific fallbacks - will use general straight line fallback below
+              // (removed all special fallbacks: transit→curved arc, bike→walk/car, walk→car)
             }
             }
             
             if (!routeFound) {
-              // Show user-friendly error message
-              const origin = validLocations[i];
-              const dest = validLocations[i + 1];
-              const originName = origin?.name || `Location ${String.fromCharCode(65 + i)}`;
-              const destName = dest?.name || `Location ${String.fromCharCode(65 + i + 1)}`;
-              
-              // Create and dispatch a custom event that the app can listen to
-              const errorEvent = new CustomEvent('routeCalculationError', {
-                detail: {
-                  message: `No ${segmentMode} route available from ${originName} to ${destName}`,
-                  mode: segmentMode,
-                  origin: originName,
-                  destination: destName,
-                  shouldClearSecondLocation: true  // Tell the UI to clear the second location
+              // Use fallback based on mode
+              if (segmentMode === 'flight') {
+                // Flight mode errors (shouldn't happen)
+                const origin = validLocations[i];
+                const dest = validLocations[i + 1];
+                const originName = origin?.name || `Location ${String.fromCharCode(65 + i)}`;
+                const destName = dest?.name || `Location ${String.fromCharCode(65 + i + 1)}`;
+
+                const errorEvent = new CustomEvent('routeCalculationError', {
+                  detail: {
+                    message: `No ${segmentMode} route available from ${originName} to ${destName}`,
+                    mode: segmentMode,
+                    origin: originName,
+                    destination: destName,
+                    shouldClearSecondLocation: true
+                  }
+                });
+                window.dispatchEvent(errorEvent);
+                clearAllSegments();
+                return;
+              } else if (segmentMode === 'transit' || segmentMode === 'ferry') {
+                // Transit/Ferry fallback: Try walking route first (to reach terminal/station)
+                try {
+                  const walkRequest = {
+                    origin: request.origin,
+                    destination: request.destination,
+                    travelMode: window.google.maps.TravelMode.WALKING
+                  };
+
+                  result = await new Promise((resolve, reject) => {
+                    directionsService.route(walkRequest, (result, status) => {
+                      if (status === window.google.maps.DirectionsStatus.OK) {
+                        resolve(result);
+                      } else {
+                        reject(status);
+                      }
+                    });
+                  });
+                  routeFound = true;
+                  // Don't cache - this is just a fallback
+                } catch (walkErr) {
+                  // Even walking failed, use straight line
+                  result = createStraightLineRoute(request.origin, request.destination);
+                  routeFound = true;
                 }
-              });
-              window.dispatchEvent(errorEvent);
-              
-              // Clear all routes and markers when a route fails
-              clearAllSegments();
-              
-              // Don't show any markers or process any segments - route calculation failed
-              return;
+              } else {
+                // For all other modes (walk, bike, car, bus): use straight line fallback
+                result = createStraightLineRoute(request.origin, request.destination);
+                routeFound = true;
+              }
             }
             
             // Check if this is still the current route after async operation
@@ -1369,128 +1311,81 @@ const RouteSegmentManager = ({
               continue;
             }
 
-            // Handle transit/bus fallback
-            if ((segmentMode === 'bus' || segmentMode === 'transit') && 
-                (error === window.google.maps.DirectionsStatus.ZERO_RESULTS || 
-                 error === 'TRANSIT_UNAVAILABLE')) {
-              
-              let fallbackResult;
-              
-              // Check cache for fallback route first
-              const cachedFallback = directionsCache.get(segmentOrigin, segmentDestination, 'car');
-              if (cachedFallback) {
-                fallbackResult = cachedFallback;
+            // Handle fallback for all modes (except flight) - use straight line
+            if (segmentMode !== 'flight') {
+
+              // Use straight line fallback for any routing error
+              const fallbackResult = createStraightLineRoute(request.origin, request.destination);
+
+              // Check if this is still the current route after async operation
+              if (currentRouteIdRef.current !== routeId) {
+                return;
+              }
+
+              // Create the route renderer with original mode styling
+              const segmentRenderer = new window.google.maps.DirectionsRenderer({
+                suppressMarkers: true,
+                polylineOptions: polylineOptions, // Use original mode colors
+                draggable: false,
+                preserveViewport: true,
+                suppressInfoWindows: true,
+                suppressBicyclingLayer: true
+              });
+
+              segmentRenderer.setMap(map);
+              segmentRenderer.setDirections(fallbackResult);
+
+              // Create markers for this segment
+              const markers = {};
+              const modeIcon = TRANSPORT_ICONS[segmentMode] || '🚶';
+              const modeColor = getTransportationColor(segmentMode);
+
+              const isLastSegment = i === validLocations.length - 2;
+
+              // Only create ONE marker at segment START - showing THIS segment's mode
+              if (i === 0) {
+                // First segment gets START marker
+                markers.start = createMarker(
+                  segmentOrigin,
+                  modeIcon,
+                  modeColor,
+                  'Start',
+                  5000,
+                  segmentMode === 'bus'
+                );
               } else {
-                const fallbackRequest = {
-                  origin: request.origin,
-                  destination: request.destination,
-                  travelMode: window.google.maps.TravelMode.DRIVING
-                };
-                
-                try {
-                  fallbackResult = await new Promise((resolve, reject) => {
-                    directionsService.route(fallbackRequest, (result, status) => {
-                      if (status === window.google.maps.DirectionsStatus.OK) {
-                        // Cache the successful fallback
-                        directionsCache.set(segmentOrigin, segmentDestination, 'car', result);
-                        resolve(result);
-                      } else {
-                      // Even fallback failed, use straight line
-                      const straightLineRoute = {
-                        routes: [{
-                          overview_path: [
-                            request.origin,
-                            request.destination
-                          ],
-                          legs: [{
-                            start_location: request.origin,
-                            end_location: request.destination,
-                            steps: [],
-                            distance: { text: 'Direct path', value: 0 },
-                            duration: { text: '', value: 0 }
-                          }],
-                          warnings: ['No transit/road found - showing direct path']
-                        }]
-                      };
-                      resolve(straightLineRoute);
-                    }
-                  });
-                });
-                } catch (fallbackError) {
-                  // Fallback driving route also failed, fallbackResult will be undefined
-                }
+                // All other segments: marker shows THIS segment's mode
+                markers.start = createMarker(
+                  segmentOrigin,
+                  modeIcon,
+                  modeColor,
+                  `Stop ${i + 1}`,
+                  5000,
+                  segmentMode === 'bus'
+                );
               }
-              
-              if (fallbackResult) {
-                // Check if this is still the current route after async operation
-                if (currentRouteIdRef.current !== routeId) {
-                  return;
-                }
-                
-                // Create the route renderer with bus styling but driving route
-                const segmentRenderer = new window.google.maps.DirectionsRenderer({
-                  suppressMarkers: true,
-                  polylineOptions: polylineOptions, // Still use bus colors
-                  draggable: false, // Dragging disabled
-                  preserveViewport: true,
-                  suppressInfoWindows: true,
-                  suppressBicyclingLayer: true
-                });
-                
-                segmentRenderer.setMap(map);
-                segmentRenderer.setDirections(fallbackResult);
-                
-                // Create markers for this segment
-                const markers = {};
-                const modeIcon = TRANSPORT_ICONS[segmentMode] || '🚶';
-                const modeColor = getTransportationColor(segmentMode);
 
-                const isLastSegment = i === validLocations.length - 2;
+              // NO END MARKER - markers only at segment START
 
-                // Only create ONE marker at segment START - showing THIS segment's mode
-                if (i === 0) {
-                  // First segment gets START marker
-                  markers.start = createMarker(
-                    segmentOrigin,
-                    modeIcon,
-                    modeColor,
-                    'Start',
-                    5000,
-                    segmentMode === 'bus'
-                  );
-                } else {
-                  // All other segments: marker shows THIS segment's mode
-                  markers.start = createMarker(
-                    segmentOrigin,
-                    modeIcon,
-                    modeColor,
-                    `Stop ${i + 1}`,
-                    5000,
-                    segmentMode === 'bus'
-                  );
-                }
+              // Store the complete segment WITH ROUTE DATA
+              const segment = {
+                id: `segment-${i}`,
+                index: i,
+                mode: segmentMode,
+                startLocation: segmentOrigin,
+                endLocation: segmentDestination,
+                routeRenderer: segmentRenderer,
+                markers: markers,
+                isFallback: true, // Mark as fallback route
+                // Store the actual route data for animation
+                route: fallbackResult,
+                distance: fallbackResult.routes[0].legs[0].distance,
+                duration: fallbackResult.routes[0].legs[0].duration
+              };
 
-                // NO END MARKER - markers only at segment START
-                
-                // Store the complete segment WITH ROUTE DATA
-                const segment = {
-                  id: `segment-${i}`,
-                  index: i,
-                  mode: segmentMode,
-                  startLocation: segmentOrigin,
-                  endLocation: segmentDestination,
-                  routeRenderer: segmentRenderer,
-                  markers: markers,
-                  isFallback: true, // Mark as fallback route
-                  // Store the actual route data for animation
-                  route: fallbackResult,
-                  distance: fallbackResult.routes[0].legs[0].distance,
-                  duration: fallbackResult.routes[0].legs[0].duration
-                };
-                
-                // Insert at the correct index to maintain order
-                newSegments[i] = segment;
-              }
+              // Insert at the correct index to maintain order
+              newSegments[i] = segment;
+              continue; // Skip to next segment
             }
           }
         }
@@ -1502,6 +1397,20 @@ const RouteSegmentManager = ({
           // IMPORTANT: Store segments globally so RouteAnimator can access them
           // This ensures animation follows the EXACT displayed route
           // Include both regular segments (with route) AND custom segments (with customPath)
+          console.log('🔍 newSegments before global assignment:', newSegments.map((s, idx) => ({
+            index: idx,
+            isCustom: s?.isCustom,
+            hasRoute: !!s?.route,
+            hasCustomPath: !!s?.customPath,
+            customPathLength: s?.customPath?.length,
+            mode: s?.mode
+          })));
+          console.log('🔍 Full newSegments array length:', newSegments.length);
+          newSegments.forEach((s, idx) => {
+            if (s?.isCustom && s?.customPath) {
+              console.log(`  Segment ${idx} customPath sample:`, s.customPath.slice(0, 3));
+            }
+          });
           window._routeSegments = newSegments.filter(s => s && (s.route || s.isCustom));
           
           // If modes were automatically changed to flight, notify parent

@@ -121,6 +121,27 @@ export const createPolylineOptions = (mode, color) => {
       }
     ];
   }
-  
+
+  // Add wave pattern for ferry routes (rotated 90 degrees for vertical waves)
+  if (mode === 'ferry') {
+    baseOptions.strokeColor = '#06b6d4'; // Cyan/teal for water
+    baseOptions.strokeWeight = 5;
+    baseOptions.strokeOpacity = 0;
+    baseOptions.icons = [
+      // Vertical wave pattern (rotated 90 degrees)
+      {
+        icon: {
+          path: 'M -1,0 Q -2,1 -1,2 Q 0,3 -1,4', // Vertical wave curve
+          strokeColor: '#06b6d4',
+          strokeOpacity: 1,
+          strokeWeight: 2,
+          scale: 1.5
+        },
+        offset: '0',
+        repeat: '15px' // More frequent waves
+      }
+    ];
+  }
+
   return baseOptions;
 };
