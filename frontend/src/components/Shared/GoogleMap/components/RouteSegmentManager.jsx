@@ -1070,8 +1070,8 @@ const RouteSegmentManager = ({
             // We'll style it with wave pattern regardless
           }
           
-          // Create polyline options
-          const polylineOptions = createPolylineOptions(segmentMode);
+          // Create polyline options (will be updated later if ferry fallback)
+          let polylineOptions = createPolylineOptions(segmentMode);
           
           let result;
           let routeFound = false;
@@ -1092,7 +1092,7 @@ const RouteSegmentManager = ({
                     reject('Invalid request: missing travelMode');
                     return;
                   }
-                  
+
                   directionsService.route(request, (result, status) => {
                     if (status === window.google.maps.DirectionsStatus.OK) {
                       resolve(result);
@@ -1101,6 +1101,7 @@ const RouteSegmentManager = ({
                     }
                   });
                 });
+
                 routeFound = true;
                 // Cache the successful result
                 directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
@@ -1131,8 +1132,33 @@ const RouteSegmentManager = ({
                 window.dispatchEvent(errorEvent);
                 clearAllSegments();
                 return;
-              } else if (segmentMode === 'transit' || segmentMode === 'ferry') {
-                // Transit/Ferry fallback: Try walking route first (to reach terminal/station)
+              } else if (segmentMode === 'transit') {
+                // Transit fallback: Try walking route (to reach terminal/station)
+                try {
+                  const walkRequest = {
+                    origin: request.origin,
+                    destination: request.destination,
+                    travelMode: window.google.maps.TravelMode.WALKING
+                  };
+
+                  result = await new Promise((resolve, reject) => {
+                    directionsService.route(walkRequest, (result, status) => {
+                      if (status === window.google.maps.DirectionsStatus.OK) {
+                        resolve(result);
+                      } else {
+                        reject(status);
+                      }
+                    });
+                  });
+                  routeFound = true;
+                  // Don't cache - this is just a fallback
+                } catch (walkErr) {
+                  // Even walking failed, use straight line
+                  result = createStraightLineRoute(request.origin, request.destination);
+                  routeFound = true;
+                }
+              } else if (segmentMode === 'ferry') {
+                // Ferry fallback: Try walking route and show with wave pattern
                 try {
                   const walkRequest = {
                     origin: request.origin,
