@@ -264,18 +264,41 @@ const RouteSegmentManager = ({
    * Returns a mock route object that works with DirectionsRenderer
    */
   const createStraightLineRoute = (origin, destination) => {
+    const step = {
+      distance: { text: '0 m', value: 0 },
+      duration: { text: '0 mins', value: 0 },
+      end_location: destination,
+      start_location: origin,
+      travel_mode: 'WALKING',
+      path: [origin, destination],
+      lat_lngs: [origin, destination],
+      instructions: 'Direct path'
+    };
+
     return {
       routes: [{
+        bounds: new window.google.maps.LatLngBounds(origin, destination),
         overview_path: [origin, destination],
+        overview_polyline: '',
         legs: [{
           start_location: origin,
           end_location: destination,
-          steps: [],
-          distance: { text: 'Direct path', value: 0 },
-          duration: { text: '', value: 0 }
+          start_address: '',
+          end_address: '',
+          steps: [step],
+          distance: { text: '0 m', value: 0 },
+          duration: { text: '0 mins', value: 0 },
+          via_waypoints: []
         }],
-        warnings: ['No route found - showing direct path']
-      }]
+        warnings: ['No route found - showing direct path'],
+        waypoint_order: [],
+        copyrights: ''
+      }],
+      request: {
+        origin: origin,
+        destination: destination,
+        travelMode: 'WALKING'
+      }
     };
   };
 
@@ -1108,10 +1131,12 @@ const RouteSegmentManager = ({
             } catch (err) {
               // No mode-specific fallbacks - will use general straight line fallback below
               // (removed all special fallbacks: transit→curved arc, bike→walk/car, walk→car)
+              console.log(`⚠️ Route request failed for ${segmentMode}:`, err);
             }
             }
-            
+
             if (!routeFound) {
+              console.log(`🔄 No route found for ${segmentMode}, using fallback`);
               // Use fallback based on mode
               if (segmentMode === 'flight') {
                 // Flight mode errors (shouldn't happen)

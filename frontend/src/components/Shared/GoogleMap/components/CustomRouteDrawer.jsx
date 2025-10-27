@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getTransportationColor } from '../utils/mapHelpers';
+import { getTransportationColor, createPolylineOptions } from '../utils/mapHelpers';
 
 /**
  * CustomRouteDrawer component handles click-to-segment route creation
@@ -54,18 +54,21 @@ const CustomRouteDrawer = ({
 
     // Update or create polyline (render even when locked/disabled)
     if (pathPoints.length >= 2) {
+      // Get the polyline style options for this mode (handles dotted, waves, railroad tracks, etc)
+      const polylineOptions = createPolylineOptions(mode);
+
       if (!mainPolylineRef.current) {
         mainPolylineRef.current = new window.google.maps.Polyline({
           path: pathPoints,
           geodesic: true,
-          strokeColor: strokeColor,
-          strokeOpacity: 1.0,
-          strokeWeight: 4,
+          ...polylineOptions, // Apply mode-specific styling
           map: map,
           zIndex: 200 // Below animation marker but above other route elements
         });
       } else {
         mainPolylineRef.current.setPath(pathPoints);
+        // Update styling in case mode changed
+        mainPolylineRef.current.setOptions(polylineOptions);
       }
     } else if (mainPolylineRef.current) {
       mainPolylineRef.current.setMap(null);
