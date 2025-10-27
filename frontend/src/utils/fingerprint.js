@@ -17,7 +17,6 @@ export const getFingerprint = async () => {
     const result = await fp.get();
     return result.visitorId;
   } catch (error) {
-    console.error('Error getting fingerprint:', error);
     // Fallback to localStorage random ID if fingerprinting fails
     let fallbackId = localStorage.getItem('anonymous_id');
     if (!fallbackId) {

@@ -22,7 +22,6 @@ router.get('/check', authenticateUser, async (req, res) => {
     });
 
     if (error) {
-      console.error('Usage check error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to check usage'
@@ -43,7 +42,6 @@ router.get('/check', authenticateUser, async (req, res) => {
         : null
     });
   } catch (error) {
-    console.error('Usage check error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -77,7 +75,6 @@ router.post('/track', authenticateUser, async (req, res) => {
       });
 
     if (error) {
-      console.error('Usage tracking insert error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to track usage'
@@ -110,7 +107,6 @@ router.post('/track', authenticateUser, async (req, res) => {
       canCreateRoute: usageInfo.can_create_route
     });
   } catch (error) {
-    console.error('Track usage error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -143,7 +139,6 @@ router.get('/history', authenticateUser, async (req, res) => {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Usage history error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch usage history'
@@ -156,7 +151,6 @@ router.get('/history', authenticateUser, async (req, res) => {
       count: data.length
     });
   } catch (error) {
-    console.error('Usage history error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

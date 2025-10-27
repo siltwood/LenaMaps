@@ -38,7 +38,6 @@ export const checkCanCreateRoute = async (user) => {
       usageData: data
     };
   } catch (error) {
-    console.error('Error checking rate limit:', error);
     // On error, allow creation but log the issue
     return {
       canCreate: true,
@@ -84,7 +83,6 @@ export const trackRouteCreation = async (user) => {
 
     return true;
   } catch (error) {
-    console.error('Error tracking route creation:', error);
     return false;
   }
 };

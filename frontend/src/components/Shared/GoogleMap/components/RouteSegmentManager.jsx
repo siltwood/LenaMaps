@@ -420,13 +420,6 @@ const RouteSegmentManager = ({
 
   // Main effect to render route segments with their markers
   useEffect(() => {
-      hasMap: !!map,
-      hasDirectionsService: !!directionsService,
-      hasDirectionsRoute: !!directionsRoute,
-      routeId: directionsRoute?.routeId,
-      segments: directionsRoute?.segments
-    });
-
     // Clear any pending cleanup
     if (cleanupTimeoutRef.current) {
       clearTimeout(cleanupTimeoutRef.current);
@@ -451,11 +444,6 @@ const RouteSegmentManager = ({
     }
 
     const { allLocations, allModes, singleLocationDrawMode } = directionsRoute;
-      allLocations: allLocations.length,
-      allModes: allModes.length,
-      segments: directionsRoute.segments?.map(s => `[${s.startIndex}→${s.endIndex}] isCustom=${s.isCustom}`),
-      singleLocationDrawMode
-    });
 
     // Special case: single location in draw mode - just show start marker
     if (singleLocationDrawMode) {
@@ -546,11 +534,6 @@ const RouteSegmentManager = ({
             const newIsCustom = directionsRoute?.segments?.[i]?.isCustom || false;
             const oldIsCustom = segment.isCustom || false;
             return newIsCustom !== oldIsCustom;
-          });
-
-            locationsSame,
-            modesChanged,
-            customStatusChanged
           });
 
           if (modesChanged || customStatusChanged) {

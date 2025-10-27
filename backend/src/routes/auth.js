@@ -44,7 +44,6 @@ router.post('/signup', async (req, res) => {
       message: 'Sign up successful! Please check your email for verification.'
     });
   } catch (error) {
-    console.error('Signup error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -87,7 +86,6 @@ router.post('/login', async (req, res) => {
       message: 'Login successful!'
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -123,7 +121,6 @@ router.post('/logout', authenticateUser, async (req, res) => {
       message: 'Logout successful'
     });
   } catch (error) {
-    console.error('Logout error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -157,7 +154,6 @@ router.get('/me', authenticateUser, requireAuth, async (req, res) => {
       profile: profile
     });
   } catch (error) {
-    console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -197,7 +193,6 @@ router.post('/reset-password', async (req, res) => {
       message: 'Password reset email sent! Please check your inbox.'
     });
   } catch (error) {
-    console.error('Password reset error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -237,7 +232,6 @@ router.post('/update-password', authenticateUser, requireAuth, async (req, res) 
       message: 'Password updated successfully'
     });
   } catch (error) {
-    console.error('Update password error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

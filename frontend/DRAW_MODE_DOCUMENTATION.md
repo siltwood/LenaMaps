@@ -105,8 +105,6 @@ const routeSegments = React.useMemo(() => {
 
 ```javascript
 const toggleSegmentDrawMode = useCallback((segmentIndex) => {
-  console.log('🆕 TOGGLE DRAW MODE:', segmentIndex);
-  console.log('  Current locations:', locations);
 
   // Save to undo history BEFORE changing
   saveToUndoHistory('TOGGLE_DRAW_MODE'); // Line 344
@@ -116,7 +114,6 @@ const toggleSegmentDrawMode = useCallback((segmentIndex) => {
     const newIsCustom = !newArr[segmentIndex]; // Line 348 - flip boolean
     newArr[segmentIndex] = newIsCustom;
 
-    console.log('  Setting customDrawEnabled[', segmentIndex, '] =', newIsCustom);
 ```
 
 **Key Logic:**
@@ -132,7 +129,6 @@ const toggleSegmentDrawMode = useCallback((segmentIndex) => {
 **Case A: Both locations exist (toggling ON after toggling OFF)**
 ```javascript
 if (newIsCustom && locations[segmentIndex] && locations[segmentIndex + 1]) {
-  console.log('  Enabling draw mode - creating straight line (both locations exist)');
   setCustomPoints(prevPoints => ({
     ...prevPoints,
     [segmentIndex]: [
@@ -148,7 +144,6 @@ if (newIsCustom && locations[segmentIndex] && locations[segmentIndex + 1]) {
 **Case B: Only start location exists**
 ```javascript
 else if (newIsCustom && locations[segmentIndex]) {
-  console.log('  Enabling draw mode - only start location exists, preserving it');
   setCustomPoints(prevPoints => ({
     ...prevPoints,
     [segmentIndex]: [
@@ -163,7 +158,6 @@ else if (newIsCustom && locations[segmentIndex]) {
 **Case C: No locations exist**
 ```javascript
 else if (newIsCustom) {
-  console.log('  Enabling draw mode - no locations yet, will draw from scratch');
   setCustomPoints(prevPoints => ({
     ...prevPoints,
     [segmentIndex]: []
@@ -176,7 +170,6 @@ else if (newIsCustom) {
 **Case D: Toggling OFF (disabling draw mode)**
 ```javascript
 if (!newIsCustom) {
-  console.log('  Disabling draw mode - clearing points but keeping end location');
   setCustomPoints(prevPoints => {
     const newPoints = { ...prevPoints };
     delete newPoints[segmentIndex];
@@ -199,7 +192,6 @@ if (!newIsCustom) {
 {map && routeSegments.map((segment, index) => {
   if (!segment.isCustom) return null; // Only render if drawing is enabled
 
-  console.log(`CustomRouteDrawer ${index}: isCustom=${segment.isCustom}, isLocked=${segment.isLocked}, points=${segment.customPoints.length}`);
 
   return (
     <CustomRouteDrawer
@@ -289,14 +281,9 @@ useEffect(() => {
 const handleClick = useCallback(async (event) => {
   if (!isEnabled) return; // Safety check
 
-  console.log('CUSTOM ROUTE DRAWER CLICK:');
-  console.log('  Segment index:', segmentIndex);
-  console.log('  isEnabled:', isEnabled);
-  console.log('  Current points count:', points.length);
 
   // Get the clicked location
   const point = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-  console.log('  Adding point:', point);
 
   // Notify parent to add this point
   if (onPointAdded) {
@@ -310,25 +297,19 @@ const handleClick = useCallback(async (event) => {
   // AUTO-SET LOCATIONS: First point = start, Last point = end
   if (onSetLocations) {
     const allPoints = [...points, point]; // Line 151 - includes new point
-    console.log('  AUTO-SET LOCATIONS logic:');
-    console.log('    allPoints length:', allPoints.length);
-    console.log('    segmentIndex:', segmentIndex);
 
     if (segmentIndex === 0) {
       // First segment (A→B): set start on first click, end on subsequent clicks
       if (allPoints.length === 1) {
         // First click - set only A
-        console.log('    First click - setting only A');
         onSetLocations(segmentIndex, point, null); // Line 161
       } else {
         // Second+ clicks - update B, keep A
-        console.log('    Subsequent click - updating only B');
         onSetLocations(segmentIndex, null, point); // Line 165
       }
     } else {
       // Later segments (B→C, C→D, etc.): only update the end point
       // Start point already exists from previous segment
-      console.log('    Later segment - updating only end point');
       onSetLocations(segmentIndex, null, point); // Line 171
     }
   }
@@ -360,7 +341,6 @@ const handleClick = useCallback(async (event) => {
 
 ```javascript
 const handlePointAdded = useCallback(({ segmentIndex, point, snapped }) => {
-  console.log('🆕 HANDLE POINT ADDED (via segments):', segmentIndex, point);
 
   // Call the original addPointToSegment
   addPointToSegment(segmentIndex, point);
@@ -383,7 +363,6 @@ const handlePointAdded = useCallback(({ segmentIndex, point, snapped }) => {
 
 ```javascript
 const addPointToSegment = useCallback((segmentIndex, point) => {
-  console.log('🆕 ADD POINT TO SEGMENT:', segmentIndex, point);
 
   // Save to undo history BEFORE changing
   saveToUndoHistory('ADD_POINT'); // Line 402
@@ -392,7 +371,6 @@ const addPointToSegment = useCallback((segmentIndex, point) => {
     const newPoints = { ...prevPoints };
     const currentPoints = newPoints[segmentIndex] || [];
     newPoints[segmentIndex] = [...currentPoints, point]; // Line 407 - append point
-    console.log('  Updated customPoints:', newPoints);
     return newPoints;
   });
 }, [saveToUndoHistory]);
@@ -412,11 +390,6 @@ const addPointToSegment = useCallback((segmentIndex, point) => {
 
 ```javascript
 const handleSetLocations = useCallback((segmentIndex, startPoint, endPoint) => {
-  console.log('HANDLE SET LOCATIONS:');
-  console.log('  Segment index:', segmentIndex);
-  console.log('  Start point:', startPoint);
-  console.log('  End point:', endPoint);
-  console.log('  Current locations before:', locations.map((l, i) => `${i}: ${l ? 'SET' : 'NULL'}`));
 
   setLocations(prevLocations => {
     const newLocations = [...prevLocations];
@@ -431,7 +404,6 @@ const handleSetLocations = useCallback((segmentIndex, startPoint, endPoint) => {
       newLocations[segmentIndex + 1] = endPoint; // Line 953
     }
 
-    console.log('  New locations after:', newLocations.map((l, i) => `${i}: ${l ? 'SET' : 'NULL'}`));
     return newLocations;
   });
 }, [locations]);
@@ -549,11 +521,9 @@ useEffect(() => {
 
 ```javascript
 if (isCustomSegment) {
-  console.log(`  Segment ${i} is custom - clearing any existing calculated route and rendering markers only`);
 
   // If there's an existing non-custom segment at this index, clear it first
   if (segmentsRef.current[i] && !segmentsRef.current[i].isCustom) {
-    console.log(`  Clearing old calculated route at segment ${i}`);
     clearSegment(segmentsRef.current[i]);
   }
 
@@ -564,7 +534,6 @@ if (isCustomSegment) {
 
   // Add start marker (only for first segment)
   if (i === 0) {  // Line 692
-    console.log(`  Creating START marker for custom segment ${i}`);
     markers.start = createMarker(
       segmentOrigin,
       modeIcon,
@@ -577,7 +546,6 @@ if (isCustomSegment) {
 
   // Add end marker (only for last segment)
   if (i === validLocations.length - 2) {  // Line 705
-    console.log(`  Creating END marker for custom segment ${i}`);
     markers.end = createMarker(
       segmentDestination,
       modeIcon,
@@ -590,7 +558,6 @@ if (isCustomSegment) {
 
   // Add waypoint marker for intermediate points (not first, not last)
   if (i > 0 && i < validLocations.length - 2) {  // Line 718
-    console.log(`  Creating WAYPOINT marker for custom segment ${i}`);
     markers.waypoint = createMarker(
       segmentDestination,
       modeIcon,
@@ -650,7 +617,6 @@ if (isCustomSegment) {
 
 ```javascript
 const addNextLegToSegments = useCallback(() => {
-  console.log('🆕 ADD NEXT LEG (via old function)');
 
   // Save to undo history BEFORE changing
   saveToUndoHistory('ADD_DESTINATION'); // Line 266
@@ -661,7 +627,6 @@ const addNextLegToSegments = useCallback(() => {
   // Lock the last segment if it's in custom draw mode
   const lastSegmentIndex = locations.length - 2; // Line 272
   if (lastSegmentIndex >= 0 && customDrawEnabled[lastSegmentIndex]) { // Line 273
-    console.log('  Locking segment', lastSegmentIndex, 'since moving to next segment');
     const newLockedSegments = [...lockedSegments];
     newLockedSegments[lastSegmentIndex] = true; // Line 276 - LOCK IT
     setLockedSegments(newLockedSegments);
@@ -808,21 +773,14 @@ disabled={routeSegments[index]?.isLocked}  // Line 1334
 useEffect(() => {
   if (!clickedLocation || clickedLocation === prevClickedLocationRef.current) return;
 
-  console.log('CLICKED LOCATION EFFECT:');
-  console.log('  Clicked location:', clickedLocation);
-  console.log('  Current uiLocations:', uiLocations.map((l, i) => `${i}: ${l ? 'SET' : 'NULL'}`));
-  console.log('  Active input:', activeInput);
-  console.log('  routeSegments:', routeSegments);
 
   // Check if any draw mode is currently active (and NOT locked)
   const isAnyDrawModeActive = routeSegments.some((seg) => {  // Line 633
     // Only consider segments that are in custom draw mode AND not locked
     return seg.isCustom && !seg.isLocked;  // Line 635
   });
-  console.log('  Is any draw mode active (unlocked)?', isAnyDrawModeActive);
 
   if (isAnyDrawModeActive) {  // Line 639
-    console.log('  SKIPPING: Draw mode is active, CustomRouteDrawer should handle this click');
     return;  // EXIT - don't process this click
   }
 
@@ -830,7 +788,6 @@ useEffect(() => {
 
   // If there's an active input (edit mode), replace that specific location
   if (activeInput !== null && activeInput !== undefined) {
-    console.log('  EDIT MODE: Replacing location at index', activeInput);
     updateLocation(activeInput, clickedLocation);
     setActiveInput(null);
   } else {
@@ -838,11 +795,8 @@ useEffect(() => {
     const emptyIndex = uiLocations.findIndex(loc => !loc);
 
     if (emptyIndex !== -1) {
-      console.log('  NORMAL MODE: Empty index found:', emptyIndex);
-      console.log('  Adding location at index', emptyIndex);
       updateLocation(emptyIndex, clickedLocation);
     } else {
-      console.log('  NORMAL MODE: No empty slots, ignoring click');
     }
   }
 }, [clickedLocation, uiLocations, activeInput, routeSegments, updateLocation]);
@@ -864,7 +818,6 @@ useEffect(() => {
 ```javascript
 // Special case: single location in draw mode - just show start marker
 if (singleLocationDrawMode) {  // Line 378
-  console.log('RouteSegmentManager rendering single location for draw mode');
   clearAllSegments();
 
   // Create just the start marker
@@ -938,17 +891,13 @@ return () => {
 ```javascript
 const undo = useCallback(() => {
   if (undoHistory.length === 0) {
-    console.log('❌ UNDO: No history to undo');
     return;
   }
 
-  console.log('↩️ UNDO TRIGGERED');
-  console.log('  Current undo history length:', undoHistory.length);
 
   // Get the most recent snapshot
   const lastSnapshot = undoHistory[undoHistory.length - 1];
 
-  console.log('  Restoring snapshot:', {
     actionType: lastSnapshot.actionType,
     locations: lastSnapshot.locations.map((l, i) => `${i}: ${l ? 'SET' : 'NULL'}`),
     customDrawEnabled: lastSnapshot.customDrawEnabled,

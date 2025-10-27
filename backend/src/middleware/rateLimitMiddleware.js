@@ -22,7 +22,6 @@ const checkRateLimit = async (req, res, next) => {
     });
 
     if (error) {
-      console.error('Rate limit check error:', error);
       // On error, allow the request but log it
       return next();
     }
@@ -55,7 +54,6 @@ const checkRateLimit = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Rate limit middleware error:', error);
     // On error, allow the request to proceed
     next();
   }
@@ -85,13 +83,11 @@ const trackUsage = async (req, res, next) => {
       });
 
     if (error) {
-      console.error('Usage tracking error:', error);
       // Don't fail the request if tracking fails
     }
 
     next();
   } catch (error) {
-    console.error('Track usage error:', error);
     // Don't fail the request if tracking fails
     next();
   }
