@@ -243,7 +243,6 @@ const DirectionsPanel = ({
     // Lock the last segment if it's in custom draw mode
     const lastSegmentIndex = locations.length - 2;
     if (lastSegmentIndex >= 0 && customDrawEnabled[lastSegmentIndex]) {
-      console.log('  Locking segment', lastSegmentIndex, 'since moving to next segment');
       const newLockedSegments = [...lockedSegments];
       newLockedSegments[lastSegmentIndex] = true;
       setLockedSegments(newLockedSegments);
@@ -315,7 +314,6 @@ const DirectionsPanel = ({
    * If enabling and both locations exist, initialize straight line
    */
   const toggleSegmentDrawMode = useCallback((segmentIndex) => {
-    console.log('🆕 TOGGLE DRAW MODE:', segmentIndex);
 
     // Save to undo history BEFORE changing
     saveToUndoHistory('TOGGLE_DRAW_MODE');
@@ -325,11 +323,9 @@ const DirectionsPanel = ({
       const newIsCustom = !newArr[segmentIndex];
       newArr[segmentIndex] = newIsCustom;
 
-      console.log('  Setting customDrawEnabled[', segmentIndex, '] =', newIsCustom);
 
       // If enabling draw mode and both locations exist, create straight line
       if (newIsCustom && locations[segmentIndex] && locations[segmentIndex + 1]) {
-        console.log('  Enabling draw mode - creating straight line (both locations exist)');
         setCustomPoints(prevPoints => ({
           ...prevPoints,
           [segmentIndex]: [
@@ -339,7 +335,6 @@ const DirectionsPanel = ({
         }));
       } else if (newIsCustom && locations[segmentIndex]) {
         // Only start location exists - initialize with that point
-        console.log('  Enabling draw mode - only start location exists, preserving it');
         setCustomPoints(prevPoints => ({
           ...prevPoints,
           [segmentIndex]: [
@@ -347,7 +342,6 @@ const DirectionsPanel = ({
           ]
         }));
       } else if (newIsCustom) {
-        console.log('  Enabling draw mode - no locations yet, will draw from scratch');
         // Initialize empty customPoints for this segment
         setCustomPoints(prevPoints => ({
           ...prevPoints,
@@ -357,7 +351,6 @@ const DirectionsPanel = ({
 
       // If disabling draw mode, clear custom points (but keep the end location)
       if (!newIsCustom) {
-        console.log('  Disabling draw mode - clearing points but keeping end location');
         setCustomPoints(prevPoints => {
           const newPoints = { ...prevPoints };
           delete newPoints[segmentIndex];
@@ -373,7 +366,6 @@ const DirectionsPanel = ({
    * Add a point to a segment's custom route
    */
   const addPointToSegment = useCallback((segmentIndex, point) => {
-    console.log('🆕 ADD POINT TO SEGMENT:', segmentIndex, point);
 
     // Save to undo history BEFORE adding point
     saveToUndoHistory('ADD_POINT');
@@ -574,9 +566,7 @@ const DirectionsPanel = ({
 
   // Handle clicked location from map - only trigger when clickedLocation actually changes
   useEffect(() => {
-    console.log('🔍 CLICKED LOCATION EFFECT - clickedLocation:', clickedLocation, 'isOpen:', isOpen);
     if (!clickedLocation || !isOpen) {
-      console.log('  Early return: no clickedLocation or panel not open');
       return;
     }
 
@@ -595,7 +585,6 @@ const DirectionsPanel = ({
       // Only consider segments that are in custom draw mode AND not locked
       return seg.isCustom && !seg.isLocked;
     });
-    console.log('  Is any draw mode active (unlocked)?', isAnyDrawModeActive);
 
     if (isAnyDrawModeActive) {
       return;
@@ -603,23 +592,17 @@ const DirectionsPanel = ({
 
     prevClickedLocationRef.current = clickedLocation;
 
-    console.log('  activeInput:', activeInput);
-    console.log('  uiLocations:', uiLocations);
 
     // If there's an active input (edit mode), replace that specific location
     if (activeInput !== null && activeInput !== undefined) {
-      console.log('  Updating active input location at index:', activeInput);
       updateLocation(activeInput, clickedLocation);
       setActiveInput(null);
     } else {
       // Otherwise, find the first empty slot
       const emptyIndex = uiLocations.findIndex(loc => !loc);
-      console.log('  Empty index found:', emptyIndex);
       if (emptyIndex !== -1) {
-        console.log('  Updating location at empty index:', emptyIndex);
         updateLocation(emptyIndex, clickedLocation);
       } else {
-        console.log('  ❌ NO EMPTY SLOT FOUND - all locations filled, cannot place new location');
       }
     }
 
@@ -630,12 +613,10 @@ const DirectionsPanel = ({
   // This was causing double renders and race conditions
   // Recalculate route when custom draw mode is toggled (NOT when locations change - that's handled above)
   // useEffect(() => {
-  //   console.log('CUSTOM DRAW EFFECT TRIGGERED:');
 
   //   const filledLocations = locations.filter(loc => loc !== null);
   //   if (filledLocations.length >= 2 && onDirectionsCalculated) {
   //     const segments = buildSegments(filledLocations);
-  //     console.log('  Built segments:', segments.map(s => `[${s.startIndex}→${s.endIndex}] isCustom=${s.isCustom} hasPath=${!!s.customPath}`));
 
   //     const routeData = {
   //       origin: filledLocations[0],
@@ -648,7 +629,6 @@ const DirectionsPanel = ({
   //       customPaths: customPoints, // Include custom points for reference
   //       routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + legModes.join('-') + '_' + customDrawEnabled.join('-')
   //     };
-  //     console.log('  Calling onDirectionsCalculated with routeId:', routeData.routeId);
   //     onDirectionsCalculated(routeData);
   //   }
   // }, [customDrawEnabled, legModes, onDirectionsCalculated, customPoints, buildSegments]);

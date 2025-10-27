@@ -120,7 +120,6 @@ const CustomRouteDrawer = ({
       // TODO: Implement actual Roads API call
       return { lat: latLng.lat(), lng: latLng.lng() };
     } catch (error) {
-      console.error('Error snapping to road:', error);
       return { lat: latLng.lat(), lng: latLng.lng() };
     }
   };
@@ -134,7 +133,6 @@ const CustomRouteDrawer = ({
     // Optionally snap to road
     const point = await snapPointToRoad(latLng);
 
-    console.log('✏️ DRAW MODE: Adding point to segment', segmentIndex);
 
     // Notify parent to add this point
     if (onPointAdded) {
