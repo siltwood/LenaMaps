@@ -122,11 +122,10 @@ const RouteSegmentManager = ({
 
   // Create a marker
   const createMarker = useCallback((location, icon, color, title, zIndex = 5000, isBusStop = false) => {
-    
     if (!map) {
       return null;
     }
-    
+
     if (!window.google?.maps?.marker?.AdvancedMarkerElement) {
       return null;
     }
@@ -501,9 +500,10 @@ const RouteSegmentManager = ({
         segmentsRef.current[0] &&
         segmentsRef.current[0].id === 'single-marker' &&
         validLocations.length === 2;
-      
+
       if (wasSingleMarker) {
-        // Keep the single marker - it will become the start marker of the route
+        // DON'T clear - we'll reuse the single marker as segment 0's start marker
+        // This prevents flickering when adding the second location
       } else {
         // Check if only modes changed (same locations)
         // Need to check ALL locations, not just start locations
@@ -622,59 +622,11 @@ const RouteSegmentManager = ({
     // Generate a unique ID for this route render
     const routeId = Date.now();
     currentRouteIdRef.current = routeId;
-    
-    // Check if we can reuse any existing segments
-    let canReuseSegments = false;
-    let segmentsToReuse = [];
-    
-    if (prevRouteRef.current && segmentsRef.current.length > 0) {
-      const prevLocations = prevRouteRef.current.locations;
-      const prevModes = prevRouteRef.current.modes;
-      
-      // Check if only modes changed for existing segments
-      if (prevLocations && prevModes) {
-        canReuseSegments = true;
-        
-        // Compare each segment to see what changed
-        for (let i = 0; i < Math.min(validLocations.length - 1, prevLocations.length - 1); i++) {
-          const locationsSame = 
-            validLocations[i] && prevLocations[i] &&
-            validLocations[i].lat === prevLocations[i].lat &&
-            validLocations[i].lng === prevLocations[i].lng &&
-            validLocations[i + 1] && prevLocations[i + 1] &&
-            validLocations[i + 1].lat === prevLocations[i + 1].lat &&
-            validLocations[i + 1].lng === prevLocations[i + 1].lng;
-          
-          const modeSame = validModes[i] === prevModes[i];
-          
-          if (locationsSame && modeSame && segmentsRef.current[i]) {
-            // This segment is unchanged - reuse it
-            segmentsToReuse[i] = segmentsRef.current[i];
-          } else {
-            // Segment changed - will need to recalculate
-            segmentsToReuse[i] = null;
-          }
-        }
-      }
-    }
-    
-    // Store current route for next comparison
-    prevRouteRef.current = {
-      locations: [...validLocations],
-      modes: [...validModes]
-    };
-    
-    if (!canReuseSegments) {
-      // Clear ALL existing segments when route changes significantly
-      clearAllSegments();
-    } else {
-      // Only clear segments that changed
-      segmentsRef.current.forEach((segment, i) => {
-        if (segment && !segmentsToReuse[i]) {
-          clearSegment(segment);
-        }
-      });
-    }
+
+    // Smart segment reuse: Since we removed END markers (which depended on isLastSegment),
+    // we can now safely reuse segments without marker duplication bugs.
+    // Only clear segments when necessary (modes changed, locations changed, custom status changed).
+    // This prevents the map from flickering when adding new locations.
     
     // Render immediately for better UX
     const renderSegments = async () => {
@@ -682,9 +634,9 @@ const RouteSegmentManager = ({
         if (currentRouteIdRef.current !== routeId) {
           return;
         }
-        
-        // Start with reused segments or fresh array
-        const newSegments = canReuseSegments ? [...segmentsToReuse] : [];
+
+        // Start with fresh array
+        const newSegments = [];
         
         // Determine which segments need to be rendered
         // Check which segments are in directionsRoute.segments (skip ones that were excluded due to custom drawing)
@@ -706,10 +658,33 @@ const RouteSegmentManager = ({
           if (!allowedSegmentIndices.has(i)) {
             continue;
           }
-          if (!newSegments[i]) {
-            // This segment needs to be rendered
-            segmentsToRender.push(i);
+
+          // Check if this segment already exists and hasn't changed
+          const existingSegment = segmentsRef.current[i];
+          const newMode = validModes[i] || 'walk';
+          const newIsCustom = directionsRoute?.segments?.find(seg => seg.startIndex === i)?.isCustom || false;
+
+          // Special case: if segment 0 and we have a single-marker, reuse its marker
+          if (i === 0 && existingSegment?.id === 'single-marker' &&
+              existingSegment.startLocation?.lat === validLocations[i]?.lat &&
+              existingSegment.startLocation?.lng === validLocations[i]?.lng &&
+              existingSegment.mode === newMode) {
+            // We'll reuse the marker but need to create the route
+            // Continue to render this segment, but keep the existing marker
+          } else if (existingSegment &&
+              existingSegment.startLocation?.lat === validLocations[i]?.lat &&
+              existingSegment.startLocation?.lng === validLocations[i]?.lng &&
+              existingSegment.endLocation?.lat === validLocations[i + 1]?.lat &&
+              existingSegment.endLocation?.lng === validLocations[i + 1]?.lng &&
+              existingSegment.mode === newMode &&
+              (existingSegment.isCustom || false) === newIsCustom) {
+            // Segment unchanged - reuse it
+            newSegments[i] = existingSegment;
+            continue;
           }
+
+          // Segment needs to be rendered
+          segmentsToRender.push(i);
         }
         
         // Track if any modes were auto-changed to flight
@@ -726,10 +701,9 @@ const RouteSegmentManager = ({
           const isCustomSegment = directionsRoute?.segments?.find(seg => seg.startIndex === i)?.isCustom;
 
           if (isCustomSegment) {
-
-            // If there's an existing non-custom segment at this index, clear it first
-            if (segmentsRef.current[i] && !segmentsRef.current[i].isCustom) {
-              clearSegment(segmentsRef.current[i]);
+            // Clear any existing segment at this index before creating new one
+            if (newSegments[i]) {
+              clearSegment(newSegments[i]);
             }
 
             // Custom segment - render markers only (CustomRouteDrawer handles the polyline)
@@ -741,8 +715,8 @@ const RouteSegmentManager = ({
             // SIMPLIFIED MARKER LOGIC:
             // - First segment: START marker at origin
             // - All segments: marker at origin (start of this segment)
-            // - Last segment: END marker at destination
 
+            // Only create ONE marker at segment START - showing THIS segment's mode
             if (i === 0) {
               // First segment gets START marker
               markers.start = createMarker(
@@ -754,43 +728,18 @@ const RouteSegmentManager = ({
                 false
               );
             } else {
-              // Middle segments: check if mode changed from previous
-              const prevMode = validModes[i - 1] || 'walk';
-              if (prevMode !== segmentMode) {
-                // Mode changed - create transition marker
-                const prevIcon = TRANSPORT_ICONS[prevMode] || '🚶';
-                const prevColor = getTransportationColor(prevMode);
-                markers.transition = createTransitionMarker(
-                  segmentOrigin,
-                  prevIcon,
-                  prevColor,
-                  modeIcon,
-                  modeColor
-                );
-              } else {
-                // Same mode - create regular marker
-                markers.start = createMarker(
-                  segmentOrigin,
-                  modeIcon,
-                  modeColor,
-                  `Stop ${i + 1}`,
-                  5000,
-                  false
-                );
-              }
-            }
-
-            // Last segment gets END marker
-            if (isLastSegment) {
-              markers.end = createMarker(
-                segmentDestination,
+              // All other segments: marker shows THIS segment's mode (not previous)
+              markers.start = createMarker(
+                segmentOrigin,
                 modeIcon,
                 modeColor,
-                'End',
-                5001,
-                false
+                `Stop ${i + 1}`,
+                5000,
+                segmentMode === 'bus'
               );
             }
+
+            // NO END MARKER - markers only at segment START
 
             // Create segment object (no polyline, just markers)
             const segment = {
@@ -843,11 +792,12 @@ const RouteSegmentManager = ({
             const markers = {};
             const modeIcon = TRANSPORT_ICONS['flight'];
             const modeColor = getTransportationColor('flight');
-            
-            // Add start marker (only for first segment)
-            // For non-first segments, don't create markers at the origin
-            // because the previous segment's end/transition marker already covers it
+
+            const isLastSegment = i === validLocations.length - 2;
+
+            // Only create ONE marker at segment START - showing THIS segment's mode
             if (i === 0) {
+              // First segment gets START marker
               markers.start = createMarker(
                 segmentOrigin,
                 modeIcon,
@@ -856,21 +806,19 @@ const RouteSegmentManager = ({
                 5000,
                 false
               );
-            }
-            // Note: For i > 0, we DON'T create a waypoint marker at the origin
-            // because the previous segment already created a transition/end marker there
-            
-            // Add end marker (only for last segment)
-            if (i === validLocations.length - 2) {
-              markers.end = createMarker(
-                segmentDestination,
+            } else {
+              // All other segments: marker shows THIS segment's mode
+              markers.start = createMarker(
+                segmentOrigin,
                 modeIcon,
                 modeColor,
-                'End',
-                5001,
+                `Stop ${i + 1}`,
+                5000,
                 false
               );
             }
+
+            // NO END MARKER - markers only at segment START
             
             // Don't add transition markers for flights - they're handled by waypoint markers
             
@@ -1019,16 +967,14 @@ const RouteSegmentManager = ({
                 const modeIcon = TRANSPORT_ICONS['transit']; // Train emoji
                 const modeColor = getTransportationColor('transit');
 
-                // Add markers
+                // Add markers - only at segment START
                 if (i === 0) {
                   markers.start = createMarker(segmentOrigin, modeIcon, modeColor, 'Start', 5000, false);
                 } else {
                   markers.waypoint = createMarker(segmentOrigin, modeIcon, modeColor, `Stop ${i}`, 5000, false);
                 }
 
-                if (i === validLocations.length - 2) {
-                  markers.end = createMarker(segmentDestination, modeIcon, modeColor, 'End', 5001, false);
-                }
+                // NO END MARKER - markers only at segment START
 
                 // Store the segment with fake route data
                 const segment = {
@@ -1164,8 +1110,12 @@ const RouteSegmentManager = ({
             if (currentRouteIdRef.current !== routeId) {
               return;
             }
-            
-            
+
+            // Clear any existing segment at this index before creating new one
+            if (newSegments[i]) {
+              clearSegment(newSegments[i]);
+            }
+
             // Create the route renderer
             const rendererOptions = {
               suppressMarkers: true,
@@ -1201,61 +1151,42 @@ const RouteSegmentManager = ({
             const modeIcon = TRANSPORT_ICONS[segmentMode] || '🚶';
             const modeColor = getTransportationColor(segmentMode);
 
-            // SIMPLIFIED MARKER LOGIC (matches custom segment logic):
-            // - First segment: START marker at origin
-            // - All segments: marker at origin (start of this segment)
-            // - Last segment: END marker at destination
-
+            // Only create ONE marker at segment START - showing THIS segment's mode
             const isLastSegment = i === validLocations.length - 2;
+
+
+            // Check if we can reuse an existing single-marker for segment 0
+            const existingSingleMarker = (i === 0 && segmentsRef.current[0]?.id === 'single-marker')
+              ? segmentsRef.current[0].markers?.start
+              : null;
 
             if (i === 0) {
               // First segment gets START marker
-              markers.start = createMarker(
-                segmentOrigin,
-                modeIcon,
-                modeColor,
-                'Start',
-                5000,
-                segmentMode === 'bus'
-              );
-            } else {
-              // Middle segments: check if mode changed from previous
-              const prevMode = validModes[i - 1] || 'walk';
-              if (prevMode !== segmentMode) {
-                // Mode changed - create transition marker at START of this segment
-                const prevIcon = TRANSPORT_ICONS[prevMode] || '🚶';
-                const prevColor = getTransportationColor(prevMode);
-                markers.transition = createTransitionMarker(
-                  segmentOrigin,
-                  prevIcon,
-                  prevColor,
-                  modeIcon,
-                  modeColor
-                );
+              if (existingSingleMarker) {
+                markers.start = existingSingleMarker;
               } else {
-                // Same mode - create regular marker at START of this segment
                 markers.start = createMarker(
                   segmentOrigin,
                   modeIcon,
                   modeColor,
-                  `Stop ${i + 1}`,
+                  'Start',
                   5000,
                   segmentMode === 'bus'
                 );
-              }
-            }
-
-            // Last segment gets END marker
-            if (isLastSegment) {
-              markers.end = createMarker(
-                segmentDestination,
+                }
+            } else {
+              // All other segments: marker shows THIS segment's mode
+              markers.start = createMarker(
+                segmentOrigin,
                 modeIcon,
                 modeColor,
-                'End',
+                `Stop ${i + 1}`,
                 5000,
                 segmentMode === 'bus'
               );
             }
+
+            // NO END MARKER - markers only at segment START
             
             // Create hover polyline for better interaction
             const hoverPolyline = new window.google.maps.Polyline({
@@ -1310,12 +1241,12 @@ const RouteSegmentManager = ({
             newSegments[i] = segment;
             
           } catch (error) {
-            
-            // If still no route, skip this segment
-            if (!routeFound) {
+            // If we found a route in try block but got an error during setup,
+            // the segment was already stored with markers - don't create duplicates
+            if (routeFound) {
               continue;
             }
-            
+
             // Handle transit/bus fallback
             if ((segmentMode === 'bus' || segmentMode === 'transit') && 
                 (error === window.google.maps.DirectionsStatus.ZERO_RESULTS || 
@@ -1391,46 +1322,33 @@ const RouteSegmentManager = ({
                 const markers = {};
                 const modeIcon = TRANSPORT_ICONS[segmentMode] || '🚶';
                 const modeColor = getTransportationColor(segmentMode);
-                
-                // Add start marker (only for first segment)
+
+                const isLastSegment = i === validLocations.length - 2;
+
+                // Only create ONE marker at segment START - showing THIS segment's mode
                 if (i === 0) {
+                  // First segment gets START marker
                   markers.start = createMarker(
                     segmentOrigin,
                     modeIcon,
                     modeColor,
-                    'Start'
+                    'Start',
+                    5000,
+                    segmentMode === 'bus'
                   );
-                }
-                
-                // Check if this is the last segment
-                const isLastSegment = i === validLocations.length - 2;
-                
-                // Add transition marker if mode changes to next segment
-                if (!isLastSegment && i < validModes.length - 1 && validModes[i] !== validModes[i + 1]) {
-                  const nextMode = validModes[i + 1];
-                  const nextIcon = TRANSPORT_ICONS[nextMode] || '🚶';
-                  const nextColor = getTransportationColor(nextMode);
-                  
-                  markers.transition = createTransitionMarker(
-                    segmentDestination,
+                } else {
+                  // All other segments: marker shows THIS segment's mode
+                  markers.start = createMarker(
+                    segmentOrigin,
                     modeIcon,
                     modeColor,
-                    nextIcon,
-                    nextColor
-                  );
-                }
-                
-                // Add end marker for last segment
-                if (isLastSegment) {
-                  markers.end = createMarker(
-                    segmentDestination,
-                    modeIcon,
-                    modeColor,
-                    'End',
+                    `Stop ${i + 1}`,
                     5000,
                     segmentMode === 'bus'
                   );
                 }
+
+                // NO END MARKER - markers only at segment START
                 
                 // Store the complete segment WITH ROUTE DATA
                 const segment = {
@@ -1496,15 +1414,13 @@ const RouteSegmentManager = ({
     
     // Filter out null locations FIRST to check if we have any real locations
     const validLocations = directionsLocations.filter(loc => loc !== null);
-    
-    // Skip only if we have a real route (2+ locations with calculated segments) 
-    // AND the route matches our current locations
-    if (directionsRoute && directionsRoute.allLocations && 
-        directionsRoute.allLocations.filter(l => l).length >= 2 &&
-        validLocations.length >= 2) {
+
+
+    // Skip if we have 2+ locations - the main route effect will handle markers
+    if (validLocations.length >= 2) {
       return;
     }
-    
+
     // Show marker for single location (point A)
     if (validLocations.length === 1) {
       const location = validLocations[0];
