@@ -120,6 +120,54 @@ const RouteSegmentManager = ({
     window._routeSegments = [];
   }, []);
 
+  // GLOBAL CLEANUP: Force remove ALL markers and polylines from the map
+  // This is called on undo to ensure complete cleanup
+  const forceCleanupMap = useCallback(() => {
+    if (!map) return;
+
+    console.log('🧨 FORCE CLEANUP: Removing ALL markers and polylines from map');
+
+    // Clear all segments first
+    clearAllSegments();
+
+    // Nuclear option: Find and remove ALL Google Maps overlays
+    // This catches any orphaned markers that React didn't cleanup
+    const mapDiv = map.getDiv();
+    if (mapDiv) {
+      // Google Maps stores markers in internal structures, but we can force remove them
+      // by iterating through all map overlays
+      try {
+        // Clear any remaining polylines
+        if (window._customPolylines) {
+          window._customPolylines.forEach(polyline => {
+            if (polyline) polyline.setMap(null);
+          });
+          window._customPolylines = [];
+        }
+
+        // Clear any remaining markers
+        if (window._customMarkers) {
+          window._customMarkers.forEach(marker => {
+            if (marker) marker.setMap(null);
+          });
+          window._customMarkers = [];
+        }
+      } catch (e) {
+        console.error('Error during force cleanup:', e);
+      }
+    }
+  }, [map, clearAllSegments]);
+
+  // Expose cleanup function globally so it can be called from undo
+  useEffect(() => {
+    if (map) {
+      window._forceCleanupMap = forceCleanupMap;
+    }
+    return () => {
+      window._forceCleanupMap = null;
+    };
+  }, [map, forceCleanupMap]);
+
   // Create a marker
   const createMarker = useCallback((location, icon, color, title, zIndex = 5000, isBusStop = false) => {
     if (!map) {
@@ -536,14 +584,15 @@ const RouteSegmentManager = ({
             return newIsCustom !== oldIsCustom;
           });
 
-          if (modesChanged || customStatusChanged) {
-            // Clear all segments and recalculate with new modes or custom status
+          if (modesChanged) {
+            // Clear all segments and recalculate with new modes
             clearAllSegments();
             // Continue to the normal route calculation below
-          } else {
+          } else if (!customStatusChanged) {
             // No changes needed, return early
             return;
           }
+          // If customStatusChanged but !modesChanged, continue to reuse logic below
         } else if (locationsSame) {
           // Same locations and modes, no update needed
           return;
@@ -664,6 +713,12 @@ const RouteSegmentManager = ({
           const newMode = validModes[i] || 'walk';
           const newIsCustom = directionsRoute?.segments?.find(seg => seg.startIndex === i)?.isCustom || false;
 
+          console.log(`🔍 Checking segment ${i} for reuse:`, {
+            exists: !!existingSegment,
+            existingIsCustom: existingSegment?.isCustom,
+            newIsCustom
+          });
+
           // Special case: if segment 0 and we have a single-marker, reuse its marker
           if (i === 0 && existingSegment?.id === 'single-marker' &&
               existingSegment.startLocation?.lat === validLocations[i]?.lat &&
@@ -674,13 +729,31 @@ const RouteSegmentManager = ({
           } else if (existingSegment &&
               existingSegment.startLocation?.lat === validLocations[i]?.lat &&
               existingSegment.startLocation?.lng === validLocations[i]?.lng &&
-              existingSegment.endLocation?.lat === validLocations[i + 1]?.lat &&
-              existingSegment.endLocation?.lng === validLocations[i + 1]?.lng &&
               existingSegment.mode === newMode &&
-              (existingSegment.isCustom || false) === newIsCustom) {
-            // Segment unchanged - reuse it
+              (existingSegment.isCustom || false) === newIsCustom &&
+              // For regular segments, also check end location
+              // For custom segments, skip end location check (drawing changes it)
+              (newIsCustom || (
+                existingSegment.endLocation?.lat === validLocations[i + 1]?.lat &&
+                existingSegment.endLocation?.lng === validLocations[i + 1]?.lng
+              ))) {
+            // Segment unchanged (core properties) - reuse it
+            // For custom segments, the customPoints and endLocation changing doesn't affect the RouteSegmentManager marker
+            // CustomRouteDrawer handles point markers separately
+            console.log(`♻️ Reusing segment ${i} (custom=${newIsCustom})`);
             newSegments[i] = existingSegment;
             continue;
+          } else if (existingSegment) {
+            console.log(`🔄 Segment ${i} changed:`, {
+              startLat: existingSegment.startLocation?.lat === validLocations[i]?.lat,
+              startLng: existingSegment.startLocation?.lng === validLocations[i]?.lng,
+              endLat: existingSegment.endLocation?.lat === validLocations[i + 1]?.lat,
+              endLng: existingSegment.endLocation?.lng === validLocations[i + 1]?.lng,
+              mode: existingSegment.mode === newMode,
+              isCustom: (existingSegment.isCustom || false) === newIsCustom
+            });
+            console.log(`  Existing end:`, existingSegment.endLocation);
+            console.log(`  New end:`, validLocations[i + 1]);
           }
 
           // Segment needs to be rendered
@@ -701,9 +774,31 @@ const RouteSegmentManager = ({
           const isCustomSegment = directionsRoute?.segments?.find(seg => seg.startIndex === i)?.isCustom;
 
           if (isCustomSegment) {
-            // Clear any existing segment at this index before creating new one
-            if (newSegments[i]) {
-              clearSegment(newSegments[i]);
+            // Clear any existing OLD segment at this index before creating new one
+            // EXCEPT: Don't clear markers if we can reuse them
+            const existingSegment = segmentsRef.current[i];
+            const isSingleMarkerToReuse = (i === 0 && existingSegment?.id === 'single-marker');
+
+            // Check if we can reuse the markers even though isCustom changed
+            const canReuseMarkers = existingSegment &&
+              existingSegment.startLocation?.lat === segmentOrigin.lat &&
+              existingSegment.startLocation?.lng === segmentOrigin.lng &&
+              existingSegment.mode === segmentMode;
+
+            if (existingSegment && !isSingleMarkerToReuse && !canReuseMarkers) {
+              console.log(`🧹 Clearing OLD segment ${i} (can't reuse markers)`);
+              clearSegment(existingSegment);
+            } else if (existingSegment && canReuseMarkers) {
+              console.log(`♻️ Reusing markers from segment ${i} (switching to custom mode)`);
+              // Only clear the renderer, keep the markers
+              if (existingSegment.routeRenderer) {
+                if (existingSegment.routeRenderer._hoverPolyline) {
+                  existingSegment.routeRenderer._hoverPolyline.setMap(null);
+                }
+                existingSegment.routeRenderer.setMap(null);
+              }
+            } else if (isSingleMarkerToReuse) {
+              console.log(`♻️ Keeping single-marker at segment ${i} to reuse for custom`);
             }
 
             // Custom segment - render markers only (CustomRouteDrawer handles the polyline)
@@ -717,26 +812,46 @@ const RouteSegmentManager = ({
             // - All segments: marker at origin (start of this segment)
 
             // Only create ONE marker at segment START - showing THIS segment's mode
+            // Check if we can reuse existing markers
+            const existingSingleMarker = (i === 0 && isSingleMarkerToReuse && existingSegment?.markers?.start)
+              ? existingSegment.markers.start
+              : null;
+
+            const canReuseExistingMarkers = canReuseMarkers && existingSegment?.markers?.start;
+
             if (i === 0) {
-              // First segment gets START marker
-              markers.start = createMarker(
-                segmentOrigin,
-                modeIcon,
-                modeColor,
-                'Start',
-                5000,
-                false
-              );
+              // First segment gets START marker - reuse if available
+              if (existingSingleMarker) {
+                console.log(`♻️ Reusing single-marker for custom segment ${i}`);
+                markers.start = existingSingleMarker;
+              } else if (canReuseExistingMarkers) {
+                console.log(`♻️ Reusing existing START marker for custom segment ${i}`);
+                markers.start = existingSegment.markers.start;
+              } else {
+                markers.start = createMarker(
+                  segmentOrigin,
+                  modeIcon,
+                  modeColor,
+                  'Start',
+                  5000,
+                  false
+                );
+              }
             } else {
               // All other segments: marker shows THIS segment's mode (not previous)
-              markers.start = createMarker(
-                segmentOrigin,
-                modeIcon,
-                modeColor,
-                `Stop ${i + 1}`,
-                5000,
-                segmentMode === 'bus'
-              );
+              if (canReuseExistingMarkers) {
+                console.log(`♻️ Reusing existing marker for custom segment ${i}`);
+                markers.start = existingSegment.markers.start;
+              } else {
+                markers.start = createMarker(
+                  segmentOrigin,
+                  modeIcon,
+                  modeColor,
+                  `Stop ${i + 1}`,
+                  5000,
+                  segmentMode === 'bus'
+                );
+              }
             }
 
             // NO END MARKER - markers only at segment START
@@ -1111,9 +1226,16 @@ const RouteSegmentManager = ({
               return;
             }
 
-            // Clear any existing segment at this index before creating new one
-            if (newSegments[i]) {
-              clearSegment(newSegments[i]);
+            // Clear any existing OLD segment at this index before creating new one
+            // EXCEPT: Don't clear if it's a single-marker we're about to reuse
+            const existingSegment = segmentsRef.current[i];
+            const isSingleMarkerToReuse = (i === 0 && existingSegment?.id === 'single-marker');
+
+            if (existingSegment && !isSingleMarkerToReuse) {
+              console.log(`🧹 Clearing OLD segment ${i} before creating normal segment`);
+              clearSegment(existingSegment);
+            } else if (isSingleMarkerToReuse) {
+              console.log(`♻️ Keeping single-marker at segment ${i} to reuse`);
             }
 
             // Create the route renderer

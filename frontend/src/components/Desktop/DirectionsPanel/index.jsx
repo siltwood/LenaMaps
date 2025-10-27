@@ -59,6 +59,7 @@ const DirectionsPanel = ({
   // NEW: Undo system that tracks routeSegments snapshots
   const [undoHistory, setUndoHistory] = useState([]);
   const [lastActionType, setLastActionType] = useState(null);
+  const lastSaveTimeRef = useRef(0); // Track last save time to prevent spam
 
   // ============================================================================
   // UNDO SYSTEM - Tracks routeSegments snapshots
@@ -69,6 +70,16 @@ const DirectionsPanel = ({
    * Called before making any changes to route state
    */
   const saveToUndoHistory = useCallback((actionType) => {
+    const now = Date.now();
+
+    // Rate limit: Only save if >500ms since last save
+    // This groups cascading state updates from one user action into one snapshot
+    if (now - lastSaveTimeRef.current < 500) {
+      console.log(`🚫 Rate limiting: Skipping ${actionType} (too soon after last save)`);
+      return;
+    }
+
+    lastSaveTimeRef.current = now;
 
     // Deep copy customPoints (object with array values)
     const customPointsCopy = {};
@@ -84,11 +95,27 @@ const DirectionsPanel = ({
       customPoints: customPointsCopy,
       lockedSegments: [...lockedSegments],
       actionType,
-      timestamp: Date.now()
+      timestamp: now
     };
 
     setUndoHistory(prev => {
+      // Prevent duplicate snapshots - check if the last snapshot is identical
+      if (prev.length > 0) {
+        const lastSnapshot = prev[prev.length - 1];
+        const statesEqual =
+          JSON.stringify(lastSnapshot.locations) === JSON.stringify(snapshot.locations) &&
+          JSON.stringify(lastSnapshot.legModes) === JSON.stringify(snapshot.legModes) &&
+          JSON.stringify(lastSnapshot.customDrawEnabled) === JSON.stringify(snapshot.customDrawEnabled) &&
+          JSON.stringify(lastSnapshot.customPoints) === JSON.stringify(snapshot.customPoints);
+
+        if (statesEqual) {
+          console.log('🚫 Skipping duplicate undo snapshot');
+          return prev; // Don't add duplicate
+        }
+      }
+
       const newHistory = [...prev, snapshot];
+      console.log(`💾 Saved undo snapshot: ${actionType}, history length: ${newHistory.length}`);
       return newHistory;
     });
     setLastActionType(actionType);
@@ -106,6 +133,7 @@ const DirectionsPanel = ({
     const previousSnapshot = undoHistory[undoHistory.length - 1];
 
     // Restore all state from snapshot
+    // Note: No force cleanup needed - segment reuse logic handles cleanup automatically
     setLocations(previousSnapshot.locations);
     setLegModes(previousSnapshot.legModes);
     setCustomDrawEnabled(previousSnapshot.customDrawEnabled);

@@ -25,26 +25,60 @@ const CustomRouteDrawer = ({
   const pointMarkersRef = useRef([]); // Markers for each clicked point
   const clickListenerRef = useRef(null);
 
+  // Keep a persistent array of ALL markers ever created for this instance
+  // This ensures cleanup works even if React timing issues occur
+  const allMarkersEverCreatedRef = useRef([]);
+
   // Get color for the current mode
   const strokeColor = getTransportationColor(mode);
 
   // Clean up markers
   const clearPointMarkers = () => {
+    const totalMarkers = pointMarkersRef.current.length;
+    console.log(`🧹 CustomRouteDrawer: Clearing ${totalMarkers} point markers for segment ${segmentIndex}`);
+
+    // Clear from both refs to ensure thorough cleanup
     pointMarkersRef.current.forEach(marker => {
       if (marker) marker.setMap(null);
     });
     pointMarkersRef.current = [];
   };
 
+  // Complete cleanup of ALL markers ever created (for unmount)
+  const clearAllMarkers = () => {
+    const total = allMarkersEverCreatedRef.current.length;
+    console.log(`🧹🧹 CustomRouteDrawer: COMPLETE CLEANUP of ${total} markers for segment ${segmentIndex}`);
+
+    allMarkersEverCreatedRef.current.forEach(marker => {
+      if (marker) {
+        try {
+          marker.setMap(null);
+        } catch (e) {
+          // Marker might already be removed
+        }
+      }
+    });
+    allMarkersEverCreatedRef.current = [];
+    pointMarkersRef.current = [];
+  };
+
   // Render polyline and point markers from points array
   useEffect(() => {
+    console.log(`🎨 CustomRouteDrawer segment ${segmentIndex} effect:`, {
+      hasMap: !!map,
+      isEnabled,
+      pointsCount: points.length,
+      currentMarkers: pointMarkersRef.current.length
+    });
+
     if (!map) {
       // Clean up if no map
+      console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: No map, clearing ALL`);
       if (mainPolylineRef.current) {
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;
       }
-      clearPointMarkers();
+      clearAllMarkers();
       return;
     }
 
@@ -75,12 +109,14 @@ const CustomRouteDrawer = ({
       mainPolylineRef.current = null;
     }
 
-    // Clear old markers
+    // Clear old markers ALWAYS (even if disabled) to ensure cleanup on undo
+    console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: Clearing old markers before redraw`);
     clearPointMarkers();
 
     // Add point markers for each clicked point (not previousLocation)
     // Only show point markers when NOT locked (when isEnabled is true)
-    if (isEnabled) {
+    console.log(`🎨 CustomRouteDrawer segment ${segmentIndex}: isEnabled=${isEnabled}, will create ${points.length} markers`);
+    if (isEnabled && points.length > 0) {
       points.forEach((point, idx) => {
         const marker = new window.google.maps.Marker({
           position: point,
@@ -97,15 +133,29 @@ const CustomRouteDrawer = ({
           draggable: false
         });
         pointMarkersRef.current.push(marker);
+        allMarkersEverCreatedRef.current.push(marker); // Track for cleanup
+
+        // Store globally for force cleanup
+        if (!window._customMarkers) window._customMarkers = [];
+        window._customMarkers.push(marker);
       });
     }
 
+    // Store polyline globally for force cleanup
+    if (mainPolylineRef.current) {
+      if (!window._customPolylines) window._customPolylines = [];
+      if (!window._customPolylines.includes(mainPolylineRef.current)) {
+        window._customPolylines.push(mainPolylineRef.current);
+      }
+    }
+
     return () => {
+      console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: CLEANUP on unmount/re-render`);
       if (mainPolylineRef.current) {
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;
       }
-      clearPointMarkers();
+      clearAllMarkers(); // Use complete cleanup to ensure all markers removed
     };
   }, [map, isEnabled, points, previousLocation, strokeColor, segmentIndex]);
 
