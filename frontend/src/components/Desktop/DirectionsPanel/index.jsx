@@ -44,6 +44,7 @@ const DirectionsPanel = ({
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
+  const [expandedWaypoints, setExpandedWaypoints] = useState([]);
 
   // NEW: DirectionsPanel now owns ALL route state internally
   const [locations, setLocations] = useState(propsLocations);
@@ -1363,72 +1364,112 @@ const DirectionsPanel = ({
                   {routeSegments[index]?.isCustom && customPoints[index]?.length > 0 && (
                     <div style={{
                       marginTop: '12px',
-                      padding: '12px',
                       backgroundColor: '#f9fafb',
                       border: '1px solid #e5e7eb',
-                      borderRadius: '6px'
+                      borderRadius: '6px',
+                      overflow: 'hidden'
                     }}>
-                      <div style={{
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#6b7280',
-                        marginBottom: '8px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
-                        Custom Route Waypoints ({customPoints[index].length})
+                      {/* Collapsible Header */}
+                      <div
+                        onClick={() => {
+                          setExpandedWaypoints(prev => {
+                            if (prev.includes(index)) {
+                              return prev.filter(i => i !== index);
+                            } else {
+                              return [...prev, index];
+                            }
+                          });
+                        }}
+                        style={{
+                          padding: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          transition: 'background-color 0.2s',
+                          backgroundColor: expandedWaypoints.includes(index) ? '#f3f4f6' : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = expandedWaypoints.includes(index) ? '#f3f4f6' : 'transparent';
+                        }}
+                      >
+                        <div style={{
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Custom Route Waypoints ({customPoints[index].length})
+                        </div>
+                        <div style={{
+                          fontSize: '16px',
+                          color: '#9ca3af',
+                          transition: 'transform 0.2s',
+                          transform: expandedWaypoints.includes(index) ? 'rotate(180deg)' : 'rotate(0deg)'
+                        }}>
+                          ▼
+                        </div>
                       </div>
-                      <div style={{
-                        maxHeight: '150px',
-                        overflowY: 'auto',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px'
-                      }}>
-                        {customPoints[index].map((point, wpIndex) => (
-                          <div
-                            key={wpIndex}
-                            onClick={() => {
-                              if (map) {
-                                map.panTo({ lat: point.lat, lng: point.lng });
-                                if (map.getZoom() < 15) {
-                                  map.setZoom(15);
+
+                      {/* Collapsible Content */}
+                      {expandedWaypoints.includes(index) && (
+                        <div style={{
+                          padding: '0 12px 12px 12px',
+                          maxHeight: '150px',
+                          overflowY: 'auto',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px'
+                        }}>
+                          {customPoints[index].map((point, wpIndex) => (
+                            <div
+                              key={wpIndex}
+                              onClick={() => {
+                                if (map) {
+                                  map.panTo({ lat: point.lat, lng: point.lng });
+                                  if (map.getZoom() < 15) {
+                                    map.setZoom(15);
+                                  }
                                 }
-                              }
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '6px 8px',
-                              backgroundColor: 'white',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#f3f4f6';
-                              e.currentTarget.style.borderColor = '#d1d5db';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'white';
-                              e.currentTarget.style.borderColor = '#e5e7eb';
-                            }}
-                            title="Click to pan to this waypoint"
-                          >
-                            <span style={{ fontSize: '14px' }}>📍</span>
-                            <span style={{
-                              flex: 1,
-                              color: '#374151',
-                              fontFamily: 'monospace'
-                            }}>
-                              Point {wpIndex + 1}: {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '6px 8px',
+                                backgroundColor: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                                e.currentTarget.style.borderColor = '#d1d5db';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'white';
+                                e.currentTarget.style.borderColor = '#e5e7eb';
+                              }}
+                              title="Click to pan to this waypoint"
+                            >
+                              <span style={{ fontSize: '14px' }}>📍</span>
+                              <span style={{
+                                flex: 1,
+                                color: '#374151',
+                                fontFamily: 'monospace'
+                              }}>
+                                Point {wpIndex + 1}: {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
