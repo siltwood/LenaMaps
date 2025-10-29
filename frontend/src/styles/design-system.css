@@ -5,40 +5,95 @@
   /* Colors */
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
+  --color-primary-light: #e8f0fe;
   --color-success: #10b981;
+  --color-success-dark: #059669;
   --color-warning: #f59e0b;
+  --color-warning-dark: #d97706;
   --color-danger: #ef4444;
   --color-danger-dark: #dc2626;
 
   --color-text-primary: #1e293b;
   --color-text-secondary: #64748b;
   --color-text-light: #94a3b8;
+  --color-text-muted: #6b7280;
 
   --color-bg-white: #ffffff;
   --color-bg-gray: #f8fafc;
   --color-bg-gray-hover: #f1f5f9;
+  --color-bg-gray-light: #f9fafb;
 
   --color-border: #e2e8f0;
   --color-border-hover: #cbd5e1;
+  --color-border-light: #e5e7eb;
+  --color-border-dark: #d1d5db;
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
+  /* Standard Spacing */
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-base: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-xxl: 24px;
+
+  /* Compact Spacing (for dense UIs) */
+  --compact-xxs: 1px;
+  --compact-xs: 2px;
+  --compact-sm: 4px;
+  --compact-md: 6px;
+  --compact-base: 8px;
+  --compact-lg: 10px;
+  --compact-xl: 12px;
+  --compact-xxl: 16px;
+
+  /* Typography */
+  --font-xxs: 9px;
+  --font-xs: 10px;
+  --font-sm: 11px;
+  --font-base: 12px;
+  --font-md: 13px;
+  --font-lg: 14px;
+  --font-xl: 16px;
+  --font-xxl: 18px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
   /* Border radius */
+  --radius-xs: 2px;
   --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-md: 6px;
+  --radius-base: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-xxl: 16px;
+  --radius-full: 9999px;
 
   /* Shadows */
+  --shadow-none: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-base: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+  --transition-all: all 0.2s ease;
+
+  /* Z-Index */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-modal: 1000;
+  --z-tooltip: 1500;
+  --z-panel: 2000;
+  --z-max: 9999;
 }
 
 /* Panel Styles - Consistent across DirectionsPanel and RouteAnimator */
@@ -307,4 +362,99 @@
 
 .card:hover {
   box-shadow: var(--shadow-md);
+}
+
+/* ============================================================================
+   COMPACT UI VARIANTS
+   Use these for dense, space-efficient interfaces
+   ============================================================================ */
+
+/* Compact Buttons */
+.btn-compact {
+  padding: var(--compact-xs) var(--compact-base);
+  font-size: var(--font-base);
+  min-height: 28px;
+  gap: var(--compact-xs);
+}
+
+.btn-icon-compact {
+  padding: var(--compact-xs);
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+}
+
+/* Compact Radio/Toggle Groups */
+.radio-compact {
+  padding: var(--compact-sm) var(--compact-md);
+  min-height: 40px;
+  font-size: var(--font-base);
+  gap: var(--compact-xs);
+}
+
+.radio-compact span {
+  font-size: var(--font-md);
+}
+
+.radio-compact small {
+  font-size: var(--font-xs);
+  margin-top: var(--compact-xxs);
+}
+
+/* Compact Panel */
+.panel-compact {
+  padding: var(--compact-base);
+}
+
+.panel-header-compact {
+  padding: var(--compact-md) var(--compact-lg);
+  margin-bottom: var(--compact-md);
+}
+
+.panel-title-compact {
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Compact Sections */
+.section-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--compact-md);
+}
+
+/* Compact Labels */
+.label-compact {
+  font-size: var(--font-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: var(--compact-xs);
+}
+
+/* Compact Input */
+.input-compact {
+  padding: var(--compact-sm) var(--compact-md);
+  font-size: var(--font-base);
+  min-height: 32px;
+}
+
+/* Compact Form Group */
+.form-group-compact {
+  margin-bottom: var(--compact-md);
+}
+
+/* Compact Timeline/Progress */
+.timeline-compact {
+  padding: var(--compact-xs) 0;
+}
+
+.timeline-compact .timeline-track {
+  height: 4px;
+}
+
+.timeline-compact .timeline-labels {
+  font-size: var(--font-xs);
+  margin-top: var(--compact-xxs);
 }

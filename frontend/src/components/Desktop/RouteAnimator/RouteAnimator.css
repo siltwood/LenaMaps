@@ -1,11 +1,12 @@
 .route-animator {
   background: var(--color-bg-white);
   backdrop-filter: blur(20px);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-border);
-  z-index: 2000;
-  width: 400px;
+  z-index: var(--z-panel);
+  width: 380px;
+  max-width: 380px;
 }
 
 /* Mobile styles */
@@ -28,12 +29,12 @@
 }
 
 .route-animator-header {
-  padding: var(--spacing-lg) var(--spacing-lg);
+  padding: var(--compact-md) var(--compact-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--color-bg-gray);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(10px);
   position: relative;
@@ -41,8 +42,8 @@
 
 .route-animator-header h4 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   flex: 1;
   text-align: left;
@@ -101,7 +102,7 @@
 
 
 .route-animator-content {
-  padding: var(--spacing-md);
+  padding: var(--compact-base);
   max-height: 400px;
   overflow-y: auto;
 }
@@ -109,26 +110,27 @@
 .controls-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--compact-md);
 }
 
 .playback-controls {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--compact-sm);
   flex-wrap: wrap;
 }
 
 .control-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--compact-xs) var(--compact-base);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-base);
+  font-weight: var(--font-weight-medium);
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  gap: var(--compact-xs);
+  transition: var(--transition-all);
+  min-height: 28px;
 }
 
 .control-btn:hover {
@@ -246,10 +248,10 @@
 }
 
 .speed-control > label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--compact-xs);
 }
 
 /* Speed control buttons */
@@ -567,7 +569,7 @@
 
 .speed-radio-group {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--compact-sm);
   width: 100%;
   margin-top: 0;
   margin-bottom: 0;
@@ -579,14 +581,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--color-border);
+  padding: var(--compact-sm) var(--compact-md);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-all);
   background: var(--color-bg-white);
   position: relative;
-  min-height: 70px;
+  min-height: 44px;
+  gap: var(--compact-xxs);
 }
 
 .speed-radio:hover {
@@ -596,9 +599,9 @@
 
 .speed-radio.active {
   border-color: var(--color-primary);
-  background: #e8f0fe;
-  color: #1967d2;
-  font-weight: 500;
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  font-weight: var(--font-weight-medium);
 }
 
 .speed-radio input[type="radio"] {
@@ -609,12 +612,12 @@
 }
 
 .speed-radio span {
-  font-size: 13px;
+  font-size: var(--font-md);
   user-select: none;
 }
 
 .speed-radio small {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-secondary);
   user-select: none;
 }
@@ -624,18 +627,18 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: var(--spacing-xs);
+  padding-bottom: var(--compact-xs);
 }
 
 .zoom-control > label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
 }
 
 .zoom-radio-group {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--compact-sm);
   width: 100%;
   margin-top: 0;
   margin-bottom: 0;
@@ -647,15 +650,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--color-border);
+  padding: var(--compact-sm) var(--compact-md);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-all);
   background: var(--color-bg-white);
   position: relative;
-  gap: 2px;
-  min-height: 70px;
+  gap: var(--compact-xxs);
+  min-height: 44px;
 }
 
 .zoom-radio:hover:not(.disabled) {
@@ -671,9 +674,9 @@
 
 .zoom-radio.active {
   border-color: var(--color-primary);
-  background: #e8f0fe;
-  color: #1967d2;
-  font-weight: 500;
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  font-weight: var(--font-weight-medium);
 }
 
 .zoom-radio.animating {
@@ -688,12 +691,12 @@
 }
 
 .zoom-radio span {
-  font-size: 13px;
+  font-size: var(--font-md);
   user-select: none;
 }
 
 .zoom-radio small {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-secondary);
   user-select: none;
 }
@@ -849,25 +852,25 @@
 .timeline-control {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: var(--spacing-xs);
-  padding-top: var(--spacing-xs);
+  gap: var(--compact-xxs);
+  margin-top: var(--compact-xs);
+  padding-top: var(--compact-md);
   border-top: 1px solid var(--color-border);
 }
 
 .timeline-control > label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--compact-xs);
 }
 
 .timeline-container {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--compact-xxs);
   position: relative;
-  padding: 2px 0;
+  padding: var(--compact-xxs) 0;
 }
 
 .timeline-track {
@@ -875,11 +878,11 @@
   top: 50%;
   left: 0;
   right: 0;
-  height: 6px;
+  height: 5px;
   background: var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   transform: translateY(-50%);
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .timeline-progress {
@@ -888,8 +891,8 @@
   left: 0;
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-  border-radius: 3px;
-  box-shadow: 0 1px 2px rgba(66, 133, 244, 0.3);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-sm);
 }
 
 .timeline-slider {
@@ -1032,10 +1035,10 @@
 .timeline-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--color-text-secondary);
-  padding: 0 2px;
-  margin-top: -2px;
+  padding: 0 var(--compact-xxs);
+  margin-top: calc(-1 * var(--compact-xxs));
 }
 
 .timeline-tips {
