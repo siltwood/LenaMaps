@@ -23,11 +23,11 @@ export const COLORS = {
   danger: '#ef4444',
   dangerDark: '#dc2626',
 
-  // Text
-  textPrimary: '#1e293b',
-  textSecondary: '#64748b',
-  textLight: '#94a3b8',
-  textMuted: '#6b7280',
+  // Text - All black for uniformity
+  textPrimary: '#000000',
+  textSecondary: '#000000',
+  textLight: '#000000',
+  textMuted: '#000000',
 
   // Backgrounds
   bgWhite: '#ffffff',
@@ -74,15 +74,15 @@ export const COMPACT_SPACING = {
 // ============================================================================
 
 export const FONT_SIZES = {
-  xxs: '9px',
-  xs: '10px',
-  sm: '11px',
-  base: '12px',
-  md: '13px',
-  lg: '14px',
-  xl: '16px',
-  xxl: '18px',
-  xxxl: '20px',
+  xxs: '10px',   // Smallest (labels, captions)
+  xs: '11px',    // Small (secondary text)
+  sm: '12px',    // Body small
+  base: '13px',  // Base body text
+  md: '14px',    // Medium (emphasis)
+  lg: '15px',    // Large (headers)
+  xl: '16px',    // Extra large (main headers)
+  xxl: '18px',   // Very large
+  xxxl: '20px',  // Largest
 };
 
 export const FONT_WEIGHTS = {

@@ -8,6 +8,7 @@ import { saveRoute } from '../../../utils/savedRoutesUtils';
 import { SaveRouteModal } from '../../SaveRouteModal';
 import { SavedRoutesModal } from '../../SavedRoutesModal';
 import CustomRouteDrawer from '../../Shared/GoogleMap/components/CustomRouteDrawer';
+import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConstants';
 import '../../../styles/unified-icons.css';
 
 const DirectionsPanel = ({
@@ -1248,7 +1249,7 @@ const DirectionsPanel = ({
                       autoFocus={true}
                       defaultValue={location.name || location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
                     />
-                    <div style={{ fontSize: '11px', marginTop: '4px', color: '#3b82f6', fontStyle: 'italic' }}>
+                    <div style={{ fontSize: FONT_SIZES.xs, marginTop: COMPACT_SPACING.sm, color: COLORS.primary, fontStyle: 'italic' }}>
                       Type to search or click on map (ESC to cancel)
                     </div>
                   </div>
@@ -1316,12 +1317,13 @@ const DirectionsPanel = ({
                   </div>
 
                   {/* Custom drawing toggles */}
-                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ marginTop: COMPACT_SPACING.sm, display: 'flex', flexDirection: 'column', gap: COMPACT_SPACING.sm }}>
                     <label style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '11px',
+                      gap: COMPACT_SPACING.sm,
+                      fontSize: FONT_SIZES.xs,
+                      color: COLORS.textPrimary,
                       cursor: routeSegments[index]?.isLocked ? 'not-allowed' : 'pointer',
                       opacity: routeSegments[index]?.isLocked ? 0.6 : 1
                     }}>
@@ -1376,17 +1378,17 @@ const DirectionsPanel = ({
                         }}
                       >
                         <div style={{
-                          fontSize: '10px',
+                          fontSize: FONT_SIZES.xxs,
                           fontWeight: '600',
-                          color: '#6b7280',
+                          color: COLORS.textPrimary,
                           textTransform: 'uppercase',
                           letterSpacing: '0.3px'
                         }}>
                           Custom Route Waypoints ({customPoints[index].length})
                         </div>
                         <div style={{
-                          fontSize: '12px',
-                          color: '#9ca3af',
+                          fontSize: FONT_SIZES.sm,
+                          color: COLORS.textPrimary,
                           transition: 'transform 0.2s',
                           transform: expandedWaypoints.includes(index) ? 'rotate(180deg)' : 'rotate(0deg)'
                         }}>
@@ -1418,29 +1420,29 @@ const DirectionsPanel = ({
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px',
-                                padding: '4px 6px',
-                                backgroundColor: 'white',
-                                border: '1px solid #e5e7eb',
+                                gap: COMPACT_SPACING.sm,
+                                padding: `${COMPACT_SPACING.sm} ${COMPACT_SPACING.md}`,
+                                backgroundColor: COLORS.bgWhite,
+                                border: `1px solid ${COLORS.borderLight}`,
                                 borderRadius: '3px',
-                                fontSize: '10px',
+                                fontSize: FONT_SIZES.xxs,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s'
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                                e.currentTarget.style.borderColor = '#d1d5db';
+                                e.currentTarget.style.backgroundColor = COLORS.bgGrayLight;
+                                e.currentTarget.style.borderColor = COLORS.borderDark;
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'white';
-                                e.currentTarget.style.borderColor = '#e5e7eb';
+                                e.currentTarget.style.backgroundColor = COLORS.bgWhite;
+                                e.currentTarget.style.borderColor = COLORS.borderLight;
                               }}
                               title="Click to pan to this waypoint"
                             >
-                              <span style={{ fontSize: '11px' }}>📍</span>
+                              <span style={{ fontSize: FONT_SIZES.xs }}>📍</span>
                               <span style={{
                                 flex: 1,
-                                color: '#374151',
+                                color: COLORS.textPrimary,
                                 fontFamily: 'monospace'
                               }}>
                                 Point {wpIndex + 1}: {point.lat.toFixed(5)}, {point.lng.toFixed(5)}

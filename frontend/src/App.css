@@ -2,6 +2,40 @@
    LENAMAPS - TRIP VISUALIZATION APP
    =================================== */
 
+/* CSS Variables - Mirror uiConstants.js */
+:root {
+  /* Colors */
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --primary: #3b82f6;
+  --success: #10b981;
+  --danger: #ef4444;
+  --bg-white: #ffffff;
+  --bg-gray: #f8fafc;
+  --border: #e2e8f0;
+
+  /* Font Sizes */
+  --font-xxs: 10px;
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 13px;
+  --font-md: 14px;
+  --font-lg: 15px;
+  --font-xl: 16px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 8px;
+  --space-base: 12px;
+  --space-lg: 16px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-base: 8px;
+}
+
 /* ===================================
    1. BASE & RESET STYLES
    =================================== */
@@ -15,6 +49,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  font-size: var(--font-base);
 }
 
 /* ===================================
@@ -55,7 +91,7 @@ body {
 
 .sidebar-header h2 {
   margin: 0 0 1rem 0;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 700;
 }
@@ -80,7 +116,7 @@ body {
 }
 
 .create-trip-btn:disabled {
-  background-color: #94a3b8;
+  background-color: var(--text-primary);
   cursor: not-allowed;
   transform: none;
 }
@@ -109,7 +145,7 @@ body {
 }
 
 .create-trip-btn-compact:disabled {
-  background-color: #94a3b8;
+  background-color: var(--text-primary);
   cursor: not-allowed;
   transform: none;
 }
@@ -137,7 +173,7 @@ body {
 }
 
 .trip-card h3 {
-  color: #1e293b;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -212,7 +248,7 @@ body {
 
 .modal-header h2 {
   margin: 0;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 700;
   display: flex;
@@ -226,7 +262,7 @@ body {
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.1);
-  color: #64748b;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 300;
   cursor: pointer;
@@ -250,7 +286,7 @@ body {
 }
 
 .drag-icon {
-  color: #64748b;
+  color: var(--text-primary);
   font-size: 1.2rem;
   cursor: grab;
   user-select: none;
@@ -276,7 +312,7 @@ body {
 
 .modal-section h3 {
   margin: 0 0 1rem 0;
-  color: #475569;
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -346,7 +382,7 @@ body {
 }
 
 .transport-name {
-  font-size: 0.75rem;
+  font-size: var(--font-sm);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -363,7 +399,7 @@ body {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 12px;
-  font-size: 0.875rem;
+  font-size: var(--font-md);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -376,13 +412,13 @@ body {
 
 .btn-modal.btn-secondary {
   background: rgba(248, 250, 252, 0.9);
-  color: #64748b;
+  color: var(--text-primary);
   border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .btn-modal.btn-secondary:hover:not(:disabled) {
   background: rgba(241, 245, 249, 0.95);
-  color: #475569;
+  color: var(--text-primary);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -456,7 +492,7 @@ body {
 }
 
 .trip-name-input::placeholder {
-  color: #94a3b8;
+  color: var(--text-primary);
   font-style: italic;
 }
 
@@ -486,7 +522,7 @@ body {
 .header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  color: #1e293b;
+  color: var(--text-primary);
   padding: 0.5rem 0;
   display: flex;
   justify-content: space-between;
@@ -519,7 +555,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #1e293b;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -538,9 +574,9 @@ body {
 .header-search .location-search-input {
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid #e2e8f0;
-  color: #1e293b;
+  color: var(--text-primary);
   padding: 0.35rem 0.75rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-base);
 }
 
 .header-search .location-search-input:focus {
@@ -550,7 +586,7 @@ body {
 }
 
 .header-search .location-search-input::placeholder {
-  color: #64748b;
+  color: var(--text-primary);
 }
 
 .main-content {
@@ -614,15 +650,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
-  color: #64748b;
+  font-size: var(--font-md);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   z-index: 1000;
 }
 
 .sidebar-toggle:hover {
   background: #f8fafc;
-  color: #1e293b;
+  color: var(--text-primary);
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -678,12 +714,12 @@ body {
 .directions-header h3,
 .directions-header h4 {
   margin: 0;
-  color: #1e293b;
-  font-size: 0.8125rem;
+  color: var(--text-primary);
+  font-size: var(--font-base);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: var(--space-xs);
   letter-spacing: -0.01em;
   flex: 1;
 }
@@ -702,8 +738,8 @@ body {
   border: none;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.04);
-  color: #64748b;
-  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-size: var(--font-md);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -745,7 +781,7 @@ body {
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.05);
-  color: #64748b;
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 300;
   cursor: pointer;
@@ -767,7 +803,7 @@ body {
   border: none;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.04);
-  color: #64748b;
+  color: var(--text-primary);
   font-size: 1rem;
   cursor: pointer;
   display: flex;
@@ -805,7 +841,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #475569;
+  color: var(--text-primary);
 }
 
 .expand-button:hover {
@@ -879,9 +915,9 @@ body {
 }
 
 .input-group label {
-  font-size: 0.6875rem;
+  font-size: var(--font-xs);
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-primary);
   margin-bottom: 0.125rem;
   display: block;
   line-height: 1.2;
@@ -891,7 +927,7 @@ body {
 }
 
 .selected-location {
-  font-size: 0.75rem;
+  font-size: var(--font-sm);
   color: #059669;
   padding: 0.3rem 0.5rem;
   background: rgba(5, 150, 105, 0.1);
@@ -924,7 +960,7 @@ body {
   position: absolute;
   top: -25px;
   left: 0;
-  font-size: 0.75rem;
+  font-size: var(--font-sm);
   color: #059669;
   font-weight: 600;
   background: white;
@@ -1001,7 +1037,7 @@ body {
 .clear-location-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--text-primary);
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.25rem;
@@ -1038,9 +1074,9 @@ body {
 }
 
 .waypoint-label {
-  font-size: 13px;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1066,8 +1102,8 @@ body {
 
 .waypoint-mode-selector label {
   display: block;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--font-sm);
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
@@ -1078,13 +1114,13 @@ body {
 
 .mode-button.compact {
   padding: 4px 6px;
-  font-size: 11px;
+  font-size: var(--font-xs);
   border-radius: 5px;
   min-width: auto;
 }
 
 .mode-button.compact .mode-icon {
-  font-size: 13px;
+  font-size: var(--font-base);
 }
 
 .mode-button.compact .mode-name {
@@ -1100,7 +1136,7 @@ body {
   border-radius: 6px;
   color: #3b82f6;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -1128,9 +1164,9 @@ body {
 
 .leg-mode-selector label {
   display: block;
-  font-size: 0.6875rem;
+  font-size: var(--font-xs);
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
@@ -1142,9 +1178,9 @@ body {
 
 .transportation-selector label {
   display: block;
-  font-size: 0.8125rem;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #475569;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -1196,7 +1232,7 @@ body {
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 0.875rem;
+  font-size: var(--font-md);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1230,7 +1266,7 @@ body {
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 0.875rem;
+  font-size: var(--font-md);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1280,7 +1316,7 @@ body {
 
 .location-search-input:disabled {
   background: #f8fafc;
-  color: #94a3b8;
+  color: var(--text-primary);
   cursor: not-allowed;
 }
 
@@ -1292,7 +1328,7 @@ body {
 
 .location-search-ghost-text {
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--font-md);
   line-height: 1.5;
 }
 
@@ -1473,15 +1509,15 @@ body {
 }
 
 .location-search-item-main {
-  font-size: 0.875rem;
+  font-size: var(--font-md);
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
 .location-search-item-secondary {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: var(--font-sm);
+  color: var(--text-primary);
 }
 
 /* Header search custom dropdown */
@@ -1522,7 +1558,7 @@ body {
 }
 
 .click-hint {
-  font-size: 0.75rem;
+  font-size: var(--font-sm);
   color: #3b82f6;
   font-weight: 400;
   font-style: italic;
@@ -1597,7 +1633,7 @@ body {
 .modal-header h3 {
   margin: 0;
   font-size: 1.1rem;
-  color: #1e293b;
+  color: var(--text-primary);
   flex: 1;
 }
 
@@ -1605,7 +1641,7 @@ body {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #64748b;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 0;
   width: 30px;
@@ -1619,7 +1655,7 @@ body {
 
 .modal-close:hover {
   background: #f1f5f9;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -1628,7 +1664,7 @@ body {
 
 .modal-body p {
   margin: 0;
-  color: #475569;
+  color: var(--text-primary);
   line-height: 1.6;
 }
 
@@ -1662,7 +1698,7 @@ body {
 
 .modal-button-cancel {
   background: #e2e8f0;
-  color: #475569;
+  color: var(--text-primary);
 }
 
 .modal-button-cancel:hover {
@@ -1689,7 +1725,7 @@ body {
   color: white;
   padding: 10px 20px;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 500;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -1758,16 +1794,16 @@ body {
   .header-mobile .location-search-input,
   .header-mobile gmp-place-autocomplete::part(input) {
     padding: 6px 10px;
-    font-size: 14px;
+    font-size: var(--font-md);
   }
 
   .header-mobile .donate-button {
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: var(--font-sm);
   }
 
   .header-mobile .donate-button .heart-icon {
-    font-size: 14px;
+    font-size: var(--font-md);
   }
   
 
