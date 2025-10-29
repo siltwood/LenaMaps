@@ -285,10 +285,12 @@ function AppContent() {
             padding: '0 1rem'
           }}>
             <div style={{
-              fontSize: '0.75rem',
-              color: '#1e293b',
-              fontWeight: 500,
-              whiteSpace: 'nowrap'
+              fontSize: '1rem',
+              color: '#000000',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              marginTop: '6px',
+              marginBottom: '6px'
             }}>
               💋 LenaMaps - Animate your Google Maps Route
             </div>

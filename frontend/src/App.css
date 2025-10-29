@@ -562,6 +562,8 @@ body {
 .header-search {
   position: relative;
   z-index: 1000;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 /* Ensure Google autocomplete dropdown is visible in header */
