@@ -62,6 +62,24 @@ const DirectionsPanel = ({
   const [lastActionType, setLastActionType] = useState(null);
   const lastSaveTimeRef = useRef(0); // Track last save time to prevent spam
 
+  // Sync with prop changes (for shared routes and loaded routes)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Only update if props actually changed (deep comparison to avoid loops)
+    const locationsChanged = JSON.stringify(propsLocations) !== JSON.stringify(locations);
+    const modesChanged = JSON.stringify(propsLegModes) !== JSON.stringify(legModes);
+
+    if (locationsChanged) {
+      console.log('📍 Syncing locations from props:', propsLocations);
+      setLocations(propsLocations);
+    }
+
+    if (modesChanged) {
+      console.log('🚗 Syncing modes from props:', propsLegModes);
+      setLegModes(propsLegModes);
+    }
+  }, [propsLocations, propsLegModes]);
+
   // ============================================================================
   // UNDO SYSTEM - Tracks routeSegments snapshots
   // ============================================================================
@@ -1340,9 +1358,82 @@ const DirectionsPanel = ({
                       </span>
                     </label>
                   </div>
+
+                  {/* Custom Route Waypoints Display */}
+                  {routeSegments[index]?.isCustom && customPoints[index]?.length > 0 && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px'
+                    }}>
+                      <div style={{
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '8px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Custom Route Waypoints ({customPoints[index].length})
+                      </div>
+                      <div style={{
+                        maxHeight: '150px',
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                      }}>
+                        {customPoints[index].map((point, wpIndex) => (
+                          <div
+                            key={wpIndex}
+                            onClick={() => {
+                              if (map) {
+                                map.panTo({ lat: point.lat, lng: point.lng });
+                                if (map.getZoom() < 15) {
+                                  map.setZoom(15);
+                                }
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '6px 8px',
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f3f4f6';
+                              e.currentTarget.style.borderColor = '#d1d5db';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'white';
+                              e.currentTarget.style.borderColor = '#e5e7eb';
+                            }}
+                            title="Click to pan to this waypoint"
+                          >
+                            <span style={{ fontSize: '14px' }}>📍</span>
+                            <span style={{
+                              flex: 1,
+                              color: '#374151',
+                              fontFamily: 'monospace'
+                            }}>
+                              Point {wpIndex + 1}: {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              
+
             </div>
           ))}
           
