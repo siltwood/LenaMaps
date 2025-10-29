@@ -71,12 +71,10 @@ const DirectionsPanel = ({
     const modesChanged = JSON.stringify(propsLegModes) !== JSON.stringify(legModes);
 
     if (locationsChanged) {
-      console.log('📍 Syncing locations from props:', propsLocations);
       setLocations(propsLocations);
     }
 
     if (modesChanged) {
-      console.log('🚗 Syncing modes from props:', propsLegModes);
       setLegModes(propsLegModes);
     }
   }, [propsLocations, propsLegModes]);
@@ -95,7 +93,6 @@ const DirectionsPanel = ({
     // Rate limit: Only save if >500ms since last save
     // This groups cascading state updates from one user action into one snapshot
     if (now - lastSaveTimeRef.current < 500) {
-      console.log(`🚫 Rate limiting: Skipping ${actionType} (too soon after last save)`);
       return;
     }
 
@@ -129,13 +126,11 @@ const DirectionsPanel = ({
           JSON.stringify(lastSnapshot.customPoints) === JSON.stringify(snapshot.customPoints);
 
         if (statesEqual) {
-          console.log('🚫 Skipping duplicate undo snapshot');
           return prev; // Don't add duplicate
         }
       }
 
       const newHistory = [...prev, snapshot];
-      console.log(`💾 Saved undo snapshot: ${actionType}, history length: ${newHistory.length}`);
       return newHistory;
     });
     setLastActionType(actionType);
@@ -186,12 +181,10 @@ const DirectionsPanel = ({
   // This ensures they're ALWAYS in sync, no complex state management needed
   const routeSegments = React.useMemo(() => {
     const segments = [];
-    console.log('🏗️ Building routeSegments from locations:', locations.length, 'locations');
     for (let i = 0; i < locations.length - 1; i++) {
       // Skip ONLY if both locations are null AND custom draw is NOT enabled
       // If draw mode is enabled, we need the segment to exist even without locations
       if (locations[i] === null && locations[i + 1] === null && !customDrawEnabled[i]) {
-        console.log(`⏭️ Skipping segment ${i} (both locations null, not custom)`);
         continue;
       }
       const seg = {
@@ -204,14 +197,8 @@ const DirectionsPanel = ({
         snapToRoads: snapToRoads[i] === true,
         customPoints: customPoints[i] || []
       };
-      console.log(`✅ Created segment ${i}:`, {
-        mode: seg.mode,
-        isCustom: seg.isCustom,
-        customPointsCount: seg.customPoints.length
-      });
       segments.push(seg);
     }
-    console.log('🔄 routeSegments rebuilt:', segments.length, 'segments with modes:', segments.map(s => s.mode));
     return segments;
   }, [locations, legModes, customDrawEnabled, lockedSegments, snapToRoads, customPoints]);
 
@@ -244,14 +231,12 @@ const DirectionsPanel = ({
       return legModes.length > 0 ? legModes : ['walk'];
     }
     const modes = routeSegments.map(seg => seg?.mode || 'walk');
-    console.log('🎨 uiModes computed:', modes);
     return modes;
   }, [routeSegments, legModes]);
 
   // NEW: Build segments for map rendering directly from routeSegments
   // Much simpler than before - just convert our internal structure to map format
   const buildSegments = useCallback((filledLocations) => {
-    console.log('🗺️ buildSegments called with routeSegments:', routeSegments?.length, 'segments');
     if (!routeSegments || routeSegments.length === 0) {
       return [];
     }
@@ -275,13 +260,11 @@ const DirectionsPanel = ({
         }
         pathPoints.push(...seg.customPoints);
         segment.customPath = pathPoints;
-        console.log(`📍 Segment ${i} customPath:`, pathPoints.length, 'points');
       }
 
       return segment;
     }).filter(Boolean); // Remove null segments
 
-    console.log('🗺️ buildSegments returning:', segments.length, 'segments');
     return segments;
   }, [routeSegments]);
 
@@ -347,7 +330,6 @@ const DirectionsPanel = ({
    * Update the mode for a specific segment
    */
   const updateSegmentMode = useCallback((segmentIndex, mode) => {
-    console.log('⚡ updateSegmentMode START:', { segmentIndex, mode, currentLegModes: legModes });
 
     // Save to undo history BEFORE changing
     saveToUndoHistory('CHANGE_MODE');
@@ -356,7 +338,6 @@ const DirectionsPanel = ({
     const newModes = [...legModes];
     newModes[segmentIndex] = mode;
 
-    console.log('🔧 Setting legModes:', newModes, 'previous:', legModes);
     setLegModes(newModes);
 
     // Notify parent via deprecated callback (will be removed later)
@@ -1016,8 +997,8 @@ const DirectionsPanel = ({
         {/* Action buttons - above Location A */}
         <div style={{
           display: 'flex',
-          gap: '6px',
-          marginBottom: '1.5rem',
+          gap: '4px',
+          marginBottom: '8px',
           justifyContent: 'flex-start'
         }}>
           {/* Undo button - NOW USING NEW UNDO SYSTEM */}
@@ -1313,14 +1294,12 @@ const DirectionsPanel = ({
                       };
                       const isActive = uiModes[index] === mode;
                       if (mode === 'ferry') {
-                        console.log('🚢 Ferry button render:', { uiMode: uiModes[index], buttonMode: mode, isActive, config });
                       }
                       return (
                         <button
                           key={mode}
                           className={`mode-button compact ${isActive ? 'active' : ''}`}
                           onClick={() => {
-                            console.log('🖱️ Button clicked:', mode, 'at index', index);
                             updateSegmentMode(index, mode);
                           }}
                           title={modeLabels[mode]}
@@ -1337,12 +1316,12 @@ const DirectionsPanel = ({
                   </div>
 
                   {/* Custom drawing toggles */}
-                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '13px',
+                      gap: '4px',
+                      fontSize: '11px',
                       cursor: routeSegments[index]?.isLocked ? 'not-allowed' : 'pointer',
                       opacity: routeSegments[index]?.isLocked ? 0.6 : 1
                     }}>
@@ -1363,10 +1342,10 @@ const DirectionsPanel = ({
                   {/* Custom Route Waypoints Display */}
                   {routeSegments[index]?.isCustom && customPoints[index]?.length > 0 && (
                     <div style={{
-                      marginTop: '12px',
+                      marginTop: '6px',
                       backgroundColor: '#f9fafb',
                       border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
+                      borderRadius: '4px',
                       overflow: 'hidden'
                     }}>
                       {/* Collapsible Header */}
@@ -1381,7 +1360,7 @@ const DirectionsPanel = ({
                           });
                         }}
                         style={{
-                          padding: '12px',
+                          padding: '6px 8px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -1397,16 +1376,16 @@ const DirectionsPanel = ({
                         }}
                       >
                         <div style={{
-                          fontSize: '12px',
+                          fontSize: '10px',
                           fontWeight: '600',
                           color: '#6b7280',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          letterSpacing: '0.3px'
                         }}>
                           Custom Route Waypoints ({customPoints[index].length})
                         </div>
                         <div style={{
-                          fontSize: '16px',
+                          fontSize: '12px',
                           color: '#9ca3af',
                           transition: 'transform 0.2s',
                           transform: expandedWaypoints.includes(index) ? 'rotate(180deg)' : 'rotate(0deg)'
@@ -1418,12 +1397,12 @@ const DirectionsPanel = ({
                       {/* Collapsible Content */}
                       {expandedWaypoints.includes(index) && (
                         <div style={{
-                          padding: '0 12px 12px 12px',
-                          maxHeight: '150px',
+                          padding: '0 8px 8px 8px',
+                          maxHeight: '120px',
                           overflowY: 'auto',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '4px'
+                          gap: '3px'
                         }}>
                           {customPoints[index].map((point, wpIndex) => (
                             <div
@@ -1439,12 +1418,12 @@ const DirectionsPanel = ({
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                padding: '6px 8px',
+                                gap: '6px',
+                                padding: '4px 6px',
                                 backgroundColor: 'white',
                                 border: '1px solid #e5e7eb',
-                                borderRadius: '4px',
-                                fontSize: '12px',
+                                borderRadius: '3px',
+                                fontSize: '10px',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s'
                               }}
@@ -1458,7 +1437,7 @@ const DirectionsPanel = ({
                               }}
                               title="Click to pan to this waypoint"
                             >
-                              <span style={{ fontSize: '14px' }}>📍</span>
+                              <span style={{ fontSize: '11px' }}>📍</span>
                               <span style={{
                                 flex: 1,
                                 color: '#374151',

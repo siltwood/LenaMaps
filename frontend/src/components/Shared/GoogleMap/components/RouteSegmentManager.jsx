@@ -125,7 +125,6 @@ const RouteSegmentManager = ({
   const forceCleanupMap = useCallback(() => {
     if (!map) return;
 
-    console.log('🧨 FORCE CLEANUP: Removing ALL markers and polylines from map');
 
     // Clear all segments first
     clearAllSegments();
@@ -153,7 +152,6 @@ const RouteSegmentManager = ({
           window._customMarkers = [];
         }
       } catch (e) {
-        console.error('Error during force cleanup:', e);
       }
     }
   }, [map, clearAllSegments]);
@@ -756,12 +754,6 @@ const RouteSegmentManager = ({
           const newMode = validModes[i] || 'walk';
           const newIsCustom = directionsRoute?.segments?.find(seg => seg.startIndex === i)?.isCustom || false;
 
-          console.log(`🔍 Checking segment ${i} for reuse:`, {
-            exists: !!existingSegment,
-            existingIsCustom: existingSegment?.isCustom,
-            newIsCustom
-          });
-
           // Special case: if segment 0 and we have a single-marker, reuse its marker
           if (i === 0 && existingSegment?.id === 'single-marker' &&
               existingSegment.startLocation?.lat === validLocations[i]?.lat &&
@@ -783,30 +775,17 @@ const RouteSegmentManager = ({
             // Segment unchanged (core properties) - reuse it
             // For custom segments, the customPoints and endLocation changing doesn't affect the RouteSegmentManager marker
             // CustomRouteDrawer handles point markers separately
-            console.log(`♻️ Reusing segment ${i} (custom=${newIsCustom})`);
 
             // IMPORTANT: For custom segments, update the customPath for animation even when reusing
             if (newIsCustom) {
               const segmentData = directionsRoute?.segments?.find(seg => seg.startIndex === i);
               if (segmentData?.customPath) {
                 existingSegment.customPath = segmentData.customPath;
-                console.log(`🔄 Updated customPath for reused segment ${i}:`, segmentData.customPath.length, 'points');
               }
             }
 
             newSegments[i] = existingSegment;
             continue;
-          } else if (existingSegment) {
-            console.log(`🔄 Segment ${i} changed:`, {
-              startLat: existingSegment.startLocation?.lat === validLocations[i]?.lat,
-              startLng: existingSegment.startLocation?.lng === validLocations[i]?.lng,
-              endLat: existingSegment.endLocation?.lat === validLocations[i + 1]?.lat,
-              endLng: existingSegment.endLocation?.lng === validLocations[i + 1]?.lng,
-              mode: existingSegment.mode === newMode,
-              isCustom: (existingSegment.isCustom || false) === newIsCustom
-            });
-            console.log(`  Existing end:`, existingSegment.endLocation);
-            console.log(`  New end:`, validLocations[i + 1]);
           }
 
           // Segment needs to be rendered
@@ -833,16 +812,16 @@ const RouteSegmentManager = ({
             const isSingleMarkerToReuse = (i === 0 && existingSegment?.id === 'single-marker');
 
             // Check if we can reuse the markers even though isCustom changed
+            // IMPORTANT: Only reuse if mode AND custom status match
             const canReuseMarkers = existingSegment &&
               existingSegment.startLocation?.lat === segmentOrigin.lat &&
               existingSegment.startLocation?.lng === segmentOrigin.lng &&
-              existingSegment.mode === segmentMode;
+              existingSegment.mode === segmentMode &&
+              existingSegment.isCustom === true; // Must also be custom
 
             if (existingSegment && !isSingleMarkerToReuse && !canReuseMarkers) {
-              console.log(`🧹 Clearing OLD segment ${i} (can't reuse markers)`);
               clearSegment(existingSegment);
             } else if (existingSegment && canReuseMarkers) {
-              console.log(`♻️ Reusing markers from segment ${i} (switching to custom mode)`);
               // Only clear the renderer, keep the markers
               if (existingSegment.routeRenderer) {
                 if (existingSegment.routeRenderer._hoverPolyline) {
@@ -851,7 +830,6 @@ const RouteSegmentManager = ({
                 existingSegment.routeRenderer.setMap(null);
               }
             } else if (isSingleMarkerToReuse) {
-              console.log(`♻️ Keeping single-marker at segment ${i} to reuse for custom`);
             }
 
             // Custom segment - render markers only (CustomRouteDrawer handles the polyline)
@@ -875,10 +853,8 @@ const RouteSegmentManager = ({
             if (i === 0) {
               // First segment gets START marker - reuse if available
               if (existingSingleMarker) {
-                console.log(`♻️ Reusing single-marker for custom segment ${i}`);
                 markers.start = existingSingleMarker;
               } else if (canReuseExistingMarkers) {
-                console.log(`♻️ Reusing existing START marker for custom segment ${i}`);
                 markers.start = existingSegment.markers.start;
               } else {
                 markers.start = createMarker(
@@ -893,7 +869,6 @@ const RouteSegmentManager = ({
             } else {
               // All other segments: marker shows THIS segment's mode (not previous)
               if (canReuseExistingMarkers) {
-                console.log(`♻️ Reusing existing marker for custom segment ${i}`);
                 markers.start = existingSegment.markers.start;
               } else {
                 markers.start = createMarker(
@@ -921,7 +896,6 @@ const RouteSegmentManager = ({
               customPath: segmentData?.customPath || null
             };
 
-            console.log(`📍 Creating new custom segment ${i}, customPath:`, segment.customPath?.length || 0, 'points');
 
             newSegments[i] = segment;
             continue; // Skip route calculation
@@ -945,9 +919,15 @@ const RouteSegmentManager = ({
           
           // Handle flight mode separately with arc path
           if (segmentMode === 'flight') {
+            // Clear any existing segment at this index before creating new one
+            const existingSegment = segmentsRef.current[i];
+            if (existingSegment) {
+              clearSegment(existingSegment);
+            }
+
             // Generate curved arc path for flight
             const flightPath = generateFlightArc(segmentOrigin, segmentDestination);
-            
+
             // Create a simple polyline for the flight path
             const flightPolyline = new window.google.maps.Polyline({
               path: flightPath,
@@ -1131,12 +1111,10 @@ const RouteSegmentManager = ({
             } catch (err) {
               // No mode-specific fallbacks - will use general straight line fallback below
               // (removed all special fallbacks: transit→curved arc, bike→walk/car, walk→car)
-              console.log(`⚠️ Route request failed for ${segmentMode}:`, err);
             }
             }
 
             if (!routeFound) {
-              console.log(`🔄 No route found for ${segmentMode}, using fallback`);
               // Use fallback based on mode
               if (segmentMode === 'flight') {
                 // Flight mode errors (shouldn't happen)
@@ -1225,10 +1203,8 @@ const RouteSegmentManager = ({
             const isSingleMarkerToReuse = (i === 0 && existingSegment?.id === 'single-marker');
 
             if (existingSegment && !isSingleMarkerToReuse) {
-              console.log(`🧹 Clearing OLD segment ${i} before creating normal segment`);
               clearSegment(existingSegment);
             } else if (isSingleMarkerToReuse) {
-              console.log(`♻️ Keeping single-marker at segment ${i} to reuse`);
             }
 
             // Create the route renderer
@@ -1448,20 +1424,6 @@ const RouteSegmentManager = ({
           // IMPORTANT: Store segments globally so RouteAnimator can access them
           // This ensures animation follows the EXACT displayed route
           // Include both regular segments (with route) AND custom segments (with customPath)
-          console.log('🔍 newSegments before global assignment:', newSegments.map((s, idx) => ({
-            index: idx,
-            isCustom: s?.isCustom,
-            hasRoute: !!s?.route,
-            hasCustomPath: !!s?.customPath,
-            customPathLength: s?.customPath?.length,
-            mode: s?.mode
-          })));
-          console.log('🔍 Full newSegments array length:', newSegments.length);
-          newSegments.forEach((s, idx) => {
-            if (s?.isCustom && s?.customPath) {
-              console.log(`  Segment ${idx} customPath sample:`, s.customPath.slice(0, 3));
-            }
-          });
           window._routeSegments = newSegments.filter(s => s && (s.route || s.isCustom));
           
           // If modes were automatically changed to flight, notify parent

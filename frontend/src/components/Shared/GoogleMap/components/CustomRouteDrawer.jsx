@@ -29,15 +29,8 @@ const CustomRouteDrawer = ({
 
   // Render polyline from points array
   useEffect(() => {
-    console.log(`🎨 CustomRouteDrawer segment ${segmentIndex} effect:`, {
-      hasMap: !!map,
-      isEnabled,
-      pointsCount: points.length
-    });
-
     if (!map) {
       // Clean up if no map
-      console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: No map, clearing polyline`);
       if (mainPolylineRef.current) {
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;
@@ -86,7 +79,6 @@ const CustomRouteDrawer = ({
     }
 
     return () => {
-      console.log(`🧹 CustomRouteDrawer segment ${segmentIndex}: CLEANUP on unmount/re-render`);
       if (mainPolylineRef.current) {
         mainPolylineRef.current.setMap(null);
         mainPolylineRef.current = null;

@@ -709,14 +709,6 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       
       // First check if we have stored route segments with actual route data
       if (window._routeSegments && window._routeSegments.length > 0) {
-        console.log('📦 window._routeSegments:', window._routeSegments.map(s => ({
-          isCustom: s.isCustom,
-          mode: s.mode,
-          hasRoute: !!s.route,
-          hasCustomPath: !!s.customPath,
-          customPathLength: s.customPath?.length
-        })));
-
         for (let i = 0; i < window._routeSegments.length; i++) {
           const segment = window._routeSegments[i];
           const mode = segment.mode || allModes[i] || 'walk';
@@ -728,10 +720,30 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               new window.google.maps.LatLng(p.lat, p.lng)
             );
 
-            console.log(`🎨 Animation: Adding custom segment ${i}, points: ${customPath.length}`);
+            // Interpolate between custom points for smooth geodesic animation
+            const interpolatedCustomPath = [];
+            for (let j = 0; j < customPath.length - 1; j++) {
+              const start = customPath[j];
+              const end = customPath[j + 1];
+              const distance = window.google.maps.geometry.spherical.computeDistanceBetween(start, end);
+              const steps = Math.min(100, Math.max(10, Math.floor(distance / 1000))); // 1 point per km, max 100
+
+              // Add start point
+              interpolatedCustomPath.push(start);
+
+              // Add interpolated points
+              for (let k = 1; k < steps; k++) {
+                const fraction = k / steps;
+                interpolatedCustomPath.push(
+                  window.google.maps.geometry.spherical.interpolate(start, end, fraction)
+                );
+              }
+            }
+            // Add final point
+            interpolatedCustomPath.push(customPath[customPath.length - 1]);
 
             const segmentStartIndex = fullPath.length;
-            fullPath = fullPath.concat(customPath);
+            fullPath = fullPath.concat(interpolatedCustomPath);
 
             segmentInfo.push({
               startIndex: segmentStartIndex,
@@ -810,16 +822,6 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
           });
         }
       }
-
-      console.log('🎯 Animation path built:', {
-        totalPoints: fullPath.length,
-        segments: segmentInfo.length,
-        segmentDetails: segmentInfo.map(s => ({
-          mode: s.mode,
-          isCustom: s.isCustom,
-          points: s.endIndex - s.startIndex
-        }))
-      });
 
       if (fullPath.length === 0) {
         throw new Error('No path generated');
