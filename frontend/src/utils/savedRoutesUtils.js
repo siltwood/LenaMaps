@@ -1,5 +1,4 @@
 const STORAGE_KEY = 'lenamaps_saved_routes';
-const MAX_SAVED_ROUTES = 20;
 
 export const getSavedRoutes = () => {
   try {
@@ -13,7 +12,7 @@ export const getSavedRoutes = () => {
 export const saveRoute = (routeData) => {
   try {
     const savedRoutes = getSavedRoutes();
-    
+
     const newRoute = {
       id: Date.now().toString(),
       name: routeData.name || `Route ${new Date().toLocaleDateString()}`,
@@ -22,11 +21,11 @@ export const saveRoute = (routeData) => {
       savedAt: new Date().toISOString(),
       description: routeData.description || ''
     };
-    
-    const updated = [newRoute, ...savedRoutes].slice(0, MAX_SAVED_ROUTES);
-    
+
+    const updated = [newRoute, ...savedRoutes];
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    
+
     return newRoute;
   } catch (error) {
     throw error;

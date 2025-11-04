@@ -258,6 +258,88 @@ const RouteSegmentManager = ({
   };
 
   /**
+   * Calculate distance between two lat/lng points in meters
+   */
+  const calculateDistance = (point1, point2) => {
+    const R = 6371000; // Earth's radius in meters
+    const lat1 = (typeof point1.lat === 'function' ? point1.lat() : point1.lat) * Math.PI / 180;
+    const lat2 = (typeof point2.lat === 'function' ? point2.lat() : point2.lat) * Math.PI / 180;
+    const deltaLat = lat2 - lat1;
+    const deltaLng = ((typeof point2.lng === 'function' ? point2.lng() : point2.lng) -
+                      (typeof point1.lng === 'function' ? point1.lng() : point1.lng)) * Math.PI / 180;
+
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in meters
+  };
+
+  /**
+   * Validate if route contains the required transit mode (ferry or rail)
+   */
+  const validateTransitMode = (result, requiredMode) => {
+    if (!result || !result.routes || !result.routes[0]) return false;
+
+    const steps = result.routes[0].legs[0].steps;
+
+    if (requiredMode === 'ferry') {
+      // Must contain at least one FERRY vehicle type
+      const vehicleTypes = steps.map(step => step.transit?.line?.vehicle?.type).filter(Boolean);
+      console.log('🛥️ FERRY MODE - Vehicle types found:', vehicleTypes);
+
+      const hasFerry = steps.some(step =>
+        step.transit &&
+        step.transit.line &&
+        step.transit.line.vehicle &&
+        step.transit.line.vehicle.type === 'FERRY'
+      );
+      console.log('🛥️ FERRY MODE - Validation:', hasFerry ? 'PASS ✅' : 'FAIL ❌');
+      return hasFerry;
+    } else if (requiredMode === 'transit') {
+      // Must contain at least one RAIL-based vehicle type (NO BUSES)
+      const railTypes = ['RAIL', 'SUBWAY', 'TRAIN', 'TRAM', 'METRO_RAIL', 'HEAVY_RAIL', 'COMMUTER_TRAIN'];
+      const vehicleTypes = steps.map(step => step.transit?.line?.vehicle?.type).filter(Boolean);
+      console.log('🚆 TRAIN MODE - Vehicle types found:', vehicleTypes);
+
+      const hasRail = steps.some(step =>
+        step.transit &&
+        step.transit.line &&
+        step.transit.line.vehicle &&
+        railTypes.includes(step.transit.line.vehicle.type)
+      );
+      console.log('🚆 TRAIN MODE - Validation:', hasRail ? 'PASS ✅' : 'FAIL ❌');
+      return hasRail;
+    }
+
+    return true; // Other modes don't need vehicle validation
+  };
+
+  /**
+   * Validate if route starts and ends within 300m of requested points
+   */
+  const validateRouteProximity = (result, requestedOrigin, requestedDestination) => {
+    if (!result || !result.routes || !result.routes[0]) return false;
+
+    const leg = result.routes[0].legs[0];
+    const MAX_DISTANCE = 300; // 300m
+
+    const startDistance = calculateDistance(leg.start_location, requestedOrigin);
+    const endDistance = calculateDistance(leg.end_location, requestedDestination);
+
+    const isValid = startDistance <= MAX_DISTANCE && endDistance <= MAX_DISTANCE;
+
+    console.log('📍 PROXIMITY CHECK:', {
+      startDistance: `${Math.round(startDistance)}m`,
+      endDistance: `${Math.round(endDistance)}m`,
+      maxAllowed: `${MAX_DISTANCE}m`,
+      result: isValid ? 'PASS ✅' : 'FAIL ❌'
+    });
+
+    return isValid;
+  };
+
+  /**
    * Create a straight line route object (fallback when directions API fails)
    * Returns a mock route object that works with DirectionsRenderer
    */
@@ -1084,11 +1166,13 @@ const RouteSegmentManager = ({
             // Check cache first
             const cachedResult = directionsCache.get(segmentOrigin, segmentDestination, actualModeUsed);
             if (cachedResult) {
+              console.log(`💾 USING CACHED ROUTE for mode: ${segmentMode}`);
               result = cachedResult;
               routeFound = true;
             } else {
               // First try the requested mode
               try {
+                console.log(`🌐 FETCHING NEW ROUTE from Google API for mode: ${segmentMode}`);
                 result = await new Promise((resolve, reject) => {
                   // Extra safety check for travelMode
                   if (!request || !request.travelMode) {
@@ -1105,17 +1189,19 @@ const RouteSegmentManager = ({
                   });
                 });
 
+                console.log(`✅ ROUTE FOUND from Google API for mode: ${segmentMode}`);
                 routeFound = true;
                 // Cache the successful result
                 directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
             } catch (err) {
+              console.log(`❌ GOOGLE API FAILED for mode: ${segmentMode}`, err);
               // No mode-specific fallbacks - will use general straight line fallback below
               // (removed all special fallbacks: transit→curved arc, bike→walk/car, walk→car)
             }
             }
 
             if (!routeFound) {
-              // Use fallback based on mode
+              // No route found - use straight line fallback for all modes except flight
               if (segmentMode === 'flight') {
                 // Flight mode errors (shouldn't happen)
                 const origin = validLocations[i];
@@ -1135,60 +1221,27 @@ const RouteSegmentManager = ({
                 window.dispatchEvent(errorEvent);
                 clearAllSegments();
                 return;
-              } else if (segmentMode === 'transit') {
-                // Transit fallback: Try walking route (to reach terminal/station)
-                try {
-                  const walkRequest = {
-                    origin: request.origin,
-                    destination: request.destination,
-                    travelMode: window.google.maps.TravelMode.WALKING
-                  };
-
-                  result = await new Promise((resolve, reject) => {
-                    directionsService.route(walkRequest, (result, status) => {
-                      if (status === window.google.maps.DirectionsStatus.OK) {
-                        resolve(result);
-                      } else {
-                        reject(status);
-                      }
-                    });
-                  });
-                  routeFound = true;
-                  // Don't cache - this is just a fallback
-                } catch (walkErr) {
-                  // Even walking failed, use straight line
-                  result = createStraightLineRoute(request.origin, request.destination);
-                  routeFound = true;
-                }
-              } else if (segmentMode === 'ferry') {
-                // Ferry fallback: Try walking route and show with wave pattern
-                try {
-                  const walkRequest = {
-                    origin: request.origin,
-                    destination: request.destination,
-                    travelMode: window.google.maps.TravelMode.WALKING
-                  };
-
-                  result = await new Promise((resolve, reject) => {
-                    directionsService.route(walkRequest, (result, status) => {
-                      if (status === window.google.maps.DirectionsStatus.OK) {
-                        resolve(result);
-                      } else {
-                        reject(status);
-                      }
-                    });
-                  });
-                  routeFound = true;
-                  // Don't cache - this is just a fallback
-                } catch (walkErr) {
-                  // Even walking failed, use straight line
-                  result = createStraightLineRoute(request.origin, request.destination);
-                  routeFound = true;
-                }
               } else {
-                // For all other modes (walk, bike, car, bus): use straight line fallback
+                // For all other modes: use straight line fallback
                 result = createStraightLineRoute(request.origin, request.destination);
                 routeFound = true;
+              }
+            }
+
+            // Validate route (for all modes except flight)
+            if (routeFound && segmentMode !== 'flight') {
+              console.log(`🔍 VALIDATING ROUTE for mode: ${segmentMode}`);
+              const proximityValid = validateRouteProximity(result, request.origin, request.destination);
+              const modeValid = validateTransitMode(result, segmentMode);
+
+              if (!proximityValid || !modeValid) {
+                console.log(`⚠️ VALIDATION FAILED - Using straight line fallback for mode: ${segmentMode}`);
+                // Route failed validation - use straight line fallback
+                result = createStraightLineRoute(request.origin, request.destination);
+                // Cache the straight line to avoid repeated API calls for impossible routes
+                directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
+              } else {
+                console.log(`✅ VALIDATION PASSED for mode: ${segmentMode}`);
               }
             }
             
