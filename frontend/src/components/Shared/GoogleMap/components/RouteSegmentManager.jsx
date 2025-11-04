@@ -997,7 +997,7 @@ const RouteSegmentManager = ({
               geodesic: false,
               strokeColor: getTransportationColor('flight'),
               strokeOpacity: 1.0,
-              strokeWeight: 4,
+              strokeWeight: 10,
               map: map,
               zIndex: 1000
             });

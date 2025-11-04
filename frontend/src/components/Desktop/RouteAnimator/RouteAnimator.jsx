@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faStop } from '@fortawesome/free-solid-svg-icons';
-import { TRANSPORT_ICONS } from '../../../constants/transportationModes';
-import { 
-  ANIMATION_ZOOM, 
-  ANIMATION_PADDING, 
-  ANIMATION_SPEEDS, 
+import { TRANSPORT_ICONS, TRANSPORTATION_COLORS } from '../../../constants/transportationModes';
+import {
+  ANIMATION_ZOOM,
+  ANIMATION_PADDING,
+  ANIMATION_SPEEDS,
   DISTANCE_THRESHOLDS,
   PLAYBACK_MULTIPLIERS,
   ANIMATION_TIMING,
@@ -58,6 +58,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   const [zoomLevel, setZoomLevel] = useState('whole'); // 'follow', 'whole'
   const [playbackSpeed, setPlaybackSpeed] = useState('medium'); // 'slow', 'medium', 'fast'
   const [animationProgress, setAnimationProgress] = useState(0); // 0-100 for timeline
+  const [currentSegmentMode, setCurrentSegmentMode] = useState(null); // Track current segment mode for animated marker box
   
   // Helper function to calculate zoom level for bounds
   const calculateBoundsZoomLevel = useCallback((bounds, map) => {
@@ -366,7 +367,16 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     lastTimestampRef.current = null;
     // Position tracking removed - handled by Symbol API
     setAnimationProgress(0); // Reset progress bar
-    
+    setCurrentSegmentMode(null); // Reset animated marker box
+
+    // Dispatch event to hide AnimatedMarkerBox
+    window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+      detail: {
+        isAnimating: false,
+        currentModeIcon: null
+      }
+    }));
+
     // Expand the modal when animation stops
     setIsMinimized(false);
     
@@ -1277,7 +1287,30 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       // Always update progress for smooth UI
       const newProgress = countRef.current / 2;
       setAnimationProgress(newProgress);
-      
+
+      // Determine current segment for animated marker box
+      if (segmentPathsRef.current && segmentPathsRef.current.length > 0) {
+        const path = pathRef.current;
+        if (path && path.length > 0) {
+          const currentIndex = Math.floor((newProgress / 100) * path.length);
+          const currentSegment = segmentPathsRef.current.find(seg =>
+            currentIndex >= seg.startIndex && currentIndex < seg.endIndex
+          );
+          if (currentSegment && currentSegment.mode) {
+            const newMode = currentSegment.mode;
+            setCurrentSegmentMode(newMode);
+            // Dispatch event for AnimatedMarkerBox
+            window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+              detail: {
+                isAnimating: true,
+                currentModeIcon: TRANSPORT_ICONS[newMode],
+                segmentColor: TRANSPORTATION_COLORS[newMode]
+              }
+            }));
+          }
+        }
+      }
+
       // Don't update icon properties during animation - it's already black
       // This was causing unnecessary redraws and potential jitter
       
@@ -1764,7 +1797,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   }
 
   return (
-    <div 
+    <div
       className="route-animator"
       ref={panelRef}
       style={{

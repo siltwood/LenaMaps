@@ -3,6 +3,7 @@ import { DEFAULT_CENTER, MAP_CONFIG } from '../utils/constants';
 import { createMarkerContent, clearAdvancedMarker } from '../utils/mapHelpers';
 import RouteSegmentManager from './RouteSegmentManager';
 import RouteAnimator from '../../../Desktop/RouteAnimator';
+import AnimatedMarkerBox from '../../../Desktop/RouteAnimator/AnimatedMarkerBox';
 import MapErrorBoundary from '../MapErrorBoundary';
 
 const MapComponent = ({
@@ -212,6 +213,9 @@ const MapComponent = ({
         onModesAutoUpdate={onModesAutoUpdate}
       />
 
+      {/* Animated Marker Box - render at MapComponent level so it's always available */}
+      <AnimatedMarkerBoxContainer map={map} directionsRoute={directionsRoute} />
+
       {/* Show RouteAnimator for desktop only - mobile handles it differently */}
       {map && !isMobile && (
         <RouteAnimator
@@ -225,6 +229,28 @@ const MapComponent = ({
 
     </div>
   );
+};
+
+// Container component to listen to animation events and show animated marker box
+const AnimatedMarkerBoxContainer = ({ map, directionsRoute }) => {
+  const [currentModeIcon, setCurrentModeIcon] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [segmentColor, setSegmentColor] = useState(null);
+
+  useEffect(() => {
+    if (!window) return;
+
+    const handleAnimationState = (e) => {
+      setIsAnimating(e.detail.isAnimating);
+      setCurrentModeIcon(e.detail.currentModeIcon || null);
+      setSegmentColor(e.detail.segmentColor || null);
+    };
+
+    window.addEventListener('routeAnimationUpdate', handleAnimationState);
+    return () => window.removeEventListener('routeAnimationUpdate', handleAnimationState);
+  }, []);
+
+  return <AnimatedMarkerBox currentModeIcon={currentModeIcon} isAnimating={isAnimating} segmentColor={segmentColor} />;
 };
 
 export default React.memo(MapComponent, (prevProps, nextProps) => {
