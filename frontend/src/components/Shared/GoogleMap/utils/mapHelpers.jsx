@@ -5,10 +5,15 @@ export const getTransportationColor = (mode) => {
   return TRANSPORTATION_COLORS[mode] || "#3b82f6";
 };
 
-// Helper function to clear Advanced Markers
+// Helper function to clear markers (AdvancedMarkerElement, Marker, or Polyline)
 export const clearAdvancedMarker = (marker) => {
   if (marker) {
-    marker.map = null;
+    // All marker types have setMap method
+    if (marker.setMap) {
+      marker.setMap(null);
+    } else {
+      marker.map = null;
+    }
   }
 };
 
@@ -83,7 +88,8 @@ export const createPolylineOptions = (mode, color) => {
   const baseOptions = {
     strokeColor: color || getTransportationColor(mode),
     strokeWeight: 10, // Nice thick lines
-    strokeOpacity: 0.9
+    strokeOpacity: 0.9,
+    zIndex: 1 // Low z-index so animated marker appears above route segments
   };
 
   // Make walking routes dotted

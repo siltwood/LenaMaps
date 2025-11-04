@@ -104,12 +104,12 @@ export const LINE_HEIGHTS = {
 
 export const RADIUS = {
   none: '0',
-  xs: '2px',
-  sm: '4px',
-  md: '6px',
-  base: '8px',
-  lg: '10px',
-  xl: '12px',
+  xs: '4px',
+  sm: '6px',
+  md: '8px',
+  base: '10px',
+  lg: '12px',
+  xl: '14px',
   xxl: '16px',
   full: '9999px',
 };
@@ -120,11 +120,13 @@ export const RADIUS = {
 
 export const SHADOWS = {
   none: 'none',
-  sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  base: '0 1px 3px rgba(0, 0, 0, 0.1)',
-  md: '0 4px 6px rgba(0, 0, 0, 0.1)',
-  lg: '0 10px 15px rgba(0, 0, 0, 0.1)',
-  xl: '0 20px 25px rgba(0, 0, 0, 0.15)',
+  xs: '0 1px 2px rgba(0, 0, 0, 0.04)',
+  sm: '0 2px 4px rgba(0, 0, 0, 0.06)',
+  base: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  md: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  lg: '0 8px 16px rgba(0, 0, 0, 0.12)',
+  xl: '0 12px 24px rgba(0, 0, 0, 0.15)',
+  focus: '0 0 0 3px rgba(59, 130, 246, 0.1)',
 };
 
 // ============================================================================

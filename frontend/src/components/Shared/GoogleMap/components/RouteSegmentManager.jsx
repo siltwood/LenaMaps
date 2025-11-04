@@ -166,93 +166,84 @@ const RouteSegmentManager = ({
     };
   }, [map, forceCleanupMap]);
 
-  // Create a marker
+  // Create a simple circle marker using Polyline symbol (same technique as animated marker)
   const createMarker = useCallback((location, icon, color, title, zIndex = 100, isBusStop = false) => {
     if (!map) {
       return null;
     }
 
-    if (!window.google?.maps?.marker?.AdvancedMarkerElement) {
-      return null;
-    }
-    
-    const { AdvancedMarkerElement } = window.google.maps.marker;
-    const scale = getMarkerScale(currentZoomRef.current);
-    const markerContent = createMarkerContent(icon, color, false, null, null, scale);
-    
-    // Add intelligent offset to avoid Google's transit markers and labels
-    let offsetLat = 0.00015; // Default offset
-    let offsetLng = 0.00015;
-    
-    // For bus stops, use a larger offset to avoid route number labels
-    if (isBusStop || icon === '🚌') {
-      offsetLat = 0.0004; // Larger offset for bus stops
-      offsetLng = 0.0002; // Larger horizontal offset
-    }
-    
-    // Vary offset based on marker index to avoid overlapping our own markers
-    const markerIndex = title === 'Start' ? 0 : title === 'End' ? 2 : 1;
-    offsetLat += markerIndex * 0.00005;
-    offsetLng -= markerIndex * 0.00005;
-    
-    const offsetLocation = {
-      lat: location.lat + offsetLat,
-      lng: location.lng + offsetLng
+    // Use a polyline with two very close points and a circle symbol
+    // This ensures it renders in the same layer as the animated marker
+    const circleSymbol = {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 8,
+      fillColor: color,
+      fillOpacity: 1,
+      strokeColor: 'transparent',
+      strokeWeight: 0
     };
-    
-    const marker = new AdvancedMarkerElement({
-      position: offsetLocation,
+
+    // Create two points very close together (0.00001 degrees apart)
+    const lat = location.lat;
+    const lng = location.lng;
+    const point1 = new window.google.maps.LatLng(lat, lng);
+    const point2 = new window.google.maps.LatLng(lat + 0.00001, lng);
+
+    const marker = new window.google.maps.Polyline({
+      path: [point1, point2],
+      strokeOpacity: 0,
+      icons: [{
+        icon: circleSymbol,
+        offset: '0%'
+      }],
       map: map,
-      title: title,
-      content: markerContent,
-      zIndex: zIndex,
-      collisionBehavior: window.google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL
+      zIndex: 1, // Low z-index so animated marker (999999) appears above
+      clickable: false
     });
-    
-    
-    // Store the base icon and color for updates
-    marker._icon = icon;
+
+    // Store the color for updates
     marker._color = color;
-    
+    marker._location = location;
+
     return marker;
   }, [map]);
 
-  // Create a transition marker (two icons)
+  // Create a transition marker (circle with stroke in the next mode's color)
   const createTransitionMarker = (location, fromIcon, fromColor, toIcon, toColor) => {
-    const { AdvancedMarkerElement } = window.google.maps.marker;
-    const scale = getMarkerScale(currentZoomRef.current);
-    const transitionContent = createMarkerContent(fromIcon, fromColor, true, toIcon, toColor, scale);
-
-    // Add intelligent offset to avoid Google's transit markers and labels
-    let offsetLat = 0.0002; // Larger default for transitions
-    let offsetLng = 0.0002;
-
-    // If either mode is bus, use larger offset
-    if (fromIcon === '🚌' || toIcon === '🚌') {
-      offsetLat = 0.0005; // Much larger offset for bus transitions
-      offsetLng = 0.0003; // Larger horizontal offset
-    }
-
-    const offsetLocation = {
-      lat: location.lat + offsetLat,
-      lng: location.lng + offsetLng
+    // Use a polyline with two very close points and a circle symbol
+    // This ensures it renders in the same layer as the animated marker
+    const circleSymbol = {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 8,
+      fillColor: fromColor,
+      fillOpacity: 1,
+      strokeColor: toColor,
+      strokeWeight: 2
     };
 
-    const marker = new AdvancedMarkerElement({
-      position: offsetLocation,
+    // Create two points very close together (0.00001 degrees apart)
+    const lat = location.lat;
+    const lng = location.lng;
+    const point1 = new window.google.maps.LatLng(lat, lng);
+    const point2 = new window.google.maps.LatLng(lat + 0.00001, lng);
+
+    const marker = new window.google.maps.Polyline({
+      path: [point1, point2],
+      strokeOpacity: 0,
+      icons: [{
+        icon: circleSymbol,
+        offset: '0%'
+      }],
       map: map,
-      title: `Transfer`,
-      content: transitionContent,
-      zIndex: 5100, // Higher than regular markers
-      collisionBehavior: window.google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL
+      zIndex: 1, // Low z-index so animated marker (999999) appears above
+      clickable: false
     });
 
-    // Store the icons and colors for updates
-    marker._fromIcon = fromIcon;
+    // Store the colors for updates
     marker._fromColor = fromColor;
-    marker._toIcon = toIcon;
     marker._toColor = toColor;
     marker._isTransition = true;
+    marker._location = location;
 
     return marker;
   };
@@ -448,69 +439,12 @@ const RouteSegmentManager = ({
     return markers;
   }, [createMarker, map]);
 
-  // Update all markers with new scale
+  // Update all markers with new scale (no-op for fixed-size circle markers)
   const updateMarkersScale = useCallback(() => {
+    // Circle markers are fixed size and don't need to scale with zoom
     if (!map) return;
-    
     const newZoom = map.getZoom();
     currentZoomRef.current = newZoom;
-    const scale = getMarkerScale(newZoom);
-    
-    segmentsRef.current.forEach(segment => {
-      if (segment && segment.markers) {
-        // Update start marker
-        if (segment.markers.start && segment.markers.start._icon) {
-          const newContent = createMarkerContent(
-            segment.markers.start._icon,
-            segment.markers.start._color,
-            false,
-            null,
-            null,
-            scale
-          );
-          segment.markers.start.content = newContent;
-        }
-        
-        // Update end marker
-        if (segment.markers.end && segment.markers.end._icon) {
-          const newContent = createMarkerContent(
-            segment.markers.end._icon,
-            segment.markers.end._color,
-            false,
-            null,
-            null,
-            scale
-          );
-          segment.markers.end.content = newContent;
-        }
-        
-        // Update transition marker
-        if (segment.markers.transition && segment.markers.transition._isTransition) {
-          const newContent = createMarkerContent(
-            segment.markers.transition._fromIcon,
-            segment.markers.transition._fromColor,
-            true,
-            segment.markers.transition._toIcon,
-            segment.markers.transition._toColor,
-            scale
-          );
-          segment.markers.transition.content = newContent;
-        }
-        
-        // Update waypoint marker
-        if (segment.markers.waypoint && segment.markers.waypoint._icon) {
-          const newContent = createMarkerContent(
-            segment.markers.waypoint._icon,
-            segment.markers.waypoint._color,
-            false,
-            null,
-            null,
-            scale
-          );
-          segment.markers.waypoint.content = newContent;
-        }
-      }
-    });
   }, [map]);
 
   // Function to hide transit labels via DOM manipulation (CSS already injected on mount)
@@ -749,8 +683,7 @@ const RouteSegmentManager = ({
       const mode = validModes[0] || 'walk';
       const modeIcon = TRANSPORT_ICONS[mode] || '🚶';
       const modeColor = getTransportationColor(mode);
-      
-      
+
       const marker = createMarker(
         location,
         modeIcon,
@@ -759,7 +692,7 @@ const RouteSegmentManager = ({
         5000,
         mode === 'bus'
       );
-      
+
       segmentsRef.current = [{
         id: 'single-marker',
         markers: { start: marker },
@@ -1290,7 +1223,7 @@ const RouteSegmentManager = ({
                   5000,
                   segmentMode === 'bus'
                 );
-                }
+              }
             } else {
               // All other segments: marker shows THIS segment's mode
               markers.start = createMarker(
@@ -1513,8 +1446,8 @@ const RouteSegmentManager = ({
       
       const modeIcon = TRANSPORT_ICONS[mode] || '🚶';
       const modeColor = getTransportationColor(mode);
-      
-      
+
+
       try {
         const marker = createMarker(
           location,
@@ -1524,15 +1457,15 @@ const RouteSegmentManager = ({
           5000,
           mode === 'bus'
         );
-        
-        
+
+
         segmentsRef.current = [{
           id: 'single-marker',
           markers: { start: marker },
           startLocation: location,
           mode: mode
         }];
-        
+
       } catch (error) {
       }
     } else if (validLocations.length === 0) {

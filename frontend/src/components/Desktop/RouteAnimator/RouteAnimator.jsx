@@ -990,11 +990,11 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       // Create polyline with animated symbol EXACTLY like Google's example
       const lineSymbol = {
         path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 8,
+        scale: 10,
         fillColor: '#000000',
         fillOpacity: 1,
         strokeColor: '#FFFFFF',
-        strokeWeight: 2
+        strokeWeight: 3
       };
       
       polylineRef.current = new window.google.maps.Polyline({

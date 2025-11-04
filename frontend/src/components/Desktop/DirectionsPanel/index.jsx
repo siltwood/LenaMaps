@@ -1227,7 +1227,7 @@ const DirectionsPanel = ({
                       //   }
                       // }
                     }}
-                    placeholder={`Enter location ${getLocationLabel(index)}...`}
+                    placeholder=""
                   />
                 ) : activeInput === index ? (
                   // Edit mode - show LocationSearch component to allow typing/searching
@@ -1245,7 +1245,7 @@ const DirectionsPanel = ({
                         //   }
                         // }
                       }}
-                      placeholder={`Edit location ${getLocationLabel(index)}...`}
+                      placeholder=""
                       autoFocus={true}
                       defaultValue={location.name || location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
                     />

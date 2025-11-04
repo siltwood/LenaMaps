@@ -28,7 +28,9 @@ export default defineConfig({
     host: true,
     allowedHosts: [
       'chromous-unattributably-yee.ngrok-free.dev',
-      '.ngrok-free.dev'
+      'localtest.ngrok-free.app',
+      '.ngrok-free.dev',
+      '.ngrok-free.app'
     ],
     proxy: {
       '/api': {
