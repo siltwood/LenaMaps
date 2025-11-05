@@ -504,9 +504,9 @@ const DirectionsPanel = ({
     if (filledLocations.length >= 2 && onDirectionsCalculated) {
       const segments = buildSegments(filledLocations);
 
-      // Create stable routeId based on segment data (locations + modes + custom state)
+      // Create stable routeId based on segment data (locations + modes + custom state + custom points)
       const routeId = routeSegments.map(s =>
-        `${s.id}-${s.startLocation?.lat}-${s.startLocation?.lng}-${s.endLocation?.lat}-${s.endLocation?.lng}-${s.mode}-${s.isCustom}`
+        `${s.id}-${s.startLocation?.lat}-${s.startLocation?.lng}-${s.endLocation?.lat}-${s.endLocation?.lng}-${s.mode}-${s.isCustom}-${s.customPoints?.length || 0}`
       ).join('|');
 
       // Only call onDirectionsCalculated if the route actually changed
@@ -525,7 +525,6 @@ const DirectionsPanel = ({
           routeId: `${Date.now()}-${routeSegments.map(s => s.id).join('-')}` // Add timestamp for uniqueness in RouteSegmentManager
         };
         onDirectionsCalculated(routeData);
-      } else {
       }
     } else if (filledLocations.length === 1) {
       // Special case: 1 location in draw mode - still pass route to show marker
@@ -934,7 +933,6 @@ const DirectionsPanel = ({
   };
 
   const handleSetLocations = (segmentIndex, startPoint, endPoint) => {
-
     // Auto-set locations from the drawn points
     const newLocations = [...locations];
 
@@ -945,7 +943,6 @@ const DirectionsPanel = ({
 
     // Always update end location
     newLocations[segmentIndex + 1] = endPoint;
-
 
     setLocations(newLocations);
 
