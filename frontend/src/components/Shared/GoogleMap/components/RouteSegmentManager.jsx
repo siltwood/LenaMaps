@@ -267,7 +267,8 @@ const RouteSegmentManager = ({
   };
 
   /**
-   * Validate if route contains the required transit mode (ferry or rail)
+   * Validate if route contains ONLY the required transit mode (ferry or rail)
+   * Allows short walking connectors (<300m) to/from terminals/stations
    */
   const validateTransitMode = (result, requiredMode) => {
     if (!result || !result.routes || !result.routes[0]) return false;
@@ -275,31 +276,58 @@ const RouteSegmentManager = ({
     const steps = result.routes[0].legs[0].steps;
 
     if (requiredMode === 'ferry') {
-      // Must contain at least one FERRY vehicle type
-      return steps.some(step =>
-        step.transit &&
-        step.transit.line &&
-        step.transit.line.vehicle &&
-        step.transit.line.vehicle.type === 'FERRY'
-      );
-    } else if (requiredMode === 'transit') {
-      // Must contain at least one RAIL-based vehicle type (NO BUSES)
+      // Route must be ONLY ferry + walking connectors
+      // No driving, biking, or other transit types allowed
+      let hasFerry = false;
+      for (const step of steps) {
+        const travelMode = step.travel_mode;
+
+        if (travelMode === 'WALKING') {
+          // Allow walking connectors (<1km) to/from ferry terminal
+          if (step.distance && step.distance.value > 1000) {
+            return false; // Walking segment too long
+          }
+        } else if (travelMode === 'TRANSIT') {
+          // Must be a ferry
+          if (step.transit?.line?.vehicle?.type === 'FERRY') {
+            hasFerry = true;
+          } else {
+            return false; // Non-ferry transit not allowed
+          }
+        } else {
+          // No driving, biking, etc allowed
+          return false;
+        }
+      }
+      return hasFerry; // Must have at least one ferry step
+    } else if (requiredMode === 'transit' || requiredMode === 'train') {
+      // Route must be ONLY rail-based transit + walking connectors
+      // No driving, biking, buses, or ferries allowed
       const railTypes = ['RAIL', 'SUBWAY', 'TRAIN', 'TRAM', 'METRO_RAIL', 'HEAVY_RAIL', 'COMMUTER_TRAIN'];
-      return steps.some(step =>
-        step.transit &&
-        step.transit.line &&
-        step.transit.line.vehicle &&
-        railTypes.includes(step.transit.line.vehicle.type)
-      );
-    } else if (requiredMode === 'train') {
-      // Train mode: STRICTLY rail-based only (NO FERRIES, NO BUSES, NO WALKING/DRIVING)
-      const railTypes = ['RAIL', 'SUBWAY', 'TRAIN', 'TRAM', 'METRO_RAIL', 'HEAVY_RAIL', 'COMMUTER_TRAIN'];
-      return steps.some(step =>
-        step.transit &&
-        step.transit.line &&
-        step.transit.line.vehicle &&
-        railTypes.includes(step.transit.line.vehicle.type)
-      );
+      let hasRail = false;
+
+      for (const step of steps) {
+        const travelMode = step.travel_mode;
+
+        if (travelMode === 'WALKING') {
+          // Allow walking connectors (<1km) to/from station
+          if (step.distance && step.distance.value > 1000) {
+            return false; // Walking segment too long
+          }
+        } else if (travelMode === 'TRANSIT') {
+          // Must be rail-based
+          const vehicleType = step.transit?.line?.vehicle?.type;
+          if (railTypes.includes(vehicleType)) {
+            hasRail = true;
+          } else {
+            return false; // Non-rail transit (bus/ferry) not allowed
+          }
+        } else {
+          // No driving, biking, etc allowed
+          return false;
+        }
+      }
+      return hasRail; // Must have at least one rail step
     }
 
     return true; // Other modes don't need vehicle validation
