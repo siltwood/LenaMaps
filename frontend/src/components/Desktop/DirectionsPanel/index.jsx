@@ -827,6 +827,12 @@ const DirectionsPanel = ({
     setLocations(loadedLocations);
     setLegModes(route.modes);
 
+    // Restore custom drawing state with backward compatibility
+    setCustomDrawEnabled(route.customDrawEnabled || []);
+    setCustomPoints(route.customPoints || {});
+    setSnapToRoads(route.snapToRoads || []);
+    setLockedSegments(route.lockedSegments || []);
+
     // Notify parent via deprecated callbacks (will be removed later)
     if (onLocationsChange) {
       onLocationsChange(loadedLocations, 'load_route');
@@ -847,14 +853,14 @@ const DirectionsPanel = ({
           segments,
           allLocations: route.locations,
           allModes: route.modes,
-          customPaths: customPoints,
+          customPaths: route.customPoints || {},
           routeId: `loaded_${Date.now()}`
         };
 
         onDirectionsCalculated(routeData);
       }, 100);
     }
-  }, [onLocationsChange, onLegModesChange, onDirectionsCalculated, customPoints, buildSegments]);
+  }, [onLocationsChange, onLegModesChange, onDirectionsCalculated, buildSegments]);
 
   const handleShare = async () => {
     const shareableURL = generateShareableURL(locations, legModes);

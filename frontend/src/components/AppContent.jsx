@@ -229,48 +229,21 @@ function AppContent() {
 
   // Handle loading a saved route
   const handleLoadRoute = useCallback((route) => {
-    // Ensure we have at least 2 locations
-    const locations = [...route.locations];
-    while (locations.length < 2) {
-      locations.push(null);
-    }
-    
-    setDirectionsLocations(locations);
+    // Set locations and modes - DirectionsPanel will handle route calculation
+    setDirectionsLocations(route.locations);
     setDirectionsLegModes(route.modes);
-    
+
     // Center map on first location
     if (route.locations[0]) {
-      setMapCenter({ 
-        lat: route.locations[0].lat, 
-        lng: route.locations[0].lng 
+      setMapCenter({
+        lat: route.locations[0].lat,
+        lng: route.locations[0].lng
       });
       setShouldCenterMap(true);
     }
-    
-    // Trigger route calculation if we have at least 2 locations
-    if (route.locations.length >= 2) {
-      const segments = [];
-      for (let i = 0; i < route.locations.length - 1; i++) {
-        segments.push({
-          mode: route.modes[i] || 'walk',
-          startIndex: i,
-          endIndex: i + 1
-        });
-      }
-      
-      const routeData = {
-        origin: route.locations[0],
-        destination: route.locations[route.locations.length - 1],
-        waypoints: route.locations.slice(1, -1),
-        mode: route.modes[0] || 'walk',
-        segments,
-        allLocations: route.locations,
-        allModes: route.modes,
-        routeId: `loaded_${Date.now()}`
-      };
-      
-      setDirectionsRoute(routeData);
-    }
+
+    // Close the modal
+    setShowSavedRoutesModal(false);
   }, []);
 
   return (

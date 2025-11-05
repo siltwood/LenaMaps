@@ -18,6 +18,11 @@ export const saveRoute = (routeData) => {
       name: routeData.name || `Route ${new Date().toLocaleDateString()}`,
       locations: routeData.locations.filter(loc => loc !== null),
       modes: routeData.modes,
+      // Save custom drawing state
+      customDrawEnabled: routeData.customDrawEnabled || [],
+      customPoints: routeData.customPoints || {},
+      snapToRoads: routeData.snapToRoads || [],
+      lockedSegments: routeData.lockedSegments || [],
       savedAt: new Date().toISOString(),
       description: routeData.description || ''
     };
