@@ -757,7 +757,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
 
             segmentInfo.push({
               startIndex: segmentStartIndex,
-              endIndex: fullPath.length,
+              endIndex: fullPath.length - 1, // -1 because endIndex should be the last valid index, not past it
               mode: mode,
               locationIndex: i,
               isCustom: true
@@ -785,7 +785,24 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             // Fallback to overview_path if no steps
             if (segmentPath.length === 0) {
               segmentPath = route.overview_path || [];
-            } else {
+            }
+
+            // IMPORTANT: If segment path is too sparse (straight-line fallback), interpolate it
+            // This commonly happens with ferry/train routes or when no road route is available
+            if (segmentPath.length <= 3) {
+              const start = segmentPath[0];
+              const end = segmentPath[segmentPath.length - 1];
+              const interpolatedPath = [];
+              const distance = window.google.maps.geometry.spherical.computeDistanceBetween(start, end);
+              // More points for smoother animation
+              const steps = Math.min(200, Math.max(20, Math.floor(distance / 500))); // 1 point per 500m, max 200
+
+              for (let j = 0; j <= steps; j++) {
+                const fraction = j / steps;
+                interpolatedPath.push(window.google.maps.geometry.spherical.interpolate(start, end, fraction));
+              }
+
+              segmentPath = interpolatedPath;
             }
 
             // Store segment info
@@ -794,7 +811,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
 
             segmentInfo.push({
               startIndex: segmentStartIndex,
-              endIndex: fullPath.length,
+              endIndex: fullPath.length - 1, // -1 because endIndex should be the last valid index, not past it
               mode: mode,
               locationIndex: i
             });
@@ -823,10 +840,10 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
           
           const segmentStartIndex = fullPath.length;
           fullPath = fullPath.concat(interpolatedPath);
-          
+
           segmentInfo.push({
             startIndex: segmentStartIndex,
-            endIndex: fullPath.length,
+            endIndex: fullPath.length - 1, // -1 because endIndex should be the last valid index, not past it
             mode: mode,
             locationIndex: i
           });
@@ -904,22 +921,37 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       
       // Update segment info indices to match densified path
       const densifiedSegmentInfo = [];
-      let densifiedIndex = 0;
-      
-      for (const segment of segmentInfo) {
-        const startIdx = densifiedIndex;
-        
-        // Count how many densified points belong to this segment
-        while (densifiedIndex < densifiedPath.length && 
-               fullPath.indexOf(densifiedPath[densifiedIndex]) <= segment.endIndex - 1) {
-          densifiedIndex++;
+
+      if (densifiedPath === fullPath) {
+        // No densification occurred - use segment info as-is
+        densifiedSegmentInfo.push(...segmentInfo);
+      } else {
+        // Densification occurred - need to map indices
+        let densifiedIndex = 0;
+
+        for (const segment of segmentInfo) {
+          const startIdx = densifiedIndex;
+
+          // Count how many densified points belong to this segment
+          const fullPathIdx = fullPath.indexOf(densifiedPath[densifiedIndex]);
+          if (fullPathIdx !== -1) {
+            while (densifiedIndex < densifiedPath.length &&
+                   fullPath.indexOf(densifiedPath[densifiedIndex]) <= segment.endIndex - 1) {
+              densifiedIndex++;
+            }
+          } else {
+            // Fallback: distribute points proportionally
+            const segmentFraction = (segment.endIndex - segment.startIndex) / fullPath.length;
+            const segmentPoints = Math.max(1, Math.floor(segmentFraction * densifiedPath.length));
+            densifiedIndex = Math.min(densifiedPath.length, densifiedIndex + segmentPoints);
+          }
+
+          densifiedSegmentInfo.push({
+            ...segment,
+            startIndex: startIdx,
+            endIndex: densifiedIndex
+          });
         }
-        
-        densifiedSegmentInfo.push({
-          ...segment,
-          startIndex: startIdx,
-          endIndex: densifiedIndex
-        });
       }
       
       pathRef.current = densifiedPath;
@@ -1289,16 +1321,65 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       setAnimationProgress(newProgress);
 
       // Determine current segment for animated marker box
+      // IMPORTANT: Use DISTANCE-based calculation to match the actual marker position
       if (segmentPathsRef.current && segmentPathsRef.current.length > 0) {
         const path = pathRef.current;
         if (path && path.length > 0) {
-          const currentIndex = Math.floor((newProgress / 100) * path.length);
-          const currentSegment = segmentPathsRef.current.find(seg =>
-            currentIndex >= seg.startIndex && currentIndex < seg.endIndex
-          );
-          if (currentSegment && currentSegment.mode) {
-            const newMode = currentSegment.mode;
+          // Calculate the actual distance-based position (same method used for marker positioning)
+          let totalDistance = 0;
+          const distances = [];
+          for (let i = 0; i < path.length - 1; i++) {
+            const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
+              path[i],
+              path[i + 1]
+            );
+            distances.push(dist);
+            totalDistance += dist;
+          }
+
+          // Find the target distance along the path
+          const targetDistance = totalDistance * (newProgress / 100);
+          let accumulatedDistance = 0;
+          let currentPathIndex = 0;
+
+          // Find which path point index we're at based on distance
+          for (let i = 0; i < distances.length; i++) {
+            if (accumulatedDistance + distances[i] >= targetDistance) {
+              currentPathIndex = i;
+              break;
+            }
+            accumulatedDistance += distances[i];
+          }
+
+          // Now find which segment contains this path index
+          let foundSegment = null;
+          for (const seg of segmentPathsRef.current) {
+            // Use <= for endIndex to include the last point
+            if (currentPathIndex >= seg.startIndex && currentPathIndex <= seg.endIndex) {
+              foundSegment = seg;
+              break;
+            }
+          }
+
+          // Fallback: if no exact match, find the closest segment
+          if (!foundSegment && segmentPathsRef.current.length > 0) {
+            foundSegment = segmentPathsRef.current.reduce((closest, seg) => {
+              const currentDist = Math.min(
+                Math.abs(currentPathIndex - seg.startIndex),
+                Math.abs(currentPathIndex - seg.endIndex)
+              );
+              const closestDist = Math.min(
+                Math.abs(currentPathIndex - closest.startIndex),
+                Math.abs(currentPathIndex - closest.endIndex)
+              );
+              return currentDist < closestDist ? seg : closest;
+            }, segmentPathsRef.current[0]);
+          }
+
+          if (foundSegment && foundSegment.mode) {
+            const newMode = foundSegment.mode;
             setCurrentSegmentMode(newMode);
+
             // Dispatch event for AnimatedMarkerBox
             window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
               detail: {
