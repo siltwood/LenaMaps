@@ -291,6 +291,15 @@ const RouteSegmentManager = ({
         step.transit.line.vehicle &&
         railTypes.includes(step.transit.line.vehicle.type)
       );
+    } else if (requiredMode === 'train') {
+      // Train mode: STRICTLY rail-based only (NO FERRIES, NO BUSES, NO WALKING/DRIVING)
+      const railTypes = ['RAIL', 'SUBWAY', 'TRAIN', 'TRAM', 'METRO_RAIL', 'HEAVY_RAIL', 'COMMUTER_TRAIN'];
+      return steps.some(step =>
+        step.transit &&
+        step.transit.line &&
+        step.transit.line.vehicle &&
+        railTypes.includes(step.transit.line.vehicle.type)
+      );
     }
 
     return true; // Other modes don't need vehicle validation
