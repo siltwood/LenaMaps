@@ -40,10 +40,13 @@ const CustomRouteDrawer = ({
 
     // Build path - start with previousLocation if this is a continuation (B→C)
     const pathPoints = [];
-    if (previousLocation && segmentIndex > 0) {
+    if (previousLocation && segmentIndex > 0 &&
+        previousLocation.lat != null && previousLocation.lng != null) {
       pathPoints.push({ lat: previousLocation.lat, lng: previousLocation.lng });
     }
-    pathPoints.push(...points);
+    // Filter out any invalid points
+    const validPoints = points.filter(p => p && p.lat != null && p.lng != null);
+    pathPoints.push(...validPoints);
 
     // Update or create polyline (render even when locked/disabled)
     if (pathPoints.length >= 2) {

@@ -1024,6 +1024,9 @@ const RouteSegmentManager = ({
               case 'transit': // Use Google's TRANSIT mode for real public transit
                 travelMode = window.google.maps.TravelMode.TRANSIT;
                 break;
+              case 'train': // Rail-based transit only (no ferries or buses)
+                travelMode = window.google.maps.TravelMode.TRANSIT;
+                break;
               case 'ferry': // Use TRANSIT mode with ferry preference
                 travelMode = window.google.maps.TravelMode.TRANSIT;
                 break;
@@ -1050,6 +1053,19 @@ const RouteSegmentManager = ({
           
           // Add transit preferences - only rail-based transit (no buses)
           if (segmentMode === 'transit') {
+            request.transitOptions = {
+              modes: [
+                window.google.maps.TransitMode.RAIL,    // All rail
+                window.google.maps.TransitMode.SUBWAY,  // Subway
+                window.google.maps.TransitMode.TRAIN,   // Inter-city trains
+                window.google.maps.TransitMode.TRAM     // Light rail/tram
+              ],
+              routingPreference: 'FEWER_TRANSFERS'  // Minimize transfers for better experience
+            };
+          }
+
+          // Add train preferences - STRICTLY rail-based only (no ferries, no buses)
+          if (segmentMode === 'train') {
             request.transitOptions = {
               modes: [
                 window.google.maps.TransitMode.RAIL,    // All rail
