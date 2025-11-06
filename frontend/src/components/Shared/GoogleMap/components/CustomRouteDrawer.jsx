@@ -94,10 +94,7 @@ const CustomRouteDrawer = ({
     if (!snapToRoads) return { lat: latLng.lat(), lng: latLng.lng() };
 
     try {
-      // Use Google Roads API to snap to nearest road
-      // Note: This requires a separate API key and setup
-      // For now, we'll return the original point
-      // TODO: Implement actual Roads API call
+      // For now, just return the original point
       return { lat: latLng.lat(), lng: latLng.lng() };
     } catch (error) {
       return { lat: latLng.lat(), lng: latLng.lng() };

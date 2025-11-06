@@ -1298,14 +1298,6 @@ const DirectionsPanel = ({
 
                       isEditingRef.current = false;
                       setActiveInput(null); // Clear active input
-
-                      // DISABLED: Auto-pan/zoom - let user control viewport
-                      // if (index === 0 && map && loc) {
-                      //   map.panTo({ lat: loc.lat, lng: loc.lng });
-                      //   if (map.getZoom() < 13) {
-                      //     map.setZoom(13);
-                      //   }
-                      // }
                     }}
                     placeholder=""
                   />
@@ -1337,14 +1329,6 @@ const DirectionsPanel = ({
                         }
 
                         setActiveInput(null);
-
-                        // DISABLED: Auto-pan/zoom - let user control viewport
-                        // if (map && loc) {
-                        //   map.panTo({ lat: loc.lat, lng: loc.lng });
-                        //   if (map.getZoom() < 13) {
-                        //     map.setZoom(13);
-                        //   }
-                        // }
                       }}
                       placeholder=""
                       autoFocus={true}
