@@ -7,10 +7,11 @@ import { saveRoute } from '../../../utils/savedRoutesUtils';
 import { SaveRouteModal } from '../../SaveRouteModal';
 import { SavedRoutesModal } from '../../SavedRoutesModal';
 import CustomRouteDrawer from '../../Shared/GoogleMap/components/CustomRouteDrawer';
+import { useRouteUndo } from '../../../hooks/useRouteUndo';
 import '../../../styles/unified-icons.css';
 import './MobileControls.css';
 
-const MobileControls = ({ 
+const MobileControls = ({
   onDirectionsCalculated,
   clickedLocation,
   onLocationUsed,
@@ -19,9 +20,6 @@ const MobileControls = ({
   onLocationsChange,
   onLegModesChange,
   directionsRoute,
-  onUndo,
-  onClearHistory,
-  canUndo = false,
   onShowAnimator,
   onHideAnimator,
   isAnimating,
@@ -44,6 +42,38 @@ const MobileControls = ({
   const [customDrawEnabled, setCustomDrawEnabled] = useState([]); // Track which segments have custom drawing enabled
   const [snapToRoads, setSnapToRoads] = useState([]); // Track snap-to-roads for each segment
   const [customPoints, setCustomPoints] = useState({}); // Store custom strokes per segment
+
+  // Shared undo system via custom hook
+  const { saveToHistory, undo, clearHistory, canUndo } = useRouteUndo();
+
+  // Save current state to undo history (called BEFORE making changes)
+  const saveToUndoHistory = useCallback(() => {
+    saveToHistory({
+      locations,
+      legModes,
+      customDrawEnabled,
+      snapToRoads,
+      customPoints
+    });
+  }, [saveToHistory, locations, legModes, customDrawEnabled, snapToRoads, customPoints]);
+
+  // Undo last action
+  const handleUndoInternal = useCallback(() => {
+    const previousSnapshot = undo();
+    if (!previousSnapshot) return;
+
+    // Restore all state
+    if (onLocationsChange) onLocationsChange(previousSnapshot.locations, 'UNDO');
+    if (onLegModesChange) onLegModesChange(previousSnapshot.legModes);
+    setCustomDrawEnabled(previousSnapshot.customDrawEnabled);
+    setSnapToRoads(previousSnapshot.snapToRoads);
+    setCustomPoints(previousSnapshot.customPoints);
+  }, [undo, onLocationsChange, onLegModesChange]);
+
+  // Clear undo history
+  const handleClearHistory = useCallback(() => {
+    clearHistory();
+  }, [clearHistory]);
 
   // Reset position when card is shown
   useEffect(() => {
@@ -738,18 +768,21 @@ const MobileControls = ({
 
         {/* Action Buttons */}
         <div className="mobile-actions">
-          <button 
+          <button
             className="mobile-action-btn secondary"
-            onClick={() => onUndo && onUndo()}
+            onClick={handleUndoInternal}
             disabled={!canUndo}
             style={{ height: '44px', fontSize: '20px' }}
             title="Undo"
           >
             ↩️
           </button>
-          <button 
+          <button
             className="mobile-action-btn secondary"
-            onClick={handleClear}
+            onClick={() => {
+              handleClear();
+              handleClearHistory();
+            }}
             disabled={!canUndo && locations.filter(l => l).length === 0}
             style={{ height: '44px', fontSize: '20px' }}
             title="Clear All"
