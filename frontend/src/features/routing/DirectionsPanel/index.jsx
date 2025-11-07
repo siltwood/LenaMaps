@@ -10,6 +10,7 @@ import { SavedRoutesModal } from '../../saved-routes/SavedRoutesModal';
 import CustomRouteDrawer from '../../map/GoogleMap/components/CustomRouteDrawer';
 import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConstants';
 import { useRouteSegments, useDragAndDrop, useRouteActions } from '../hooks';
+import ActionButtons from './components/ActionButtons';
 import '../../../styles/unified-icons.css';
 
 const DirectionsPanel = ({
@@ -500,155 +501,25 @@ const DirectionsPanel = ({
 
       <div className="directions-content">
         {/* Action buttons - above Location A */}
-        <div style={{
-          display: 'flex',
-          gap: '4px',
-          marginBottom: '8px',
-          justifyContent: 'flex-start'
-        }}>
-          {/* Clear/Reset button */}
-          <button
-            onClick={() => {
-              handleReset();
-              // Clear the route on the map
-              if (onDirectionsCalculated) {
-                onDirectionsCalculated({
-                  routeId: 'empty',
-                  allLocations: [],
-                  allModes: []
-                });
-              }
-            }}
-            disabled={!uiLocations.some(loc => loc !== null)}
-            style={{
-              padding: '4px 8px',
-              backgroundColor: '#f3f4f6',
-              color: !uiLocations.some(loc => loc !== null) ? '#d1d5db' : '#374151',
-              border: `1px solid ${!uiLocations.some(loc => loc !== null) ? '#e5e7eb' : '#d1d5db'}`,
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: !uiLocations.some(loc => loc !== null) ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '28px',
-              height: '28px',
-              opacity: !uiLocations.some(loc => loc !== null) ? 0.5 : 1
-            }}
-            title="Reset route"
-            onMouseEnter={(e) => {
-              if (!e.currentTarget.disabled) {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-                e.currentTarget.style.borderColor = '#9ca3af';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.borderColor = !e.currentTarget.disabled ? '#d1d5db' : '#e5e7eb';
-            }}
-          >
-            🔄
-          </button>
-          {/* Load button */}
-          <button
-            onClick={() => setShowSavedRoutesModal(true)}
-            style={{
-              padding: '4px 8px',
-              backgroundColor: '#f3f4f6',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '28px',
-              height: '28px'
-            }}
-            title="Load saved route"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#e5e7eb';
-              e.currentTarget.style.borderColor = '#9ca3af';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.borderColor = '#d1d5db';
-            }}
-          >
-            📂
-          </button>
-          {/* Save button */}
-          <button
-            onClick={() => setShowSaveModal(true)}
-            disabled={!uiLocations.some(loc => loc !== null)}
-            style={{
-              padding: '4px 8px',
-              backgroundColor: '#f3f4f6',
-              color: !uiLocations.some(loc => loc !== null) ? '#d1d5db' : '#374151',
-              border: `1px solid ${!uiLocations.some(loc => loc !== null) ? '#e5e7eb' : '#d1d5db'}`,
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: !uiLocations.some(loc => loc !== null) ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '28px',
-              height: '28px',
-              opacity: !uiLocations.some(loc => loc !== null) ? 0.5 : 1
-            }}
-            title="Save route"
-            onMouseEnter={(e) => {
-              if (!e.currentTarget.disabled) {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-                e.currentTarget.style.borderColor = '#9ca3af';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.borderColor = !e.currentTarget.disabled ? '#d1d5db' : '#e5e7eb';
-            }}
-          >
-            💾
-          </button>
-          {/* Share button */}
-          <button
-            onClick={handleShare}
-            disabled={!directionsRoute || uiLocations.filter(l => l !== null).length < 2}
-            style={{
-              padding: '4px 8px',
-              backgroundColor: '#f3f4f6',
-              color: (!directionsRoute || uiLocations.filter(l => l !== null).length < 2) ? '#d1d5db' : '#374151',
-              border: `1px solid ${(!directionsRoute || uiLocations.filter(l => l !== null).length < 2) ? '#e5e7eb' : '#d1d5db'}`,
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: (!directionsRoute || uiLocations.filter(l => l !== null).length < 2) ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '28px',
-              height: '28px',
-              opacity: (!directionsRoute || uiLocations.filter(l => l !== null).length < 2) ? 0.5 : 1
-            }}
-            title="Share route (copy link)"
-            onMouseEnter={(e) => {
-              if (!e.currentTarget.disabled) {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-                e.currentTarget.style.borderColor = '#9ca3af';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.borderColor = !e.currentTarget.disabled ? '#d1d5db' : '#e5e7eb';
-            }}
-          >
-            {showCopiedMessage ? '✅' : '🔗'}
-          </button>
-        </div>
+        <ActionButtons
+          hasLocations={uiLocations.some(loc => loc !== null)}
+          hasRoute={directionsRoute && uiLocations.filter(l => l !== null).length >= 2}
+          showCopiedMessage={showCopiedMessage}
+          onReset={() => {
+            handleReset();
+            // Clear the route on the map
+            if (onDirectionsCalculated) {
+              onDirectionsCalculated({
+                routeId: 'empty',
+                allLocations: [],
+                allModes: []
+              });
+            }
+          }}
+          onLoadClick={() => setShowSavedRoutesModal(true)}
+          onSaveClick={() => setShowSaveModal(true)}
+          onShare={handleShare}
+        />
 
         <div className="route-inputs">
           {/* Display all locations in sequence - NOW USING uiLocations from routeSegments! */}
