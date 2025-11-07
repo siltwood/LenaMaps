@@ -346,6 +346,13 @@ const RouteSegmentManager = ({
       return;
     }
 
+    // Force full rebuild if requested (e.g., during drag-and-drop reorder)
+    // This prevents stale segment reuse bugs
+    if (directionsRoute.forceRebuild) {
+      clearAllSegments();
+      // Continue with normal rendering below (don't return)
+    }
+
     const { allLocations, allModes, singleLocationDrawMode } = directionsRoute;
 
     // Special case: single location in draw mode - just show start marker

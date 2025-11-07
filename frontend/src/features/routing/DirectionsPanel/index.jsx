@@ -144,7 +144,8 @@ const DirectionsPanel = ({
           segments,
           allLocations: uiLocations,
           allModes: uiModes,
-          routeId: `${Date.now()}-${routeSegments.map(s => s.id).join('-')}` // Add timestamp for uniqueness in RouteSegmentManager
+          routeId: `${Date.now()}-${routeSegments.map(s => s.id).join('-')}`, // Add timestamp for uniqueness in RouteSegmentManager
+          forceRebuild: true // Force full segment rebuild to avoid stale state
         };
         onDirectionsCalculated(routeData);
       }

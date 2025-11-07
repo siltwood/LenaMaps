@@ -63,27 +63,29 @@ export const useDragAndDrop = ({
     const [draggedLocation] = newLocations.splice(draggedIndex, 1);
     newLocations.splice(dropIndex, 0, draggedLocation);
 
-    // Reorder segment properties using same splice logic
+    // Reorder segment properties to match location order
+    // Segment i connects location[i] → location[i+1]
+    // When moving a location, the segment "leading to" it should move with it
     const newCustomDrawEnabled = [...customDrawEnabled];
     const newLockedSegments = [...lockedSegments];
     const newModes = [...legModes];
 
-    // Handle segment reordering
-    // When dragging from index 0, there's no "incoming" segment to move
+    // If dragging from index 0, no incoming segment to move
+    // If dragging to a position, segment properties follow the location
     if (draggedIndex > 0) {
-      // Extract the segment that was "leading to" the dragged location
-      const sourceSegmentIndex = draggedIndex - 1;
-      const targetSegmentIndex = dropIndex > 0 ? dropIndex - 1 : 0;
+      // The segment leading TO the dragged location (at index draggedIndex-1)
+      const segmentIndex = draggedIndex - 1;
+      const newSegmentIndex = dropIndex > 0 ? dropIndex - 1 : 0;
 
-      // Move segment properties
-      const [movedDraw] = newCustomDrawEnabled.splice(sourceSegmentIndex, 1);
-      newCustomDrawEnabled.splice(targetSegmentIndex, 0, movedDraw);
+      // Use same splice logic as locations
+      const [movedMode] = newModes.splice(segmentIndex, 1);
+      newModes.splice(newSegmentIndex, 0, movedMode);
 
-      const [movedLock] = newLockedSegments.splice(sourceSegmentIndex, 1);
-      newLockedSegments.splice(targetSegmentIndex, 0, movedLock);
+      const [movedDraw] = newCustomDrawEnabled.splice(segmentIndex, 1);
+      newCustomDrawEnabled.splice(newSegmentIndex, 0, movedDraw);
 
-      const [movedMode] = newModes.splice(sourceSegmentIndex, 1);
-      newModes.splice(targetSegmentIndex, 0, movedMode);
+      const [movedLock] = newLockedSegments.splice(segmentIndex, 1);
+      newLockedSegments.splice(newSegmentIndex, 0, movedLock);
     }
 
     setLocations(newLocations);
@@ -99,22 +101,9 @@ export const useDragAndDrop = ({
       onLegModesChange(newModes);
     }
 
-    // Recalculate route with new order
-    const filledLocations = newLocations.filter(loc => loc !== null);
-    if (filledLocations.length >= 2) {
-      const segments = buildSegments(filledLocations);
-      const routeData = {
-        origin: filledLocations[0],
-        destination: filledLocations[filledLocations.length - 1],
-        waypoints: filledLocations.slice(1, -1),
-        mode: newModes[0],
-        segments,
-        allLocations: filledLocations,
-        allModes: newModes,
-        routeId: `reorder_${Date.now()}`
-      };
-      onDirectionsCalculated(routeData);
-    }
+    // Don't calculate route here - let DirectionsPanel's useEffect handle it
+    // This avoids race conditions from duplicate calculations
+    // DirectionsPanel will detect the location/mode changes and recalculate
 
     setDraggedIndex(null);
     setDragOverIndex(null);
