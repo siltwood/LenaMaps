@@ -14,7 +14,7 @@ const PlaybackControls = ({
   onStop,
   isMobile = false
 }) => {
-  const buttonClass = isMobile ? 'mobile-control-btn' : '';
+  const buttonClass = isMobile ? 'mobile-control-btn' : 'control-btn';
 
   if (!isAnimating) {
     return (

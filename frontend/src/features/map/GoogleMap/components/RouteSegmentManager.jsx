@@ -8,7 +8,7 @@ import {
   validateTransitMode,
   validateRouteProximity,
   createStraightLineRoute,
-  clearSegment as clearSegmentUtil
+  clearSegment
 } from '../utils/segmentUtils';
 import directionsCache from '../../../../utils/directionsCache';
 

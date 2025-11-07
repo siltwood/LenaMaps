@@ -230,9 +230,9 @@ export const clearSegment = (segment) => {
     }
   }
 
-  // Clear markers
-  if (segment.markers && Array.isArray(segment.markers)) {
-    segment.markers.forEach(marker => {
+  // Clear markers (stored as object: {start, end, transition, waypoint})
+  if (segment.markers && typeof segment.markers === 'object') {
+    Object.values(segment.markers).forEach(marker => {
       if (marker && marker.setMap) {
         marker.setMap(null);
       }

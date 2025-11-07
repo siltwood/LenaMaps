@@ -16,6 +16,7 @@ import Modal from './Modal';
 import PlaybackControls from './components/PlaybackControls';
 import SpeedControl from './components/SpeedControl';
 import ZoomControl from './components/ZoomControl';
+import { useMarkerAnimation } from './hooks/useMarkerAnimation';
 import { isMobileDevice } from '../../../utils/deviceDetection';
 import '../../../styles/unified-icons.css';
 import './RouteAnimator.css';
@@ -62,7 +63,16 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   const [playbackSpeed, setPlaybackSpeed] = useState('medium'); // 'slow', 'medium', 'fast'
   const [animationProgress, setAnimationProgress] = useState(0); // 0-100 for timeline
   const [currentSegmentMode, setCurrentSegmentMode] = useState(null); // Track current segment mode for animated marker box
-  
+
+  // Use marker animation hook
+  const {
+    markerRef,
+    createMarker,
+    updateMarkerScale,
+    updateMarkerMode,
+    clearMarker
+  } = useMarkerAnimation(map, isAnimating);
+
   // Helper function to calculate zoom level for bounds
   const calculateBoundsZoomLevel = useCallback((bounds, map) => {
     if (!bounds || !map) return null;
@@ -284,8 +294,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   const offsetRef = useRef(0);
   const lastCameraPositionRef = useRef(null);
   const cameraVelocityRef = useRef(null);
-  const markerRef = useRef(null);
-  const zoomListenerRef = useRef(null);
+  // markerRef, zoomListenerRef now managed by useMarkerAnimation hook
   const lastMapUpdateTimeRef = useRef(0);
   const mapUpdateThrottleMs = 16; // Update roughly at 60fps for smooth following
   const currentZoomRef = useRef(ANIMATION_ZOOM.DEFAULT);
@@ -297,51 +306,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   const playbackSpeedRef = useRef(playbackSpeed); // Track playback speed in animation
   const forceCenterOnNextFrameRef = useRef(false); // Force center on next animation frame
 
-  // Calculate marker scale based on zoom level
-  const getMarkerScale = (zoom) => {
-    // Base scale at zoom 13
-    const baseZoom = 13;
-    const maxScale = 1.2;  // Maximum scale at high zoom
-    const minScale = 0.5;  // Minimum scale at low zoom
-    
-    // Scale decreases as you zoom out
-    const scaleFactor = Math.pow(2, (zoom - baseZoom) * 0.15);
-    return Math.max(minScale, Math.min(maxScale, scaleFactor));
-  }
-
-  // Update marker with new scale
-  const updateMarkerScale = useCallback(() => {
-    if (!map || !markerRef.current) return;
-    
-    const newZoom = map.getZoom();
-    currentZoomRef.current = newZoom;
-    const scale = getMarkerScale(newZoom);
-    
-    if (window.google?.maps?.marker?.AdvancedMarkerElement && markerRef.current.content) {
-      const currentMode = markerRef.current._currentMode || 'walk';
-      const content = document.createElement('div');
-      const size = 50 * scale;
-      const fontSize = 24 * scale;
-      const borderWidth = 4 * scale;
-      
-      content.style.cssText = `
-        width: ${size}px;
-        height: ${size}px;
-        background-color: #000000;
-        border-radius: 50%;
-        border: ${borderWidth}px solid white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: ${fontSize}px;
-        box-shadow: 0 ${4 * scale}px ${8 * scale}px rgba(0,0,0,0.4);
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      `;
-      content.textContent = TRANSPORT_ICONS[currentMode];
-      markerRef.current.content = content;
-    }
-  }, [map]);
+  // getMarkerScale and updateMarkerScale now handled by useMarkerAnimation hook
 
   // Use zoom level based on route distance
   const getFollowModeZoom = useCallback(() => {
@@ -398,12 +363,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       clearInterval(cameraUpdateIntervalRef.current);
       cameraUpdateIntervalRef.current = null;
     }
-    
-    if (zoomListenerRef.current) {
-      window.google.maps.event.removeListener(zoomListenerRef.current);
-      zoomListenerRef.current = null;
-    }
-    
+
     // Don't remove the polyline - just hide the animated symbol
     if (polylineRef.current) {
       // Reset the symbol to the start position
@@ -416,15 +376,9 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       polylineRef.current.setMap(null);
       polylineRef.current = null;
     }
-    
-    if (markerRef.current) {
-      if (window.google?.maps?.marker?.AdvancedMarkerElement && markerRef.current.map !== undefined) {
-        markerRef.current.map = null;
-      } else {
-        markerRef.current.setMap(null);
-      }
-      markerRef.current = null;
-    }
+
+    // Clear marker using hook
+    clearMarker();
     
     offsetRef.current = 0;
     countRef.current = 0; // Reset count when stopping
@@ -462,33 +416,17 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   useEffect(() => {
     // Check if the route actually changed
     const routeChanged = JSON.stringify(prevRouteRef.current) !== JSON.stringify(directionsRoute);
-    
+
     if (routeChanged && isAnimating) {
       // Stop current animation when route changes
       stopAnimation();
     }
-    
+
     // Update the previous route reference
     prevRouteRef.current = directionsRoute;
   }, [directionsRoute, isAnimating, stopAnimation]);
 
-  // Set up zoom listener
-  useEffect(() => {
-    if (!map) return;
-    
-    // Get initial zoom
-    currentZoomRef.current = map.getZoom();
-    
-    // Listen for zoom changes
-    zoomListenerRef.current = map.addListener('zoom_changed', updateMarkerScale);
-    
-    return () => {
-      if (zoomListenerRef.current) {
-        window.google.maps.event.removeListener(zoomListenerRef.current);
-        zoomListenerRef.current = null;
-      }
-    };
-  }, [map, updateMarkerScale]);
+  // Zoom listener setup now handled by useMarkerAnimation hook
 
   // Clean up animation when component unmounts or is hidden on mobile
   useEffect(() => {
@@ -500,23 +438,15 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
           cancelAnimationFrame(animationRef.current);
           animationRef.current = null;
         }
-        
+
         // Clean up polyline
         if (polylineRef.current) {
           polylineRef.current.setMap(null);
           polylineRef.current = null;
         }
-        
-        // Clean up marker
-        if (markerRef.current) {
-          if (window.google?.maps?.marker?.AdvancedMarkerElement && markerRef.current.map !== undefined) {
-            markerRef.current.map = null;
-          } else {
-            markerRef.current.setMap(null);
-          }
-          markerRef.current = null;
-        }
-        
+
+        // Marker cleanup now handled by useMarkerAnimation hook
+
         // Reset state
         isAnimatingRef.current = false;
         isPausedRef.current = false;
