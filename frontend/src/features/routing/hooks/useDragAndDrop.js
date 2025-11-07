@@ -134,11 +134,17 @@ export const useDragAndDrop = ({
     buildSegments
   ]);
 
+  const handleDragEnd = useCallback(() => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
   return {
     draggedIndex,
     dragOverIndex,
     handleDragStart,
     handleDragOver,
-    handleDrop
+    handleDrop,
+    handleDragEnd
   };
 };

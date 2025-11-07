@@ -340,7 +340,8 @@ const DirectionsPanel = ({
     dragOverIndex,
     handleDragStart,
     handleDragOver,
-    handleDrop
+    handleDrop,
+    handleDragEnd
   } = useDragAndDrop({
     locations,
     legModes,
@@ -530,10 +531,7 @@ const DirectionsPanel = ({
               onDragStart={(e) => location && handleDragStart(e, index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDrop={(e) => handleDrop(e, index)}
-              onDragEnd={() => {
-                setDraggedIndex(null);
-                setDragOverIndex(null);
-              }}
+              onDragEnd={handleDragEnd}
               style={{
                 opacity: draggedIndex === index ? 0.5 : 1,
                 border: dragOverIndex === index ? '2px dashed #3b82f6' : 'none',
