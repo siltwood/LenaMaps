@@ -40,8 +40,7 @@ const MobileControls = ({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
   const [customDrawEnabled, setCustomDrawEnabled] = useState([]); // Track which segments have custom drawing enabled
-  const [snapToRoads, setSnapToRoads] = useState([]); // Track snap-to-roads for each segment
-  const [customPoints, setCustomPoints] = useState({}); // Store custom strokes per segment
+  const prevClickedLocationRef = useRef(null); // Track previous clicked location to prevent duplicates
 
   // Shared undo system via custom hook
   const { saveToHistory, undo, clearHistory, canUndo } = useRouteUndo();
@@ -51,11 +50,9 @@ const MobileControls = ({
     saveToHistory({
       locations,
       legModes,
-      customDrawEnabled,
-      snapToRoads,
-      customPoints
+      customDrawEnabled
     });
-  }, [saveToHistory, locations, legModes, customDrawEnabled, snapToRoads, customPoints]);
+  }, [saveToHistory, locations, legModes, customDrawEnabled]);
 
   // Undo last action
   const handleUndoInternal = useCallback(() => {
@@ -66,8 +63,6 @@ const MobileControls = ({
     if (onLocationsChange) onLocationsChange(previousSnapshot.locations, 'UNDO');
     if (onLegModesChange) onLegModesChange(previousSnapshot.legModes);
     setCustomDrawEnabled(previousSnapshot.customDrawEnabled);
-    setSnapToRoads(previousSnapshot.snapToRoads);
-    setCustomPoints(previousSnapshot.customPoints);
   }, [undo, onLocationsChange, onLegModesChange]);
 
   // Clear undo history
@@ -118,37 +113,50 @@ const MobileControls = ({
 
   // Handle clicked location from map - ONLY when card is open and in planner mode
   useEffect(() => {
-    if (clickedLocation && showCard && viewMode === 'planner') {
-      const newLocations = [...locations];
-      
-      // If there's an active input (edit mode), replace that specific location
-      if (activeInput !== null) {
-        newLocations[activeInput] = clickedLocation;
-        // Clear active input and close search box to show the updated location
-        const indexToClose = activeInput; // Capture the value before clearing
-        setActiveInput(null);
-        setShowSearchInputs(prev => ({ ...prev, [indexToClose]: false }));
-      } else {
-        // Otherwise, find the first empty slot
-        const emptyIndex = newLocations.findIndex(loc => !loc);
-        if (emptyIndex !== -1) {
-          newLocations[emptyIndex] = clickedLocation;
-        }
-      }
-      
-      onLocationsChange(newLocations, 'ADD_LOCATION');
-      
-      // ALWAYS recalculate route if we have at least 2 locations (even in edit mode)
-      const filledCount = newLocations.filter(l => l).length;
-      if (filledCount >= 2) {
-        calculateRoute(newLocations, legModes);
-      }
-      
-      if (onLocationUsed) {
-        onLocationUsed();
+    if (!clickedLocation || !showCard || viewMode !== 'planner') {
+      return;
+    }
+
+    // Check if this is a new clicked location (different from previous)
+    const isNewLocation = !prevClickedLocationRef.current ||
+      clickedLocation.lat !== prevClickedLocationRef.current.lat ||
+      clickedLocation.lng !== prevClickedLocationRef.current.lng;
+
+    if (!isNewLocation) {
+      return; // Don't process the same location twice
+    }
+
+    prevClickedLocationRef.current = clickedLocation;
+
+    const newLocations = [...locations];
+
+    // If there's an active input (edit mode), replace that specific location
+    if (activeInput !== null) {
+      newLocations[activeInput] = clickedLocation;
+      // Clear active input and close search box to show the updated location
+      const indexToClose = activeInput; // Capture the value before clearing
+      setActiveInput(null);
+      setShowSearchInputs(prev => ({ ...prev, [indexToClose]: false }));
+    } else {
+      // Otherwise, find the first empty slot
+      const emptyIndex = newLocations.findIndex(loc => !loc);
+      if (emptyIndex !== -1) {
+        newLocations[emptyIndex] = clickedLocation;
       }
     }
-  }, [clickedLocation]);
+
+    onLocationsChange(newLocations, 'ADD_LOCATION');
+
+    // ALWAYS recalculate route if we have at least 2 locations (even in edit mode)
+    const filledCount = newLocations.filter(l => l).length;
+    if (filledCount >= 2) {
+      calculateRoute(newLocations, legModes);
+    }
+
+    if (onLocationUsed) {
+      onLocationUsed();
+    }
+  }, [clickedLocation, showCard, viewMode, locations, activeInput, legModes, onLocationsChange, onLocationUsed]);
 
   const calculateRoute = (locs, modes) => {
     const filledLocations = locs.filter(loc => loc !== null);
@@ -304,48 +312,7 @@ const MobileControls = ({
     }
   };
 
-  const handlePointAdded = (strokeData) => {
-    const { segmentIndex, points, snapped, mode } = strokeData;
-
-    // Add stroke to the customPoints state
-    setCustomPoints(prev => {
-      const segmentStrokes = prev[segmentIndex] || [];
-      return {
-        ...prev,
-        [segmentIndex]: [...segmentStrokes, { points, snapped, mode }]
-      };
-    });
-
-    // Notify parent of the action for undo tracking
-    if (onLocationsChange) {
-      onLocationsChange(locations, 'DRAW_CUSTOM_STROKE', {
-        segmentIndex,
-        stroke: { points, snapped, mode }
-      });
-    }
-  };
-
-  const handleUndoPoint = (segmentIndex) => {
-    setCustomPoints(prev => {
-      const segmentStrokes = prev[segmentIndex] || [];
-      if (segmentStrokes.length === 0) return prev;
-
-      // Remove the last stroke
-      const newSegmentStrokes = segmentStrokes.slice(0, -1);
-
-      if (newSegmentStrokes.length === 0) {
-        // No more strokes for this segment, remove the key
-        const newPoints = { ...prev };
-        delete newPoints[segmentIndex];
-        return newPoints;
-      }
-
-      return {
-        ...prev,
-        [segmentIndex]: newSegmentStrokes
-      };
-    });
-  };
+  // Removed: handlePointAdded, handleUndoPoint - no longer needed with simplified draw mode
 
   // Handle drag events (both touch and mouse for testing)
   const handleDragStart = (e) => {
@@ -458,23 +425,7 @@ const MobileControls = ({
     );
   };
 
-  // Render planner view
-  const handleSetLocations = (segmentIndex, startPoint, endPoint) => {
-    // Auto-set locations from the drawn points
-    const newLocations = [...locations];
-
-    // If startPoint is null, keep existing start location (for continuous drawing)
-    if (startPoint !== null) {
-      newLocations[segmentIndex] = startPoint;
-    }
-
-    // Always update end location
-    newLocations[segmentIndex + 1] = endPoint;
-
-    if (onLocationsChange) {
-      onLocationsChange(newLocations, 'ADD_LOCATION');
-    }
-  };
+  // Removed: handleSetLocations - no longer needed with simplified draw mode
 
   const renderPlanner = () => (
     <>
@@ -636,92 +587,26 @@ const MobileControls = ({
                           const newEnabled = [...customDrawEnabled];
                           newEnabled[index] = e.target.checked;
                           setCustomDrawEnabled(newEnabled);
-
-                          // Clear custom strokes if disabling
-                          if (!e.target.checked) {
-                            const newPoints = { ...customPoints };
-                            delete newPoints[index];
-                            setCustomPoints(newPoints);
-                          }
                         }}
                         style={{ cursor: 'pointer' }}
                       />
                       <span>Draw Custom Route</span>
                     </label>
 
-                    {/* Clear/Undo buttons for custom strokes */}
+                    {/* Instructions when draw mode is enabled */}
                     {customDrawEnabled[index] && (
-                      <>
-
-                        {customPoints[index] && customPoints[index].length > 0 && (
-                          <div style={{ display: 'flex', gap: '8px', marginLeft: '24px', marginTop: '8px' }}>
-                            <button
-                              onClick={() => handleUndoPoint(index)}
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '13px',
-                                backgroundColor: '#f3f4f6',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '6px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              ↩️ Undo ({customPoints[index].length})
-                            </button>
-                            <button
-                              onClick={() => {
-                                const newPoints = { ...customPoints };
-                                delete newPoints[index];
-                                setCustomPoints(newPoints);
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '13px',
-                                backgroundColor: '#fee2e2',
-                                border: '1px solid #fecaca',
-                                borderRadius: '6px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              🗑️ Clear
-                            </button>
-                            <button
-                              onClick={() => {
-                                // Finish route - just disable draw mode
-                                const newEnabled = [...customDrawEnabled];
-                                newEnabled[index] = false;
-                                setCustomDrawEnabled(newEnabled);
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '13px',
-                                backgroundColor: '#dbeafe',
-                                border: '1px solid #93c5fd',
-                                borderRadius: '6px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              ✓ Finish
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Instructions when draw mode is enabled */}
-                        {customDrawEnabled[index] && (!customPoints[index] || customPoints[index].length === 0) && (
-                          <div style={{
-                            marginTop: '8px',
-                            marginLeft: '24px',
-                            padding: '8px 12px',
-                            backgroundColor: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            color: '#1e40af'
-                          }}>
-                            💡 Tap on the map to add points and create your route.
-                          </div>
-                        )}
-                      </>
+                      <div style={{
+                        marginTop: '8px',
+                        marginLeft: '24px',
+                        padding: '8px 12px',
+                        backgroundColor: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        color: '#1e40af'
+                      }}>
+                        💡 Tap on the map to add points and create your route.
+                      </div>
                     )}
                   </div>
                 </>
@@ -941,7 +826,7 @@ const MobileControls = ({
             aria-label="Plan Route"
             style={{ position: 'fixed', left: '20px', bottom: '20px' }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="6" cy="6" r="3" />
               <circle cx="18" cy="18" r="3" />
               <path d="M9 9l6 6" />
@@ -970,37 +855,20 @@ const MobileControls = ({
         if (index >= locations.length - 1) return null; // No drawer for last location
         if (!customDrawEnabled[index]) return null; // Only render if drawing is enabled
 
+        const startLocation = locations[index];
+        const endLocation = locations[index + 1];
+
         return (
           <CustomRouteDrawer
             key={`drawer-${index}`}
             map={map}
-            segmentIndex={index}
-            isEnabled={customDrawEnabled[index]}
-            snapToRoads={snapToRoads[index] || false}
+            startLocation={startLocation}
+            endLocation={endLocation}
             mode={legModes[index] || 'walk'}
-            onPointAdded={handlePointAdded}
-            onSetLocations={handleSetLocations}
-            previousLocation={index > 0 ? locations[index] : null}
-            points={customPoints[index] || []}
+            isEnabled={customDrawEnabled[index]}
           />
         );
       })}
-
-      {/* ALSO render a drawer even with NO locations if draw mode is enabled */}
-      {map && customDrawEnabled[0] && locations.filter(l => l).length === 0 && (
-        <CustomRouteDrawer
-          key="drawer-initial"
-          map={map}
-          segmentIndex={0}
-          isEnabled={true}
-          snapToRoads={snapToRoads[0] || false}
-          mode={legModes[0] || 'walk'}
-          onPointAdded={handlePointAdded}
-          onSetLocations={handleSetLocations}
-          previousLocation={null}
-          points={customPoints[0] || []}
-        />
-      )}
     </div>
   );
 };

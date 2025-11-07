@@ -745,6 +745,16 @@ export const useRouteAnimation = ({
     isPausedRef.current = false;
     setIsAnimating(false);
     setIsPaused(false);
+    setAnimationProgress(0);
+    setCurrentSegmentMode(null);
+
+    // Dispatch event to hide AnimatedMarkerBox
+    window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+      detail: {
+        isAnimating: false,
+        currentModeIcon: null
+      }
+    }));
 
     // Re-enable map interactions
     if (map) {

@@ -737,8 +737,8 @@
   width: 56px;
   height: 56px;
   border-radius: 28px;
-  background: var(--color-bg-white);
-  border: 2px solid var(--color-border);
+  background: white;
+  border: 3px solid #000000;
   box-shadow: var(--shadow-md);
   cursor: pointer;
   display: flex;
@@ -746,13 +746,13 @@
   justify-content: center;
   transition: all 0.2s ease;
   font-size: 20px;
-  color: var(--color-danger);
+  color: #000000;
 }
 
 .route-animator-minimized .expand-button:hover {
   transform: scale(1.05);
   box-shadow: var(--shadow-lg);
-  background: var(--color-bg-gray);
+  background: #f5f5f5;
 }
 
 /* Pretty camera icon button for recording mode */
@@ -760,15 +760,15 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+  background: white;
+  border: 3px solid #000000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  color: white;
+  color: #000000;
   position: relative;
   overflow: hidden;
 }

@@ -265,7 +265,7 @@ function AppContent() {
               marginTop: '6px',
               marginBottom: '6px'
             }}>
-              💋 LenaMaps - Animate your Google Maps Route
+              💋 LenaMaps{!isMobile && ' - Animate your Google Maps Route'}
             </div>
             <div className="header-search">
             {import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
