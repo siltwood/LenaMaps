@@ -16,6 +16,7 @@ import Modal from './Modal';
 import PlaybackControls from './components/PlaybackControls';
 import SpeedControl from './components/SpeedControl';
 import ZoomControl from './components/ZoomControl';
+import TimelineScrubber from './components/TimelineScrubber';
 import { useMarkerAnimation } from './hooks/useMarkerAnimation';
 import { useZoomManager } from './hooks/useZoomManager';
 import { isMobileDevice } from '../../../utils/deviceDetection';
@@ -133,6 +134,101 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   // markerRef managed by useMarkerAnimation hook
   // getMarkerScale and updateMarkerScale now handled by useMarkerAnimation hook
   // getFollowModeZoom now handled by useZoomManager hook
+
+  /**
+   * Pause animation (needed by handleTimelineChange)
+   */
+  const pauseAnimation = useCallback(() => {
+    setIsPaused(true);
+    isPausedRef.current = true;
+    // Cancel the animation frame when pausing
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+  }, []);
+
+  /**
+   * Handle timeline scrubber changes
+   */
+  const handleTimelineChange = useCallback((e) => {
+    const newProgress = parseFloat(e.target.value);
+    setAnimationProgress(newProgress);
+
+    // Update animation position
+    countRef.current = newProgress * 2;
+    offsetRef.current = newProgress;
+    visualOffsetRef.current = newProgress; // Critical: update visual offset ref
+
+    // Update visual position immediately
+    if (polylineRef.current) {
+      // Simply update the icon offset - this works in whole route view
+      const icons = polylineRef.current.get('icons');
+      if (icons && icons.length > 0) {
+        icons[0].offset = newProgress + '%';
+        polylineRef.current.set('icons', icons);
+      }
+
+      // In Follow mode, center camera on the new symbol position
+      if (zoomLevelRef.current === 'follow' && pathRef.current && pathRef.current.length > 0) {
+        const path = pathRef.current;
+
+        // Calculate exact position along the path based on progress
+        let totalDistance = 0;
+        const distances = [];
+
+        // Calculate segment distances
+        for (let i = 0; i < path.length - 1; i++) {
+          const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
+            path[i],
+            path[i + 1]
+          );
+          distances.push(dist);
+          totalDistance += dist;
+        }
+
+        // Find the target distance along the path
+        const targetDistance = totalDistance * (newProgress / 100);
+        let accumulatedDistance = 0;
+
+        // Find which segment we're on and interpolate position
+        for (let i = 0; i < distances.length; i++) {
+          if (accumulatedDistance + distances[i] >= targetDistance) {
+            // We're on this segment
+            const segmentProgress = (targetDistance - accumulatedDistance) / distances[i];
+
+            // Interpolate position on this segment
+            const symbolPosition = window.google.maps.geometry.spherical.interpolate(
+              path[i],
+              path[i + 1],
+              segmentProgress
+            );
+
+            // Use setCenter for immediate positioning
+            map.setCenter(symbolPosition);
+
+            // Don't change zoom - let user control it
+
+            break;
+          }
+          accumulatedDistance += distances[i];
+        }
+      } else if (zoomLevelRef.current !== 'follow') {
+        // In whole route view, just pan to show the new position
+        if (pathRef.current && pathRef.current.length > 0) {
+          const path = pathRef.current;
+          const index = Math.floor((newProgress / 100) * (path.length - 1));
+          if (index < path.length && path[index]) {
+            map.panTo(path[index]);
+          }
+        }
+      }
+    }
+
+    // Pause if playing
+    if (isAnimating && !isPaused) {
+      pauseAnimation();
+    }
+  }, [map, isAnimating, isPaused, pauseAnimation]);
 
   // Define stopAnimation early so it can be used in effects
   const stopAnimation = useCallback(() => {
@@ -506,46 +602,9 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             });
           } else if (segment.route && segment.route.routes && segment.route.routes[0]) {
             const route = segment.route.routes[0];
-            let segmentPath = [];
 
-            // Always try to get detailed path first
-            if (route.legs) {
-              // Get detailed path from steps for accuracy
-              route.legs.forEach(leg => {
-                if (leg.steps) {
-                  leg.steps.forEach(step => {
-                    if (step.path) {
-                      segmentPath = segmentPath.concat(step.path);
-                    } else if (step.lat_lngs) {
-                      segmentPath = segmentPath.concat(step.lat_lngs);
-                    }
-                  });
-                }
-              });
-            }
-
-            // Fallback to overview_path if no steps
-            if (segmentPath.length === 0) {
-              segmentPath = route.overview_path || [];
-            }
-
-            // IMPORTANT: If segment path is too sparse (straight-line fallback), interpolate it
-            // This commonly happens with ferry/train routes or when no road route is available
-            if (segmentPath.length <= 3) {
-              const start = segmentPath[0];
-              const end = segmentPath[segmentPath.length - 1];
-              const interpolatedPath = [];
-              const distance = window.google.maps.geometry.spherical.computeDistanceBetween(start, end);
-              // More points for smoother animation
-              const steps = Math.min(200, Math.max(20, Math.floor(distance / 500))); // 1 point per 500m, max 200
-
-              for (let j = 0; j <= steps; j++) {
-                const fraction = j / steps;
-                interpolatedPath.push(window.google.maps.geometry.spherical.interpolate(start, end, fraction));
-              }
-
-              segmentPath = interpolatedPath;
-            }
+            // Use the EXACT path from overview_path - this is what's drawn on the map
+            let segmentPath = route.overview_path || [];
 
             // Store segment info
             const segmentStartIndex = fullPath.length;
@@ -1226,15 +1285,6 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     animationRef.current = requestAnimationFrame(animate);
   }
 
-  const pauseAnimation = () => {
-    setIsPaused(true);
-    isPausedRef.current = true;
-    // Cancel the animation frame when pausing
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-  }
-
   const resumeAnimation = () => {
     setIsPaused(false);
     isPausedRef.current = false;
@@ -1383,110 +1433,12 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               isMobile={true}
             />
             
-            <div className="timeline-control">
-              <div className="timeline-container">
-                <div className="timeline-track">
-                  <div 
-                    className="timeline-progress" 
-                    style={{ 
-                      width: `${animationProgress}%`,
-                      transition: 'none'
-                    }}
-                  ></div>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={animationProgress}
-                  onChange={(e) => {
-                    const newProgress = parseFloat(e.target.value);
-                    setAnimationProgress(newProgress);
-                    
-                    // Update animation position
-                    countRef.current = newProgress * 2;
-                    offsetRef.current = newProgress;
-                    visualOffsetRef.current = newProgress; // Critical: update visual offset ref
-                    
-                    // Update visual position immediately
-                    if (polylineRef.current) {
-                      // Simply update the icon offset - this works in whole route view
-                      const icons = polylineRef.current.get('icons');
-                      if (icons && icons.length > 0) {
-                        icons[0].offset = newProgress + '%';
-                        polylineRef.current.set('icons', icons);
-                      }
-                      
-                      // In Follow mode, center camera on the new symbol position
-                      if (zoomLevelRef.current === 'follow' && pathRef.current && pathRef.current.length > 0) {
-                        const path = pathRef.current;
-                        
-                        // Calculate exact position along the path based on progress
-                        let totalDistance = 0;
-                        const distances = [];
-                        
-                        // Calculate segment distances
-                        for (let i = 0; i < path.length - 1; i++) {
-                          const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
-                            path[i], 
-                            path[i + 1]
-                          );
-                          distances.push(dist);
-                          totalDistance += dist;
-                        }
-                        
-                        // Find the target distance along the path
-                        const targetDistance = totalDistance * (newProgress / 100);
-                        let accumulatedDistance = 0;
-                        
-                        // Find which segment we're on and interpolate position
-                        for (let i = 0; i < distances.length; i++) {
-                          if (accumulatedDistance + distances[i] >= targetDistance) {
-                            // We're on this segment
-                            const segmentProgress = (targetDistance - accumulatedDistance) / distances[i];
-                            
-                            // Interpolate position on this segment
-                            const symbolPosition = window.google.maps.geometry.spherical.interpolate(
-                              path[i],
-                              path[i + 1],
-                              segmentProgress
-                            );
-                            
-                            // Use setCenter for immediate positioning
-                            map.setCenter(symbolPosition);
-                            
-                            // Don't change zoom - let user control it
-                            
-                            break;
-                          }
-                          accumulatedDistance += distances[i];
-                        }
-                      } else if (zoomLevelRef.current !== 'follow') {
-                        // In whole route view, just pan to show the new position
-                        if (pathRef.current && pathRef.current.length > 0) {
-                          const path = pathRef.current;
-                          const index = Math.floor((newProgress / 100) * (path.length - 1));
-                          if (index < path.length && path[index]) {
-                            map.panTo(path[index]);
-                          }
-                        }
-                      }
-                    }
-                    
-                    // Pause if playing
-                    if (isAnimating && !isPaused) {
-                      pauseAnimation();
-                    }
-                  }}
-                  className={`timeline-slider ${isMobile ? 'mobile-thumb' : 'no-thumb'}`}
-                />
-                <div className="timeline-labels">
-                  <span>0%</span>
-                  <span>{Math.round(animationProgress)}%</span>
-                  <span>100%</span>
-                </div>
-              </div>
-            </div>
+            <TimelineScrubber
+              animationProgress={animationProgress}
+              onChange={handleTimelineChange}
+              isMobile={true}
+              showLabel={false}
+            />
           </div>
         </div>
         <Modal
@@ -1632,112 +1584,12 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               isMobile={false}
             />
             
-            <div className="timeline-control">
-              <label>Timeline Scrubber</label>
-              <div className="timeline-container">
-                <div className="timeline-track">
-                  <div 
-                    className="timeline-progress" 
-                    style={{ 
-                      width: `${animationProgress}%`,
-                      transition: 'none' // Remove any CSS transitions that might interfere
-                    }}
-                    key={`progress-${Math.floor(animationProgress)}`} // Force re-render
-                  ></div>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={animationProgress}
-                  onChange={(e) => {
-                    const newProgress = parseFloat(e.target.value);
-                    setAnimationProgress(newProgress);
-                    
-                    // Update animation position
-                    countRef.current = newProgress * 2;
-                    offsetRef.current = newProgress;
-                    visualOffsetRef.current = newProgress; // Critical: update visual offset ref
-                    
-                    // Update visual position immediately
-                    if (polylineRef.current) {
-                      // Simply update the icon offset - this works in whole route view
-                      const icons = polylineRef.current.get('icons');
-                      if (icons && icons.length > 0) {
-                        icons[0].offset = newProgress + '%';
-                        polylineRef.current.set('icons', icons);
-                      }
-                      
-                      // In Follow mode, center camera on the new symbol position
-                      if (zoomLevelRef.current === 'follow' && pathRef.current && pathRef.current.length > 0) {
-                        const path = pathRef.current;
-                        
-                        // Calculate exact position along the path based on progress
-                        let totalDistance = 0;
-                        const distances = [];
-                        
-                        // Calculate segment distances
-                        for (let i = 0; i < path.length - 1; i++) {
-                          const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
-                            path[i], 
-                            path[i + 1]
-                          );
-                          distances.push(dist);
-                          totalDistance += dist;
-                        }
-                        
-                        // Find the target distance along the path
-                        const targetDistance = totalDistance * (newProgress / 100);
-                        let accumulatedDistance = 0;
-                        
-                        // Find which segment we're on and interpolate position
-                        for (let i = 0; i < distances.length; i++) {
-                          if (accumulatedDistance + distances[i] >= targetDistance) {
-                            // We're on this segment
-                            const segmentProgress = (targetDistance - accumulatedDistance) / distances[i];
-                            
-                            // Interpolate position on this segment
-                            const symbolPosition = window.google.maps.geometry.spherical.interpolate(
-                              path[i],
-                              path[i + 1],
-                              segmentProgress
-                            );
-                            
-                            // Use setCenter for immediate positioning
-                            map.setCenter(symbolPosition);
-                            
-                            // Don't change zoom - let user control it
-                            
-                            break;
-                          }
-                          accumulatedDistance += distances[i];
-                        }
-                      } else if (zoomLevelRef.current !== 'follow') {
-                        // In whole route view, just pan to show the new position
-                        if (pathRef.current && pathRef.current.length > 0) {
-                          const path = pathRef.current;
-                          const index = Math.floor((newProgress / 100) * (path.length - 1));
-                          if (index < path.length && path[index]) {
-                            map.panTo(path[index]);
-                          }
-                        }
-                      }
-                    }
-                    
-                    // Pause if playing
-                    if (isAnimating && !isPaused) {
-                      pauseAnimation();
-                    }
-                  }}
-                  className="timeline-slider"
-                />
-                <div className="timeline-labels">
-                  <span>0%</span>
-                  <span>{Math.round(animationProgress)}%</span>
-                  <span>100%</span>
-                </div>
-              </div>
-            </div>
+            <TimelineScrubber
+              animationProgress={animationProgress}
+              onChange={handleTimelineChange}
+              isMobile={false}
+              showLabel={true}
+            />
             
           </div>
         </div>

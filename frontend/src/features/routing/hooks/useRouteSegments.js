@@ -38,26 +38,11 @@ export const useRouteSegments = (locations, legModes, customDrawEnabled, lockedS
 
   // DERIVED STATE: Compute UI-friendly data from routeSegments
   // These are the values the UI will use for rendering
+  // UI locations should directly reflect the locations array
+  // This way inserted null locations show up immediately
   const uiLocations = useMemo(() => {
-    if (!routeSegments || routeSegments.length === 0) {
-      return [null, null];
-    }
-
-    const locs = [];
-    routeSegments.forEach((seg, i) => {
-      if (!seg) return; // Skip null/undefined segments
-      if (i === 0) {
-        locs.push(seg.startLocation);
-      }
-      locs.push(seg.endLocation);
-    });
-
-    while (locs.length < 2) {
-      locs.push(null);
-    }
-
-    return locs;
-  }, [routeSegments]);
+    return locations.length >= 2 ? locations : [null, null];
+  }, [locations]);
 
   const uiModes = useMemo(() => {
     if (!routeSegments || routeSegments.length === 0) {

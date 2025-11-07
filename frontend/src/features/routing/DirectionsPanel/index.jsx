@@ -9,7 +9,7 @@ import { SaveRouteModal } from '../../saved-routes/SaveRouteModal';
 import { SavedRoutesModal } from '../../saved-routes/SavedRoutesModal';
 import CustomRouteDrawer from '../../map/GoogleMap/components/CustomRouteDrawer';
 import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConstants';
-import { useRouteSegments, useDragAndDrop, useRouteActions } from '../hooks';
+import { useRouteSegments, useRouteActions } from '../hooks';
 import ActionButtons from './components/ActionButtons';
 import '../../../styles/unified-icons.css';
 
@@ -333,30 +333,39 @@ const DirectionsPanel = ({
 
 
   // ============================================================================
-  // DRAG AND DROP - Use custom hook
+  // INSERT LOCATION - Simple insert between existing locations
   // ============================================================================
 
-  const {
-    draggedIndex,
-    dragOverIndex,
-    handleDragStart,
-    handleDragOver,
-    handleDrop,
-    handleDragEnd
-  } = useDragAndDrop({
-    locations,
-    legModes,
-    customDrawEnabled,
-    lockedSegments,
-    setLocations,
-    setLegModes,
-    setCustomDrawEnabled,
-    setLockedSegments,
-    onLocationsChange,
-    onLegModesChange,
-    onDirectionsCalculated,
-    buildSegments
-  });
+  const insertLocationAt = useCallback((index) => {
+    const newLocations = [...locations];
+    newLocations.splice(index, 0, null); // Insert empty location
+
+    const newLegModes = [...legModes];
+    // Insert default mode at the previous index (or 'walk' if inserting at start)
+    const defaultMode = index > 0 ? legModes[index - 1] : 'walk';
+    newLegModes.splice(index, 0, defaultMode);
+
+    const newCustomDraw = [...customDrawEnabled];
+    newCustomDraw.splice(index, 0, false);
+
+    const newLockedSegments = [...lockedSegments];
+    newLockedSegments.splice(index, 0, false);
+
+    setLocations(newLocations);
+    setLegModes(newLegModes);
+    setCustomDrawEnabled(newCustomDraw);
+    setLockedSegments(newLockedSegments);
+
+    if (onLocationsChange) {
+      onLocationsChange(newLocations, 'ADD_WAYPOINT');
+    }
+    if (onLegModesChange) {
+      onLegModesChange(newLegModes);
+    }
+
+    // Set active input to the newly inserted location
+    setActiveInput(index);
+  }, [locations, legModes, customDrawEnabled, lockedSegments, setLocations, setLegModes, setCustomDrawEnabled, setLockedSegments, onLocationsChange, onLegModesChange]);
 
   // removeLocation and handleReset are now provided by useRouteActions hook
 
@@ -526,33 +535,10 @@ const DirectionsPanel = ({
         <div className="route-inputs">
           {/* Display all locations in sequence - NOW USING uiLocations from routeSegments! */}
           {uiLocations.map((location, index) => (
-            <div
-              key={index}
-              draggable={location !== null}
-              onDragStart={(e) => location && handleDragStart(e, index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDrop={(e) => handleDrop(e, index)}
-              onDragEnd={handleDragEnd}
-              style={{
-                opacity: draggedIndex === index ? 0.5 : 1,
-                border: dragOverIndex === index ? '2px dashed #3b82f6' : 'none',
-                borderRadius: '4px',
-                transition: 'all 0.2s'
-              }}
-            >
+            <React.Fragment key={index}>
+
+              <div>
               <div className={`input-group ${!location && index === uiLocations.findIndex(l => !l) ? 'awaiting-click' : ''} ${activeInput === index ? 'awaiting-input' : ''}`}>
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Location {getLocationLabel(index)}</span>
-                  {location && (
-                    <span style={{
-                      cursor: 'grab',
-                      fontSize: '18px',
-                      opacity: 0.6,
-                      padding: '0 4px',
-                      userSelect: 'none'
-                    }}>☰</span>
-                  )}
-                </label>
                 {!location ? (
                   <LocationSearch
                     onLocationSelect={(loc) => {
@@ -627,20 +613,18 @@ const DirectionsPanel = ({
                     style={{ cursor: 'pointer' }}
                   >
                     <span>📍 {location.name || location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}</span>
-                    {locations.filter(loc => loc !== null).length > 2 && (
-                      <button
-                        className="remove-location-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeLocation(index);
-                        }}
-                        title="Remove location"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      </button>
-                    )}
+                    <button
+                      className="remove-location-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeLocation(index);
+                      }}
+                      title="Remove location"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
                   </div>
                 )}
               </div>
@@ -648,7 +632,6 @@ const DirectionsPanel = ({
               {/* Show transportation mode selector between locations */}
               {index < uiLocations.length - 1 && (
                 <div className="leg-mode-selector">
-                  <label>{getLocationLabel(index)} → {getLocationLabel(index + 1)} Transportation:</label>
                   <div className="mode-buttons compact">
                     {Object.entries(transportationModes).filter(([mode]) => mode !== 'custom').map(([mode, config]) => {
                       const modeLabels = {
@@ -713,10 +696,67 @@ const DirectionsPanel = ({
               )}
 
             </div>
+
+              {/* Insert button with dotted line connector */}
+              {index < uiLocations.length - 1 && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  margin: '2px 0'
+                }}>
+                  {/* Dotted line above */}
+                  <div style={{
+                    width: '1px',
+                    height: '8px',
+                    borderLeft: '1px dashed #cbd5e1'
+                  }} />
+
+                  {/* Insert button */}
+                  <button
+                    onClick={() => insertLocationAt(index + 1)}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      border: '1.5px solid #cbd5e1',
+                      background: 'white',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                      padding: 0
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.background = '#eff6ff';
+                      e.target.style.color = '#3b82f6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.background = 'white';
+                      e.target.style.color = '#64748b';
+                    }}
+                  >
+                    +
+                  </button>
+
+                  {/* Dotted line below */}
+                  <div style={{
+                    width: '1px',
+                    height: '8px',
+                    borderLeft: '1px dashed #cbd5e1'
+                  }} />
+                </div>
+              )}
+            </React.Fragment>
           ))}
 
-          {/* Drop zone for end position (after last location) */}
-          {draggedIndex !== null && (
+          {/* Old drop zone removed - using insert buttons instead */}
+          {false && (
             <div
               onDragOver={(e) => handleDragOver(e, uiLocations.length)}
               onDrop={(e) => handleDrop(e, uiLocations.length)}
@@ -738,17 +778,43 @@ const DirectionsPanel = ({
             </div>
           )}
 
-          {/* Add Next Leg Button */}
-          <button
-            className="add-stop-button"
-            onClick={(e) => {
-              e.preventDefault();
-              addNextLegToSegments(); // NOW USING NEW FUNCTION!
-            }}
-            type="button"
-          >
-            <span>➕ Add Next Location ({getLocationLabel(uiLocations.length)})</span>
-          </button>
+          {/* Add Next Location Button - Simple + button */}
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                addNextLegToSegments();
+              }}
+              type="button"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                border: '2px solid #cbd5e1',
+                background: 'white',
+                color: '#64748b',
+                cursor: 'pointer',
+                fontSize: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                padding: 0
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#3b82f6';
+                e.target.style.background = '#eff6ff';
+                e.target.style.color = '#3b82f6';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#cbd5e1';
+                e.target.style.background = 'white';
+                e.target.style.color = '#64748b';
+              }}
+            >
+              +
+            </button>
+          </div>
 
 
         </div>

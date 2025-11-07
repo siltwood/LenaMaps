@@ -150,8 +150,8 @@ export const useRouteActions = ({
    * Remove a location from the route
    */
   const removeLocation = useCallback((index) => {
-    // Allow removing any location now, but keep at least 2 locations total
-    if (locations.filter(loc => loc !== null).length <= 2) {
+    // Keep at least 2 locations total (can be null or filled)
+    if (locations.length <= 2) {
       return; // Can't remove if only 2 locations left
     }
 
