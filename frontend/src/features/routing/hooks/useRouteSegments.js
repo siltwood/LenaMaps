@@ -41,7 +41,12 @@ export const useRouteSegments = (locations, legModes, customDrawEnabled, lockedS
   // UI locations should directly reflect the locations array
   // This way inserted null locations show up immediately
   const uiLocations = useMemo(() => {
-    return locations.length >= 2 ? locations : [null, null];
+    // If we have no locations at all, show empty starting state
+    if (locations.length === 0) {
+      return [null, null];
+    }
+    // Otherwise show exactly what we have
+    return locations;
   }, [locations]);
 
   const uiModes = useMemo(() => {
