@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import LocationSearch from '../../Shared/LocationSearch';
+import LocationSearch from '../../location-search/LocationSearch';
 import DirectionsHeader from './DirectionsHeader';
 import { getLocationLabel } from '../../../utils/routeCalculations';
 import TRANSPORTATION_MODES from '../../../constants/transportationModes';
 import { generateShareableURL, copyToClipboard } from '../../../utils/shareUtils';
 import { saveRoute } from '../../../utils/savedRoutesUtils';
-import { SaveRouteModal } from '../../SaveRouteModal';
-import { SavedRoutesModal } from '../../SavedRoutesModal';
-import CustomRouteDrawer from '../../Shared/GoogleMap/components/CustomRouteDrawer';
+import { SaveRouteModal } from '../../saved-routes/SaveRouteModal';
+import { SavedRoutesModal } from '../../saved-routes/SavedRoutesModal';
+import CustomRouteDrawer from '../../map/GoogleMap/components/CustomRouteDrawer';
 import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConstants';
 import '../../../styles/unified-icons.css';
 
@@ -46,8 +46,7 @@ const DirectionsPanel = ({
   const [locations, setLocations] = useState(propsLocations);
   const [legModes, setLegModes] = useState(propsLegModes);
   const [customDrawEnabled, setCustomDrawEnabled] = useState([]);
-  const [snapToRoads, setSnapToRoads] = useState([]);
-  const [customPoints, setCustomPoints] = useState({});
+  // Removed: snapToRoads, customPoints (draw mode now = simple straight line)
   const [lockedSegments, setLockedSegments] = useState([]);
 
   const prevClickedLocationRef = useRef(null);
@@ -74,14 +73,13 @@ const DirectionsPanel = ({
   // ROUTE SEGMENTS - ALWAYS BUILT FROM STATE
   // ============================================================================
 
-  // SIMPLE FIX: Always rebuild routeSegments from parent props (locations, legModes, etc)
-  // This ensures they're ALWAYS in sync, no complex state management needed
+  // Build route segments from state
+  // Draw mode is now simple: customDrawEnabled = straight line between two points
   const routeSegments = React.useMemo(() => {
     const segments = [];
     for (let i = 0; i < locations.length - 1; i++) {
-      // Skip ONLY if both locations are null AND custom draw is NOT enabled
-      // If draw mode is enabled, we need the segment to exist even without locations
-      if (locations[i] === null && locations[i + 1] === null && !customDrawEnabled[i]) {
+      // Skip if both locations are null
+      if (locations[i] === null && locations[i + 1] === null) {
         continue;
       }
       const seg = {
@@ -89,16 +87,14 @@ const DirectionsPanel = ({
         startLocation: locations[i],
         endLocation: locations[i + 1],
         mode: legModes[i] || 'walk',
-        // CRITICAL FIX: Only mark as custom if draw mode is enabled AND we have at least 2 points (need 2 to draw a line)
-        isCustom: customDrawEnabled[i] === true && customPoints[i] && customPoints[i].length >= 2,
-        isLocked: lockedSegments[i] === true,
-        snapToRoads: snapToRoads[i] === true,
-        customPoints: customPoints[i] || []
+        // Draw mode = straight line if enabled AND both locations exist
+        isCustom: customDrawEnabled[i] === true && locations[i] !== null && locations[i + 1] !== null,
+        isLocked: lockedSegments[i] === true
       };
       segments.push(seg);
     }
     return segments;
-  }, [locations, legModes, customDrawEnabled, lockedSegments, snapToRoads, customPoints]);
+  }, [locations, legModes, customDrawEnabled, lockedSegments]);
 
   // DERIVED STATE: Compute UI-friendly data from routeSegments
   // These are the values the UI will use for rendering
@@ -146,20 +142,9 @@ const DirectionsPanel = ({
         mode: seg.mode || 'walk',
         startIndex: i,
         endIndex: i + 1,
-        // CRITICAL FIX: Only mark as custom if we have at least 2 points (need 2 to draw a line)
-        isCustom: (seg.isCustom && seg.customPoints && seg.customPoints.length >= 2) || false
+        // Draw mode = straight line (no custom waypoints)
+        isCustom: seg.isCustom || false
       };
-
-      // Add custom path if this is a custom segment with at least 2 points
-      if (seg.isCustom && seg.customPoints && seg.customPoints.length >= 2) {
-        const pathPoints = [];
-        // For segments after the first, include the start location
-        if (i > 0 && seg.startLocation) {
-          pathPoints.push(seg.startLocation);
-        }
-        pathPoints.push(...seg.customPoints);
-        segment.customPath = pathPoints;
-      }
 
       return segment;
     }).filter(Boolean); // Remove null segments
@@ -201,17 +186,12 @@ const DirectionsPanel = ({
     const newLocations = [...locations, null];
     const newModes = [...legModes, 'walk'];
 
-    // CRITICAL: Also extend the custom draw arrays to match the new segment count
-    // Without this, the custom segment data gets lost or misaligned
+    // Extend segment property arrays to match new segment count
     const newCustomDrawEnabled = [...(customDrawEnabled || []), false];
-    const newSnapToRoads = [...(snapToRoads || []), false];
-    // Note: customPoints is an object, not an array, so we don't extend it
 
     setLocations(newLocations);
     setLegModes(newModes);
     setCustomDrawEnabled(newCustomDrawEnabled);
-    setSnapToRoads(newSnapToRoads);
-    // customPoints doesn't need to be updated - new segments just won't have entries yet
 
     // Notify parent via deprecated callbacks (will be removed later)
     if (onLocationsChange) {
@@ -220,7 +200,7 @@ const DirectionsPanel = ({
     if (onLegModesChange) {
       onLegModesChange(newModes);
     }
-  }, [locations, customDrawEnabled, lockedSegments, legModes, snapToRoads, onLocationsChange, onLegModesChange, onLocationUsed]);
+  }, [locations, customDrawEnabled, lockedSegments, legModes, onLocationsChange, onLegModesChange, onLocationUsed]);
 
   /**
    * Update the mode for a specific segment
@@ -250,142 +230,26 @@ const DirectionsPanel = ({
         segments,
         allLocations: filledLocations,
         allModes: newModes,
-        customPaths: customPoints,
         routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + newModes.join('-')
       };
       onDirectionsCalculated(routeData);
     }
-  }, [legModes, onLegModesChange, locations, onDirectionsCalculated, buildSegments, customPoints]);
+  }, [legModes, onLegModesChange, locations, onDirectionsCalculated, buildSegments]);
 
   /**
    * Toggle custom drawing for a segment
-   * If enabling and both locations exist, initialize straight line
+   * Draw mode = simple straight line between two points
    */
   const toggleSegmentDrawMode = useCallback((segmentIndex) => {
-
-    // No undo save - this is a UI toggle. Actual map changes (adding points) will be undoable.
-
     setCustomDrawEnabled(prev => {
       const newArr = [...prev];
-      const newIsCustom = !newArr[segmentIndex];
-      newArr[segmentIndex] = newIsCustom;
-
-
-      // If enabling draw mode and both locations exist, create straight line
-      if (newIsCustom && locations[segmentIndex] && locations[segmentIndex + 1]) {
-        setCustomPoints(prevPoints => ({
-          ...prevPoints,
-          [segmentIndex]: [
-            { lat: locations[segmentIndex].lat, lng: locations[segmentIndex].lng },
-            { lat: locations[segmentIndex + 1].lat, lng: locations[segmentIndex + 1].lng }
-          ]
-        }));
-      } else if (newIsCustom && locations[segmentIndex]) {
-        // Only start location exists - initialize with that point
-        setCustomPoints(prevPoints => ({
-          ...prevPoints,
-          [segmentIndex]: [
-            { lat: locations[segmentIndex].lat, lng: locations[segmentIndex].lng }
-          ]
-        }));
-      } else if (newIsCustom) {
-        // Initialize empty customPoints for this segment
-        setCustomPoints(prevPoints => ({
-          ...prevPoints,
-          [segmentIndex]: []
-        }));
-      }
-
-      // If disabling draw mode, clear custom points (but keep the end location)
-      if (!newIsCustom) {
-        setCustomPoints(prevPoints => {
-          const newPoints = { ...prevPoints };
-          delete newPoints[segmentIndex];
-          return newPoints;
-        });
-      }
-
+      newArr[segmentIndex] = !newArr[segmentIndex];
       return newArr;
-    });
-  }, [locations]);
-
-  /**
-   * Add a point to a segment's custom route
-   * Note: Does not save to undo - caller should save before calling this
-   */
-  const addPointToSegment = useCallback((segmentIndex, point) => {
-    setCustomPoints(prev => {
-      const newPoints = {
-        ...prev,
-        [segmentIndex]: [...(prev[segmentIndex] || []), point]
-      };
-      return newPoints;
     });
   }, []);
 
-  /**
-   * Undo last point from a segment's custom route
-   * NOTE: This is the old per-point undo, NOT the new full-state undo
-   * TODO: Remove this once main undo button works
-   */
-  const undoPointFromSegment = useCallback((segmentIndex) => {
-
-    const points = customPoints[segmentIndex] || [];
-    if (points.length === 0) return;
-
-    const newPoints = points.slice(0, -1);
-
-    // Update customPoints
-    if (newPoints.length < 2) {
-      // Less than 2 points - remove and disable custom draw (can't draw a line with < 2 points)
-      setCustomPoints(prev => {
-        const updated = { ...prev };
-        delete updated[segmentIndex];
-        return updated;
-      });
-
-      // CRITICAL FIX: Also disable custom draw mode when less than 2 points
-      setCustomDrawEnabled(prev => {
-        const newEnabled = [...prev];
-        newEnabled[segmentIndex] = false;
-        return newEnabled;
-      });
-    } else {
-      setCustomPoints(prev => ({
-        ...prev,
-        [segmentIndex]: newPoints
-      }));
-    }
-
-    // Update location B to match the new last point
-    const newLocations = [...locations];
-    if (newPoints.length >= 2) {
-      // 2+ points left - update B to the new last point
-      const newEndPoint = newPoints[newPoints.length - 1];
-      newLocations[segmentIndex + 1] = {
-        lat: newEndPoint.lat,
-        lng: newEndPoint.lng
-      };
-
-      setLocations(newLocations);
-
-      // Notify parent via deprecated callback
-      if (onLocationsChange) {
-        onLocationsChange(newLocations, 'UNDO_POINT');
-      }
-    } else {
-      // Less than 2 points - clear both locations to fully reset the segment
-      newLocations[segmentIndex] = null;
-      newLocations[segmentIndex + 1] = null;
-
-      setLocations(newLocations);
-
-      // Notify parent via deprecated callback
-      if (onLocationsChange) {
-        onLocationsChange(newLocations, 'CLEAR_LOCATION');
-      }
-    }
-  }, [locations, customPoints, onLocationsChange, customDrawEnabled]);
+  // REMOVED: addPointToSegment, undoPointFromSegment
+  // Draw mode now = simple straight line, no waypoint management needed
 
   /**
    * Update location
@@ -411,9 +275,9 @@ const DirectionsPanel = ({
     if (filledLocations.length >= 2 && onDirectionsCalculated) {
       const segments = buildSegments(filledLocations);
 
-      // Create stable routeId based on segment data (locations + modes + custom state + custom points)
+      // Create stable routeId based on segment data (locations + modes + custom state)
       const routeId = routeSegments.map(s =>
-        `${s.id}-${s.startLocation?.lat}-${s.startLocation?.lng}-${s.endLocation?.lat}-${s.endLocation?.lng}-${s.mode}-${s.isCustom}-${s.customPoints?.length || 0}`
+        `${s.id}-${s.startLocation?.lat}-${s.startLocation?.lng}-${s.endLocation?.lat}-${s.endLocation?.lng}-${s.mode}-${s.isCustom}`
       ).join('|');
 
       // Only call onDirectionsCalculated if the route actually changed
@@ -428,7 +292,6 @@ const DirectionsPanel = ({
           segments,
           allLocations: uiLocations,
           allModes: uiModes,
-          customPaths: customPoints, // Still using customPoints for now
           routeId: `${Date.now()}-${routeSegments.map(s => s.id).join('-')}` // Add timestamp for uniqueness in RouteSegmentManager
         };
         onDirectionsCalculated(routeData);
@@ -445,8 +308,7 @@ const DirectionsPanel = ({
           segments: [],
           allLocations: uiLocations,
           allModes: uiModes,
-          customPaths: customPoints,
-          routeId: `single-${Date.now()}`,
+            routeId: `single-${Date.now()}`,
           singleLocationDrawMode: true
         };
         lastRouteIdRef.current = 'single';
@@ -461,7 +323,7 @@ const DirectionsPanel = ({
         onDirectionsCalculated(null);
       }
     }
-  }, [routeSegments, uiLocations, uiModes, buildSegments, onDirectionsCalculated, customPoints]);
+  }, [routeSegments, uiLocations, uiModes, buildSegments, onDirectionsCalculated]);
 
   // HELPERS: Derive data from routeSegments for UI rendering
 
@@ -649,88 +511,33 @@ const DirectionsPanel = ({
     const [draggedLocation] = newLocations.splice(draggedIndex, 1);
     newLocations.splice(dropIndex, 0, draggedLocation);
 
-    // Reorder leg modes (modes connect locations, so we need to adjust them too)
-    const newModes = [...legModes];
-    if (draggedIndex > 0) {
-      // Move the mode that leads TO the dragged location
-      const [draggedMode] = newModes.splice(draggedIndex - 1, 1);
-      newModes.splice(dropIndex > 0 ? dropIndex - 1 : 0, 0, draggedMode);
-    }
-
-    // Reorder custom draw arrays
+    // Reorder segment properties using same splice logic
     const newCustomDrawEnabled = [...customDrawEnabled];
-    const newSnapToRoads = [...snapToRoads];
     const newLockedSegments = [...lockedSegments];
-    const newCustomPoints = { ...customPoints };
+    const newModes = [...legModes];
 
-    if (draggedIndex > 0 && customDrawEnabled.length > 0) {
-      const [draggedCustomDraw] = newCustomDrawEnabled.splice(draggedIndex - 1, 1);
-      newCustomDrawEnabled.splice(dropIndex > 0 ? dropIndex - 1 : 0, 0, draggedCustomDraw);
-    }
+    // Handle segment reordering
+    // When dragging from index 0, there's no "incoming" segment to move
+    if (draggedIndex > 0) {
+      // Extract the segment that was "leading to" the dragged location
+      const sourceSegmentIndex = draggedIndex - 1;
+      const targetSegmentIndex = dropIndex > 0 ? dropIndex - 1 : 0;
 
-    if (draggedIndex > 0 && snapToRoads.length > 0) {
-      const [draggedSnap] = newSnapToRoads.splice(draggedIndex - 1, 1);
-      newSnapToRoads.splice(dropIndex > 0 ? dropIndex - 1 : 0, 0, draggedSnap);
-    }
+      // Move segment properties
+      const [movedDraw] = newCustomDrawEnabled.splice(sourceSegmentIndex, 1);
+      newCustomDrawEnabled.splice(targetSegmentIndex, 0, movedDraw);
 
-    if (draggedIndex > 0 && lockedSegments.length > 0) {
-      const [draggedLocked] = newLockedSegments.splice(draggedIndex - 1, 1);
-      newLockedSegments.splice(dropIndex > 0 ? dropIndex - 1 : 0, 0, draggedLocked);
-    }
+      const [movedLock] = newLockedSegments.splice(sourceSegmentIndex, 1);
+      newLockedSegments.splice(targetSegmentIndex, 0, movedLock);
 
-    // Properly reindex all customPoints after drag-and-drop
-    // We need to map old indices to new indices
-    if (draggedIndex !== dropIndex && Object.keys(customPoints).length > 0) {
-      const oldSegmentIndex = draggedIndex > 0 ? draggedIndex - 1 : -1;
-      const newSegmentIndex = dropIndex > 0 ? dropIndex - 1 : -1;
-
-      // Create a mapping of old index → new index
-      const indexMapping = {};
-      for (let i = 0; i < locations.length - 1; i++) {
-        if (i < Math.min(oldSegmentIndex, newSegmentIndex)) {
-          // Before the drag range - stays the same
-          indexMapping[i] = i;
-        } else if (i > Math.max(oldSegmentIndex, newSegmentIndex)) {
-          // After the drag range - stays the same
-          indexMapping[i] = i;
-        } else if (oldSegmentIndex < newSegmentIndex) {
-          // Dragging down - segments shift up
-          if (i === oldSegmentIndex) {
-            indexMapping[i] = newSegmentIndex;
-          } else {
-            indexMapping[i] = i - 1;
-          }
-        } else {
-          // Dragging up - segments shift down
-          if (i === oldSegmentIndex) {
-            indexMapping[i] = newSegmentIndex;
-          } else {
-            indexMapping[i] = i + 1;
-          }
-        }
-      }
-
-      // Apply the mapping to customPoints
-      const reindexedCustomPoints = {};
-      Object.keys(customPoints).forEach(key => {
-        const oldIdx = parseInt(key);
-        const newIdx = indexMapping[oldIdx];
-        if (newIdx !== undefined) {
-          reindexedCustomPoints[newIdx] = customPoints[oldIdx];
-        }
-      });
-
-      setCustomPoints(reindexedCustomPoints);
-    } else {
-      setCustomPoints(newCustomPoints);
+      const [movedMode] = newModes.splice(sourceSegmentIndex, 1);
+      newModes.splice(targetSegmentIndex, 0, movedMode);
     }
 
     setLocations(newLocations);
     setLegModes(newModes);
     setCustomDrawEnabled(newCustomDrawEnabled);
-    setSnapToRoads(newSnapToRoads);
     setLockedSegments(newLockedSegments);
-    setCustomPoints(newCustomPoints);
 
     // Notify parent
     if (onLocationsChange) {
@@ -740,7 +547,7 @@ const DirectionsPanel = ({
       onLegModesChange(newModes);
     }
 
-    // Recalculate route
+    // Recalculate route with new order
     const filledLocations = newLocations.filter(loc => loc !== null);
     if (filledLocations.length >= 2) {
       const segments = buildSegments(filledLocations);
@@ -752,7 +559,6 @@ const DirectionsPanel = ({
         segments,
         allLocations: filledLocations,
         allModes: newModes,
-        customPaths: newCustomPoints,
         routeId: `reorder_${Date.now()}`
       };
       onDirectionsCalculated(routeData);
@@ -779,45 +585,21 @@ const DirectionsPanel = ({
       newModes.splice(0, 1); // If removing first location, remove first leg mode
     }
 
-    // Also update custom draw arrays
+    // Also update segment property arrays
     const newCustomDrawEnabled = [...customDrawEnabled];
-    const newSnapToRoads = [...snapToRoads];
     const newLockedSegments = [...lockedSegments];
-    const newCustomPoints = { ...customPoints };
 
     // Determine which segment index to remove
     const segmentIndexToRemove = index > 0 ? index - 1 : 0;
 
     // Remove the segment data
     newCustomDrawEnabled.splice(segmentIndexToRemove, 1);
-    newSnapToRoads.splice(segmentIndexToRemove, 1);
     newLockedSegments.splice(segmentIndexToRemove, 1);
-
-    // Reindex customPoints - shift all indices after the removed one down by 1
-    const reindexedCustomPoints = {};
-    Object.keys(newCustomPoints).forEach(key => {
-      const idx = parseInt(key);
-      if (idx < segmentIndexToRemove) {
-        // Keep indices before the removed segment
-        reindexedCustomPoints[idx] = newCustomPoints[idx];
-      } else if (idx > segmentIndexToRemove) {
-        // Shift indices after the removed segment down by 1
-        reindexedCustomPoints[idx - 1] = newCustomPoints[idx];
-      }
-      // Skip idx === segmentIndexToRemove (the removed segment)
-    });
-
-    // Clear dragged segments since the route structure has changed
-    if (window.draggedSegments) {
-      window.draggedSegments = {};
-    }
 
     setLocations(newLocations);
     setLegModes(newModes);
     setCustomDrawEnabled(newCustomDrawEnabled);
-    setSnapToRoads(newSnapToRoads);
     setLockedSegments(newLockedSegments);
-    setCustomPoints(reindexedCustomPoints);
 
     // Notify parent via deprecated callbacks (will be removed later)
     if (onLocationsChange) {
@@ -839,7 +621,6 @@ const DirectionsPanel = ({
         segments,
         allLocations: filledLocations,
         allModes: newModes,
-        customPaths: newCustomPoints,
         routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + newModes.join('-')
       };
       onDirectionsCalculated(routeData);
@@ -854,8 +635,6 @@ const DirectionsPanel = ({
     setLocations([null, null]);
     setLegModes(['walk']);
     setCustomDrawEnabled([]);
-    setSnapToRoads([]);
-    setCustomPoints({});
     setLockedSegments([]);
 
     // Notify parent via deprecated callbacks (will be removed later)
@@ -898,8 +677,6 @@ const DirectionsPanel = ({
 
     // Restore custom drawing state with backward compatibility
     setCustomDrawEnabled(route.customDrawEnabled || []);
-    setCustomPoints(route.customPoints || {});
-    setSnapToRoads(route.snapToRoads || []);
     setLockedSegments(route.lockedSegments || []);
 
     // Notify parent via deprecated callbacks (will be removed later)
@@ -922,7 +699,6 @@ const DirectionsPanel = ({
           segments,
           allLocations: route.locations,
           allModes: route.modes,
-          customPaths: route.customPoints || {},
           routeId: `loaded_${Date.now()}`
         };
 
@@ -947,90 +723,20 @@ const DirectionsPanel = ({
     }
   };
 
-  // NEW: Handle point added using routeSegments
-  const handlePointAdded = (pointData) => {
-    const { segmentIndex, point } = pointData;
-
-    // Add the point
-    addPointToSegment(segmentIndex, point);
-  };
-
-  const handleUndoPoint = (segmentIndex) => {
-    const segmentPoints = customPoints[segmentIndex] || [];
-    if (segmentPoints.length === 0) return;
-
-    // Remove the last point
-    const newSegmentPoints = segmentPoints.slice(0, -1);
-
-    // Update customPoints
-    if (newSegmentPoints.length < 2) {
-      // Less than 2 points - remove the key AND disable custom draw (can't draw a line with < 2 points)
-      setCustomPoints(prev => {
-        const newPoints = { ...prev };
-        delete newPoints[segmentIndex];
-        return newPoints;
-      });
-
-      // CRITICAL FIX: Also disable custom draw mode when less than 2 points
-      setCustomDrawEnabled(prev => {
-        const newEnabled = [...prev];
-        newEnabled[segmentIndex] = false;
-        return newEnabled;
-      });
-    } else {
-      setCustomPoints(prev => ({
-        ...prev,
-        [segmentIndex]: newSegmentPoints
-      }));
-    }
-
-    // Update the end location marker to follow the undo
-    const newLocations = [...locations];
-    if (newSegmentPoints.length >= 2) {
-      // 2+ points - move end marker to the new last point
-      const newEndPoint = newSegmentPoints[newSegmentPoints.length - 1];
-      newLocations[segmentIndex + 1] = {
-        lat: newEndPoint.lat,
-        lng: newEndPoint.lng
-      };
-
-      setLocations(newLocations);
-
-      // Notify parent via deprecated callback
-      if (onLocationsChange) {
-        onLocationsChange(newLocations, 'UNDO_POINT');
-      }
-    } else {
-      // Less than 2 points - clear both locations to fully reset the segment
-      newLocations[segmentIndex] = null;
-      newLocations[segmentIndex + 1] = null;
-
-      setLocations(newLocations);
-
-      // Notify parent via deprecated callback
-      if (onLocationsChange) {
-        onLocationsChange(newLocations, 'CLEAR_LOCATION');
-      }
-    }
-  };
+  // STUBS: No longer needed for simple straight line draw mode
+  const handlePointAdded = () => {}; // Draw mode = straight line, no waypoints to add
+  const handleUndoPoint = () => {}; // No waypoints to undo
 
   const handleSetLocations = (segmentIndex, startPoint, endPoint) => {
     // Auto-set locations from the drawn points
     const newLocations = [...locations];
 
-    // If startPoint is null, keep existing start location (for continuous drawing)
+    // Set both locations (simple draw mode)
     if (startPoint !== null) {
       newLocations[segmentIndex] = startPoint;
     }
-
-    // Only update end location if we have at least 2 points
-    // This prevents invalid state where we have 1 point and an endLocation
-    const pointCount = customPoints[segmentIndex]?.length || 0;
-    if (pointCount >= 2) {
+    if (endPoint !== null) {
       newLocations[segmentIndex + 1] = endPoint;
-    } else {
-      // Less than 2 points - clear the end location
-      newLocations[segmentIndex + 1] = null;
     }
 
     setLocations(newLocations);
@@ -1426,124 +1132,36 @@ const DirectionsPanel = ({
                     </label>
                   </div>
 
-                  {/* Custom Route Waypoints Display */}
-                  {routeSegments[index]?.isCustom && customPoints[index]?.length > 0 && (
-                    <div style={{
-                      marginTop: '6px',
-                      backgroundColor: '#f9fafb',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '4px',
-                      overflow: 'hidden'
-                    }}>
-                      {/* Collapsible Header */}
-                      <div
-                        onClick={() => {
-                          setExpandedWaypoints(prev => {
-                            if (prev.includes(index)) {
-                              return prev.filter(i => i !== index);
-                            } else {
-                              return [...prev, index];
-                            }
-                          });
-                        }}
-                        style={{
-                          padding: '6px 8px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          transition: 'background-color 0.2s',
-                          backgroundColor: expandedWaypoints.includes(index) ? '#f3f4f6' : 'transparent'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f3f4f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = expandedWaypoints.includes(index) ? '#f3f4f6' : 'transparent';
-                        }}
-                      >
-                        <div style={{
-                          fontSize: FONT_SIZES.xxs,
-                          fontWeight: '600',
-                          color: COLORS.textPrimary,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.3px'
-                        }}>
-                          Custom Route Waypoints ({customPoints[index].length})
-                        </div>
-                        <div style={{
-                          fontSize: FONT_SIZES.sm,
-                          color: COLORS.textPrimary,
-                          transition: 'transform 0.2s',
-                          transform: expandedWaypoints.includes(index) ? 'rotate(180deg)' : 'rotate(0deg)'
-                        }}>
-                          ▼
-                        </div>
-                      </div>
-
-                      {/* Collapsible Content */}
-                      {expandedWaypoints.includes(index) && (
-                        <div style={{
-                          padding: '0 8px 8px 8px',
-                          maxHeight: '120px',
-                          overflowY: 'auto',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '3px'
-                        }}>
-                          {customPoints[index].map((point, wpIndex) => (
-                            <div
-                              key={wpIndex}
-                              onClick={() => {
-                                if (map) {
-                                  map.panTo({ lat: point.lat, lng: point.lng });
-                                  if (map.getZoom() < 15) {
-                                    map.setZoom(15);
-                                  }
-                                }
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: COMPACT_SPACING.sm,
-                                padding: `${COMPACT_SPACING.sm} ${COMPACT_SPACING.md}`,
-                                backgroundColor: COLORS.bgWhite,
-                                border: `1px solid ${COLORS.borderLight}`,
-                                borderRadius: '3px',
-                                fontSize: FONT_SIZES.xxs,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = COLORS.bgGrayLight;
-                                e.currentTarget.style.borderColor = COLORS.borderDark;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = COLORS.bgWhite;
-                                e.currentTarget.style.borderColor = COLORS.borderLight;
-                              }}
-                              title="Click to pan to this waypoint"
-                            >
-                              <span style={{ fontSize: FONT_SIZES.xs }}>📍</span>
-                              <span style={{
-                                flex: 1,
-                                color: COLORS.textPrimary,
-                                fontFamily: 'monospace'
-                              }}>
-                                Point {wpIndex + 1}: {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Waypoint UI removed - draw mode now uses simple straight lines */}
                 </div>
               )}
 
             </div>
           ))}
-          
+
+          {/* Drop zone for end position (after last location) */}
+          {draggedIndex !== null && (
+            <div
+              onDragOver={(e) => handleDragOver(e, uiLocations.length)}
+              onDrop={(e) => handleDrop(e, uiLocations.length)}
+              style={{
+                minHeight: '40px',
+                border: dragOverIndex === uiLocations.length ? '2px dashed #3b82f6' : '2px dashed transparent',
+                borderRadius: '4px',
+                margin: '8px 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: dragOverIndex === uiLocations.length ? '#eff6ff' : 'transparent',
+                transition: 'all 0.2s',
+                fontSize: '12px',
+                color: '#6b7280'
+              }}
+            >
+              {dragOverIndex === uiLocations.length && 'Drop here to move to end'}
+            </div>
+          )}
+
           {/* Add Next Leg Button */}
           <button
             className="add-stop-button"
@@ -1593,14 +1211,10 @@ const DirectionsPanel = ({
         <CustomRouteDrawer
           key={`drawer-${index}`}
           map={map}
-          segmentIndex={index}
-          isEnabled={!lockedSegments[index]}
-          snapToRoads={snapToRoads[index] || false}
+          startLocation={locations[index]}
+          endLocation={locations[index + 1]}
           mode={legModes[index] || 'walk'}
-          onPointAdded={handlePointAdded}
-          onSetLocations={handleSetLocations}
-          previousLocation={index > 0 ? locations[index] : null}
-          points={customPoints[index] || []}
+          isEnabled={customDrawEnabled[index]}
         />
       );
     })}

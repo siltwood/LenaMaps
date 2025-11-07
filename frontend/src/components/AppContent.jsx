@@ -5,9 +5,9 @@ import { MobileControls } from './Mobile';
 import { useMobileDetection } from '../utils/deviceDetection';
 import { hasSharedTrip, loadSharedTrip, clearSharedTripFromURL } from '../utils/shareUtils';
 import { saveRoute } from '../utils/savedRoutesUtils';
-import Modal from './Desktop/RouteAnimator/Modal';
-import { SaveRouteModal } from './SaveRouteModal';
-import { SavedRoutesModal } from './SavedRoutesModal';
+import Modal from '../features/animation/RouteAnimator/Modal';
+import { SaveRouteModal } from '../features/saved-routes/SaveRouteModal';
+import { SavedRoutesModal } from '../features/saved-routes/SavedRoutesModal';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 import { initFingerprint } from '../utils/fingerprint';
 

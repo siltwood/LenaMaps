@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import LocationSearch from '../../Shared/LocationSearch';
+import LocationSearch from '../../location-search/LocationSearch';
 import TRANSPORTATION_MODES from '../../../constants/transportationModes';
-import RouteAnimator from '../../Desktop/RouteAnimator/RouteAnimator';
+import RouteAnimator from '../../animation/RouteAnimator/RouteAnimator';
 import { generateShareableURL, copyToClipboard } from '../../../utils/shareUtils';
 import { saveRoute } from '../../../utils/savedRoutesUtils';
-import { SaveRouteModal } from '../../SaveRouteModal';
-import { SavedRoutesModal } from '../../SavedRoutesModal';
-import CustomRouteDrawer from '../../Shared/GoogleMap/components/CustomRouteDrawer';
+import { SaveRouteModal } from '../../saved-routes/SaveRouteModal';
+import { SavedRoutesModal } from '../../saved-routes/SavedRoutesModal';
+import CustomRouteDrawer from '../../map/GoogleMap/components/CustomRouteDrawer';
 import { useRouteUndo } from '../../../hooks/useRouteUndo';
 import '../../../styles/unified-icons.css';
 import './MobileControls.css';

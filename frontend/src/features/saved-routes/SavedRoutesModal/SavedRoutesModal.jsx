@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  getSavedRoutes, 
-  deleteRoute, 
+import {
+  getSavedRoutes,
+  deleteRoute,
   updateRouteName
-} from '../../utils/savedRoutesUtils';
+} from '../../../utils/savedRoutesUtils';
 import './SavedRoutesModal.css';
 
 function SavedRoutesModal({ isOpen, onClose, onLoadRoute }) {

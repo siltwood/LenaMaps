@@ -11,7 +11,7 @@ import {
   ANIMATION_TIMING,
   MARKER_SCALE
 } from '../../../constants/animationConstants';
-import DragHandle from '../../common/DragHandle';
+import DragHandle from '../../../components/common/DragHandle';
 import Modal from './Modal';
 import { isMobileDevice } from '../../../utils/deviceDetection';
 import '../../../styles/unified-icons.css';

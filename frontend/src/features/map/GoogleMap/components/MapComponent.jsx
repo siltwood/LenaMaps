@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DEFAULT_CENTER, MAP_CONFIG } from '../utils/constants';
 import { createMarkerContent, clearAdvancedMarker } from '../utils/mapHelpers';
 import RouteSegmentManager from './RouteSegmentManager';
-import RouteAnimator from '../../../Desktop/RouteAnimator';
-import AnimatedMarkerBox from '../../../Desktop/RouteAnimator/AnimatedMarkerBox';
+import RouteAnimator from '../../../animation/RouteAnimator';
+import AnimatedMarkerBox from '../../../animation/RouteAnimator/AnimatedMarkerBox';
 import MapErrorBoundary from '../MapErrorBoundary';
 
 const MapComponent = ({

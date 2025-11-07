@@ -809,12 +809,9 @@ const RouteSegmentManager = ({
             // For custom segments, the customPoints and endLocation changing doesn't affect the RouteSegmentManager marker
             // CustomRouteDrawer handles point markers separately
 
-            // IMPORTANT: For custom segments, update the customPath for animation even when reusing
-            if (newIsCustom) {
-              const segmentData = directionsRoute?.segments?.find(seg => seg.startIndex === i);
-              if (segmentData?.customPath) {
-                existingSegment.customPath = segmentData.customPath;
-              }
+            // IMPORTANT: For custom segments, update the straight line path for animation
+            if (newIsCustom && validLocations[i] && validLocations[i + 1]) {
+              existingSegment.customPath = [validLocations[i], validLocations[i + 1]];
             }
 
             newSegments[i] = existingSegment;
@@ -925,8 +922,8 @@ const RouteSegmentManager = ({
               startLocation: segmentOrigin,
               endLocation: segmentDestination,
               isCustom: true,
-              // Include custom path from directionsRoute for animation
-              customPath: segmentData?.customPath || null
+              // Simple straight line for animation
+              customPath: [segmentOrigin, segmentDestination]
             };
 
 
