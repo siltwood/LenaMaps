@@ -9,6 +9,7 @@ import { SaveRouteModal } from '../../saved-routes/SaveRouteModal';
 import { SavedRoutesModal } from '../../saved-routes/SavedRoutesModal';
 import CustomRouteDrawer from '../../map/GoogleMap/components/CustomRouteDrawer';
 import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConstants';
+import { useRouteSegments, useDragAndDrop, useRouteActions } from '../hooks';
 import '../../../styles/unified-icons.css';
 
 const DirectionsPanel = ({
@@ -70,201 +71,51 @@ const DirectionsPanel = ({
   }, [propsLocations, propsLegModes]);
 
   // ============================================================================
-  // ROUTE SEGMENTS - ALWAYS BUILT FROM STATE
+  // ROUTE SEGMENTS - Use custom hook
   // ============================================================================
 
-  // Build route segments from state
-  // Draw mode is now simple: customDrawEnabled = straight line between two points
-  const routeSegments = React.useMemo(() => {
-    const segments = [];
-    for (let i = 0; i < locations.length - 1; i++) {
-      // Skip if both locations are null
-      if (locations[i] === null && locations[i + 1] === null) {
-        continue;
-      }
-      const seg = {
-        id: `seg-${i}`,
-        startLocation: locations[i],
-        endLocation: locations[i + 1],
-        mode: legModes[i] || 'walk',
-        // Draw mode = straight line if enabled AND both locations exist
-        isCustom: customDrawEnabled[i] === true && locations[i] !== null && locations[i + 1] !== null,
-        isLocked: lockedSegments[i] === true
-      };
-      segments.push(seg);
-    }
-    return segments;
-  }, [locations, legModes, customDrawEnabled, lockedSegments]);
-
-  // DERIVED STATE: Compute UI-friendly data from routeSegments
-  // These are the values the UI will use for rendering
-  const uiLocations = React.useMemo(() => {
-    if (!routeSegments || routeSegments.length === 0) {
-      return [null, null];
-    }
-
-    const locs = [];
-    routeSegments.forEach((seg, i) => {
-      if (!seg) return; // Skip null/undefined segments
-      if (i === 0) {
-        locs.push(seg.startLocation);
-      }
-      locs.push(seg.endLocation);
-    });
-
-    while (locs.length < 2) {
-      locs.push(null);
-    }
-
-    return locs;
-  }, [routeSegments]);
-
-  const uiModes = React.useMemo(() => {
-    if (!routeSegments || routeSegments.length === 0) {
-      // Use legModes directly when no route segments (no locations yet)
-      return legModes.length > 0 ? legModes : ['walk'];
-    }
-    const modes = routeSegments.map(seg => seg?.mode || 'walk');
-    return modes;
-  }, [routeSegments, legModes]);
-
-  // NEW: Build segments for map rendering directly from routeSegments
-  // Much simpler than before - just convert our internal structure to map format
-  const buildSegments = useCallback((filledLocations) => {
-    if (!routeSegments || routeSegments.length === 0) {
-      return [];
-    }
-
-    const segments = routeSegments.map((seg, i) => {
-      if (!seg) return null; // Skip null segments
-
-      const segment = {
-        mode: seg.mode || 'walk',
-        startIndex: i,
-        endIndex: i + 1,
-        // Draw mode = straight line (no custom waypoints)
-        isCustom: seg.isCustom || false
-      };
-
-      return segment;
-    }).filter(Boolean); // Remove null segments
-
-    return segments;
-  }, [routeSegments]);
+  const { routeSegments, uiLocations, uiModes, buildSegments } = useRouteSegments(
+    locations,
+    legModes,
+    customDrawEnabled,
+    lockedSegments
+  );
 
   // Generate unique ID for segments
   const generateSegmentId = () => `seg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // ============================================================================
-  // SEGMENT OPERATIONS - Simplified to use parent arrays
+  // ROUTE ACTIONS - Use custom hook
   // ============================================================================
 
-  /**
-   * Add next leg to route (extends with empty segment)
-   */
+  const {
+    addNextLegToSegments: addNextLegAction,
+    updateSegmentMode,
+    toggleSegmentDrawMode,
+    updateLocation,
+    removeLocation,
+    handleReset
+  } = useRouteActions({
+    locations,
+    legModes,
+    customDrawEnabled,
+    lockedSegments,
+    setLocations,
+    setLegModes,
+    setCustomDrawEnabled,
+    setLockedSegments,
+    onLocationsChange,
+    onLegModesChange,
+    onDirectionsCalculated,
+    onLocationUsed,
+    buildSegments
+  });
+
+  // Wrapper to clear active input when adding next leg
   const addNextLegToSegments = useCallback(() => {
-
-    // Clear active input - user is adding a new leg, not editing
-    setActiveInput(null);
-
-    // Lock the last segment if it's in custom draw mode
-    const lastSegmentIndex = locations.length - 2;
-    if (lastSegmentIndex >= 0 && customDrawEnabled[lastSegmentIndex]) {
-      const newLockedSegments = [...lockedSegments];
-      newLockedSegments[lastSegmentIndex] = true;
-      setLockedSegments(newLockedSegments);
-
-      // CRITICAL FIX: Clear the clicked location to prevent it from being reused
-      // When we lock a draw segment, the last clicked point was already used by CustomRouteDrawer
-      // We need to prevent it from being processed again by the clickedLocation effect
-      if (onLocationUsed) {
-        onLocationUsed(); // This clears clickedLocation in parent
-      }
-    }
-
-    // Add new location and mode
-    const newLocations = [...locations, null];
-    const newModes = [...legModes, 'walk'];
-
-    // Extend segment property arrays to match new segment count
-    const newCustomDrawEnabled = [...(customDrawEnabled || []), false];
-
-    setLocations(newLocations);
-    setLegModes(newModes);
-    setCustomDrawEnabled(newCustomDrawEnabled);
-
-    // Notify parent via deprecated callbacks (will be removed later)
-    if (onLocationsChange) {
-      onLocationsChange(newLocations, 'ADD_DESTINATION');
-    }
-    if (onLegModesChange) {
-      onLegModesChange(newModes);
-    }
-  }, [locations, customDrawEnabled, lockedSegments, legModes, onLocationsChange, onLegModesChange, onLocationUsed]);
-
-  /**
-   * Update the mode for a specific segment
-   */
-  const updateSegmentMode = useCallback((segmentIndex, mode) => {
-
-    // Update mode directly (no undo - this is a UI action, not a map change)
-    const newModes = [...legModes];
-    newModes[segmentIndex] = mode;
-
-    setLegModes(newModes);
-
-    // Notify parent via deprecated callback (will be removed later)
-    if (onLegModesChange) {
-      onLegModesChange(newModes, segmentIndex);
-    }
-
-    // Update route for visual feedback
-    const filledLocations = locations.filter(loc => loc !== null);
-    if (filledLocations.length >= 2 && onDirectionsCalculated) {
-      const segments = buildSegments(filledLocations);
-      const routeData = {
-        origin: filledLocations[0],
-        destination: filledLocations[filledLocations.length - 1],
-        waypoints: filledLocations.slice(1, -1),
-        mode: newModes[0],
-        segments,
-        allLocations: filledLocations,
-        allModes: newModes,
-        routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + newModes.join('-')
-      };
-      onDirectionsCalculated(routeData);
-    }
-  }, [legModes, onLegModesChange, locations, onDirectionsCalculated, buildSegments]);
-
-  /**
-   * Toggle custom drawing for a segment
-   * Draw mode = simple straight line between two points
-   */
-  const toggleSegmentDrawMode = useCallback((segmentIndex) => {
-    setCustomDrawEnabled(prev => {
-      const newArr = [...prev];
-      newArr[segmentIndex] = !newArr[segmentIndex];
-      return newArr;
-    });
-  }, []);
-
-  // REMOVED: addPointToSegment, undoPointFromSegment
-  // Draw mode now = simple straight line, no waypoint management needed
-
-  /**
-   * Update location
-   */
-  const updateLocation = useCallback((index, location) => {
-    const newLocations = [...locations];
-    newLocations[index] = location;
-    setLocations(newLocations);
-
-    // Notify parent via deprecated callback (will be removed later)
-    if (onLocationsChange) {
-      const actionType = location ? 'ADD_LOCATION' : 'CLEAR_LOCATION';
-      onLocationsChange(newLocations, actionType);
-    }
-  }, [locations, onLocationsChange]);
+    setActiveInput(null); // Clear active input - user is adding a new leg, not editing
+    addNextLegAction();
+  }, [addNextLegAction]);
 
   // No more sync effects needed - routeSegments is now derived from parent arrays
 
@@ -479,177 +330,32 @@ const DirectionsPanel = ({
   // }, [customDrawEnabled, legModes, onDirectionsCalculated, customPoints, buildSegments]);
 
 
-  // Drag and drop state
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
+  // ============================================================================
+  // DRAG AND DROP - Use custom hook
+  // ============================================================================
 
-  // Handle drag start
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+  const {
+    draggedIndex,
+    dragOverIndex,
+    handleDragStart,
+    handleDragOver,
+    handleDrop
+  } = useDragAndDrop({
+    locations,
+    legModes,
+    customDrawEnabled,
+    lockedSegments,
+    setLocations,
+    setLegModes,
+    setCustomDrawEnabled,
+    setLockedSegments,
+    onLocationsChange,
+    onLegModesChange,
+    onDirectionsCalculated,
+    buildSegments
+  });
 
-  // Handle drag over
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverIndex(index);
-  };
-
-  // Handle drop
-  const handleDrop = (e, dropIndex) => {
-    e.preventDefault();
-
-    if (draggedIndex === null || draggedIndex === dropIndex) {
-      setDraggedIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
-
-    // Reorder locations
-    const newLocations = [...locations];
-    const [draggedLocation] = newLocations.splice(draggedIndex, 1);
-    newLocations.splice(dropIndex, 0, draggedLocation);
-
-    // Reorder segment properties using same splice logic
-    const newCustomDrawEnabled = [...customDrawEnabled];
-    const newLockedSegments = [...lockedSegments];
-    const newModes = [...legModes];
-
-    // Handle segment reordering
-    // When dragging from index 0, there's no "incoming" segment to move
-    if (draggedIndex > 0) {
-      // Extract the segment that was "leading to" the dragged location
-      const sourceSegmentIndex = draggedIndex - 1;
-      const targetSegmentIndex = dropIndex > 0 ? dropIndex - 1 : 0;
-
-      // Move segment properties
-      const [movedDraw] = newCustomDrawEnabled.splice(sourceSegmentIndex, 1);
-      newCustomDrawEnabled.splice(targetSegmentIndex, 0, movedDraw);
-
-      const [movedLock] = newLockedSegments.splice(sourceSegmentIndex, 1);
-      newLockedSegments.splice(targetSegmentIndex, 0, movedLock);
-
-      const [movedMode] = newModes.splice(sourceSegmentIndex, 1);
-      newModes.splice(targetSegmentIndex, 0, movedMode);
-    }
-
-    setLocations(newLocations);
-    setLegModes(newModes);
-    setCustomDrawEnabled(newCustomDrawEnabled);
-    setLockedSegments(newLockedSegments);
-
-    // Notify parent
-    if (onLocationsChange) {
-      onLocationsChange(newLocations, 'REORDER_LOCATION');
-    }
-    if (onLegModesChange) {
-      onLegModesChange(newModes);
-    }
-
-    // Recalculate route with new order
-    const filledLocations = newLocations.filter(loc => loc !== null);
-    if (filledLocations.length >= 2) {
-      const segments = buildSegments(filledLocations);
-      const routeData = {
-        origin: filledLocations[0],
-        destination: filledLocations[filledLocations.length - 1],
-        waypoints: filledLocations.slice(1, -1),
-        mode: newModes[0],
-        segments,
-        allLocations: filledLocations,
-        allModes: newModes,
-        routeId: `reorder_${Date.now()}`
-      };
-      onDirectionsCalculated(routeData);
-    }
-
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  };
-
-  const removeLocation = (index) => {
-    // Allow removing any location now, but keep at least 2 locations total
-    if (locations.filter(loc => loc !== null).length <= 2) {
-      return; // Can't remove if only 2 locations left
-    }
-
-    const newLocations = locations.filter((_, i) => i !== index);
-
-    // When removing a location, we need to remove the leg mode that leads TO that location
-    // If we're removing location C (index 2), we remove the B→C leg mode (index 1)
-    const newModes = [...legModes];
-    if (index > 0 && index <= legModes.length) {
-      newModes.splice(index - 1, 1); // Remove the leg mode leading to this location
-    } else if (index === 0 && legModes.length > 0) {
-      newModes.splice(0, 1); // If removing first location, remove first leg mode
-    }
-
-    // Also update segment property arrays
-    const newCustomDrawEnabled = [...customDrawEnabled];
-    const newLockedSegments = [...lockedSegments];
-
-    // Determine which segment index to remove
-    const segmentIndexToRemove = index > 0 ? index - 1 : 0;
-
-    // Remove the segment data
-    newCustomDrawEnabled.splice(segmentIndexToRemove, 1);
-    newLockedSegments.splice(segmentIndexToRemove, 1);
-
-    setLocations(newLocations);
-    setLegModes(newModes);
-    setCustomDrawEnabled(newCustomDrawEnabled);
-    setLockedSegments(newLockedSegments);
-
-    // Notify parent via deprecated callbacks (will be removed later)
-    if (onLocationsChange) {
-      onLocationsChange(newLocations, 'REMOVE_LOCATION');
-    }
-    if (onLegModesChange) {
-      onLegModesChange(newModes);
-    }
-
-    // Recalculate route after removal
-    const filledLocations = newLocations.filter(loc => loc !== null);
-    if (filledLocations.length >= 2) {
-      const segments = buildSegments(filledLocations);
-      const routeData = {
-        origin: filledLocations[0],
-        destination: filledLocations[filledLocations.length - 1],
-        waypoints: filledLocations.slice(1, -1),
-        mode: newModes[0],
-        segments,
-        allLocations: filledLocations,
-        allModes: newModes,
-        routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + newModes.join('-')
-      };
-      onDirectionsCalculated(routeData);
-    } else {
-      // Clear routes when we have less than 2 locations
-      onDirectionsCalculated(null);
-    }
-  };
-
-  const handleReset = () => {
-    // Reset all state
-    setLocations([null, null]);
-    setLegModes(['walk']);
-    setCustomDrawEnabled([]);
-    setLockedSegments([]);
-
-    // Notify parent via deprecated callbacks (will be removed later)
-    if (onLocationsChange) {
-      onLocationsChange([null, null], null); // Don't track this in history
-    }
-    if (onLegModesChange) {
-      onLegModesChange(['walk']);
-    }
-
-    // Clear dragged segments
-    if (window.draggedSegments) {
-      window.draggedSegments = {};
-    }
-  };
+  // removeLocation and handleReset are now provided by useRouteActions hook
 
   const handleSaveRoute = useCallback((routeData) => {
     const filledLocations = locations.filter(loc => loc !== null);
