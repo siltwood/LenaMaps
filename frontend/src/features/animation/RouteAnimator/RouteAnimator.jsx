@@ -13,6 +13,9 @@ import {
 } from '../../../constants/animationConstants';
 import DragHandle from '../../../components/common/DragHandle';
 import Modal from './Modal';
+import PlaybackControls from './components/PlaybackControls';
+import SpeedControl from './components/SpeedControl';
+import ZoomControl from './components/ZoomControl';
 import { isMobileDevice } from '../../../utils/deviceDetection';
 import '../../../styles/unified-icons.css';
 import './RouteAnimator.css';
@@ -1615,96 +1618,31 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
         >
           <div className="controls-section">
             <div className="playback-controls">
-              {!isAnimating ? (
-                <button onClick={startAnimation} className="mobile-control-btn play">
-                  <FontAwesomeIcon icon={faPlay} /> Play
-                </button>
-              ) : (
-                <>
-                  {isPaused ? (
-                    <button onClick={resumeAnimation} className="mobile-control-btn play">
-                      <FontAwesomeIcon icon={faPlay} /> Resume
-                    </button>
-                  ) : (
-                    <button onClick={pauseAnimation} className="mobile-control-btn pause">
-                      <FontAwesomeIcon icon={faPause} /> Pause
-                    </button>
-                  )}
-                  <button onClick={stopAnimation} className="mobile-control-btn stop">
-                    <FontAwesomeIcon icon={faStop} /> Stop
-                  </button>
-                </>
-              )}
+              <PlaybackControls
+                isAnimating={isAnimating}
+                isPaused={isPaused}
+                onPlay={startAnimation}
+                onPause={pauseAnimation}
+                onResume={resumeAnimation}
+                onStop={stopAnimation}
+                isMobile={true}
+              />
             </div>
             
             <div className="mobile-section-label">Speed</div>
-            <div className="zoom-control">
-              <div className="zoom-radio-group">
-                <label className={`zoom-radio ${playbackSpeed === 'slow' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="speed"
-                    value="slow"
-                    checked={playbackSpeed === 'slow'}
-                    onChange={() => setPlaybackSpeed('slow')}
-                  />
-                  <span>Slow</span>
-                  <small>(0.5x)</small>
-                </label>
-                <label className={`zoom-radio ${playbackSpeed === 'medium' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="speed"
-                    value="medium"
-                    checked={playbackSpeed === 'medium'}
-                    onChange={() => setPlaybackSpeed('medium')}
-                  />
-                  <span>Medium</span>
-                  <small>(1x)</small>
-                </label>
-                <label className={`zoom-radio ${playbackSpeed === 'fast' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="speed"
-                    value="fast"
-                    checked={playbackSpeed === 'fast'}
-                    onChange={() => setPlaybackSpeed('fast')}
-                  />
-                  <span>Fast</span>
-                  <small>(2x)</small>
-                </label>
-              </div>
-            </div>
+            <SpeedControl
+              playbackSpeed={playbackSpeed}
+              onChange={setPlaybackSpeed}
+              isMobile={true}
+            />
             
             <div className="mobile-section-label">View</div>
-            <div className="zoom-control">
-              <div className="zoom-radio-group">
-                <label className={`zoom-radio ${zoomLevel === 'follow' ? 'active' : ''} ${isAnimating ? 'disabled' : ''}`}>
-                  <input
-                    type="radio"
-                    name="zoom"
-                    value="follow"
-                    checked={zoomLevel === 'follow'}
-                    onChange={() => setZoomLevel('follow')}
-                    disabled={isAnimating}
-                  />
-                  <span>Follow</span>
-                  <small>Marker</small>
-                </label>
-                <label className={`zoom-radio ${zoomLevel === 'whole' ? 'active' : ''} ${isAnimating ? 'disabled' : ''}`}>
-                  <input
-                    type="radio"
-                    name="zoom"
-                    value="whole"
-                    checked={zoomLevel === 'whole'}
-                    onChange={() => setZoomLevel('whole')}
-                    disabled={isAnimating}
-                  />
-                  <span>Whole</span>
-                  <small>Route</small>
-                </label>
-              </div>
-            </div>
+            <ZoomControl
+              zoomLevel={zoomLevel}
+              onChange={setZoomLevel}
+              isAnimating={isAnimating}
+              isMobile={true}
+            />
             
             <div className="timeline-control">
               <div className="timeline-container">
@@ -1931,94 +1869,29 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       <div className="route-animator-content">
           <div className="controls-section">
             <div className="playback-controls">
-              {!isAnimating ? (
-                <button onClick={startAnimation} className="control-btn play">
-                  <FontAwesomeIcon icon={faPlay} /> Play
-                </button>
-              ) : (
-                <>
-                  {isPaused ? (
-                    <button onClick={resumeAnimation} className="control-btn play">
-                      <FontAwesomeIcon icon={faPlay} /> Resume
-                    </button>
-                  ) : (
-                    <button onClick={pauseAnimation} className="control-btn pause">
-                      <FontAwesomeIcon icon={faPause} /> Pause
-                    </button>
-                  )}
-                  <button onClick={stopAnimation} className="control-btn stop">
-                    <FontAwesomeIcon icon={faStop} /> Exit Animation
-                  </button>
-                </>
-              )}
+              <PlaybackControls
+                isAnimating={isAnimating}
+                isPaused={isPaused}
+                onPlay={startAnimation}
+                onPause={pauseAnimation}
+                onResume={resumeAnimation}
+                onStop={stopAnimation}
+                isMobile={false}
+              />
             </div>
-            
-            <div className="zoom-control">
-              <div className="zoom-radio-group">
-                <label className={`zoom-radio ${zoomLevel === 'follow' ? 'active' : ''} ${isAnimating ? 'disabled' : ''}`}>
-                  <input
-                    type="radio"
-                    name="zoom"
-                    value="follow"
-                    checked={zoomLevel === 'follow'}
-                    onChange={() => setZoomLevel('follow')}
-                    disabled={isAnimating}
-                  />
-                  <span>Follow</span>
-                  <small>Marker</small>
-                </label>
-                <label className={`zoom-radio ${zoomLevel === 'whole' ? 'active' : ''} ${isAnimating ? 'disabled' : ''}`}>
-                  <input
-                    type="radio"
-                    name="zoom"
-                    value="whole"
-                    checked={zoomLevel === 'whole'}
-                    onChange={() => setZoomLevel('whole')}
-                    disabled={isAnimating}
-                  />
-                  <span>Whole</span>
-                  <small>Route</small>
-                </label>
-              </div>
-            </div>
-            
-            <div className="speed-control">
-              <div className="speed-radio-group">
-                <label className={`speed-radio ${playbackSpeed === 'slow' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="speed"
-                    value="slow"
-                    checked={playbackSpeed === 'slow'}
-                    onChange={() => setPlaybackSpeed('slow')}
-                  />
-                  <span>Slow</span>
-                  <small>(0.5x)</small>
-                </label>
-                <label className={`speed-radio ${playbackSpeed === 'medium' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="speed"
-                    value="medium"
-                    checked={playbackSpeed === 'medium'}
-                    onChange={() => setPlaybackSpeed('medium')}
-                  />
-                  <span>Medium</span>
-                  <small>(1x)</small>
-                </label>
-                <label className={`speed-radio ${playbackSpeed === 'fast' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="speed"
-                    value="fast"
-                    checked={playbackSpeed === 'fast'}
-                    onChange={() => setPlaybackSpeed('fast')}
-                  />
-                  <span>Fast</span>
-                  <small>(2x)</small>
-                </label>
-              </div>
-            </div>
+
+            <ZoomControl
+              zoomLevel={zoomLevel}
+              onChange={setZoomLevel}
+              isAnimating={isAnimating}
+              isMobile={false}
+            />
+
+            <SpeedControl
+              playbackSpeed={playbackSpeed}
+              onChange={setPlaybackSpeed}
+              isMobile={false}
+            />
             
             <div className="timeline-control">
               <label>Timeline Scrubber</label>
