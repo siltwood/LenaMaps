@@ -120,19 +120,19 @@
 }
 
 .control-btn {
-  padding: var(--compact-xs) var(--compact-base);
+  padding: 8px;
+  width: 36px;
+  height: 36px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   background: white;
   color: rgba(0, 0, 0, 0.8);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: var(--font-base);
-  font-weight: var(--font-weight-medium);
+  font-size: 14px;
   display: flex;
   align-items: center;
-  gap: var(--compact-xs);
+  justify-content: center;
   transition: all 0.2s ease;
-  min-height: 28px;
 }
 
 .control-btn:hover {
@@ -882,11 +882,11 @@
   top: 50%;
   left: 0;
   right: 0;
-  height: 6px;
-  background: linear-gradient(to bottom, #e5e7eb 0%, #d1d5db 100%);
-  border-radius: 3px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
   transform: translateY(-50%);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
 }
 
 .timeline-progress {
@@ -894,14 +894,33 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  border-radius: 4px;
+  position: relative;
+}
+
+.timeline-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.3) 0%,
+    rgba(255,255,255,0.1) 50%,
+    rgba(255,255,255,0.3) 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .timeline-slider {
   width: 100%;
-  height: 28px;
+  height: 32px;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -913,7 +932,7 @@
 
 .timeline-slider::-webkit-slider-track {
   width: 100%;
-  height: 28px;
+  height: 32px;
   background: transparent;
   cursor: pointer;
 }
@@ -921,25 +940,26 @@
 .timeline-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: white;
-  border: 2px solid #3b82f6;
+  border: 3px solid #00f2fe;
   cursor: grab;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
 }
 
 .timeline-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 8px rgba(59, 130, 246, 0.4);
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(0, 242, 254, 0.4);
 }
 
 .timeline-slider::-webkit-slider-thumb:active {
   cursor: grabbing;
-  transform: scale(1.25);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+  transform: scale(1.3);
+  box-shadow: 0 6px 16px rgba(0, 242, 254, 0.5);
+  border-width: 4px;
 }
 
 /* Hide the slider thumb completely while keeping drag functionality */
@@ -954,31 +974,31 @@
 
 .timeline-slider::-moz-range-track {
   width: 100%;
-  height: 28px;
+  height: 32px;
   background: transparent;
   cursor: pointer;
 }
 
 .timeline-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: white;
-  border: 2px solid #3b82f6;
+  border: 3px solid #00f2fe;
   cursor: grab;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
 }
 
 .timeline-slider::-moz-range-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 8px rgba(59, 130, 246, 0.4);
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(0, 242, 254, 0.4);
 }
 
 .timeline-slider::-moz-range-thumb:active {
   cursor: grabbing;
-  transform: scale(1.25);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+  transform: scale(1.3);
+  box-shadow: 0 6px 16px rgba(0, 242, 254, 0.5);
 }
 
 .timeline-slider.no-thumb::-moz-range-thumb {

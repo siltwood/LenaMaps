@@ -18,8 +18,8 @@ const PlaybackControls = ({
 
   if (!isAnimating) {
     return (
-      <button onClick={onPlay} className={`${buttonClass} play`}>
-        <FontAwesomeIcon icon={faPlay} /> {isMobile ? 'Play' : 'Start Animation'}
+      <button onClick={onPlay} className={`${buttonClass} play`} title="Start Animation">
+        <FontAwesomeIcon icon={faPlay} />
       </button>
     );
   }
@@ -27,16 +27,16 @@ const PlaybackControls = ({
   return (
     <>
       {isPaused ? (
-        <button onClick={onResume} className={`${buttonClass} play`}>
-          <FontAwesomeIcon icon={faPlay} /> Resume
+        <button onClick={onResume} className={`${buttonClass} play`} title="Resume">
+          <FontAwesomeIcon icon={faPlay} />
         </button>
       ) : (
-        <button onClick={onPause} className={`${buttonClass} pause`}>
-          <FontAwesomeIcon icon={faPause} /> Pause
+        <button onClick={onPause} className={`${buttonClass} pause`} title="Pause">
+          <FontAwesomeIcon icon={faPause} />
         </button>
       )}
-      <button onClick={onStop} className={`${buttonClass} stop`}>
-        <FontAwesomeIcon icon={faStop} /> {isMobile ? 'Stop' : 'Exit Animation'}
+      <button onClick={onStop} className={`${buttonClass} stop`} title="Exit Animation">
+        <FontAwesomeIcon icon={faStop} />
       </button>
     </>
   );

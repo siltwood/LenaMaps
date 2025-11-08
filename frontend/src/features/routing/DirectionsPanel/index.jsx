@@ -776,7 +776,7 @@ const DirectionsPanel = ({
                         style={{ cursor: lockedSegments[index] ? 'not-allowed' : 'pointer' }}
                       />
                       <span>
-                        Draw Custom Route
+                        Draw a straight line
                         {lockedSegments[index] && ' (Locked)'}
                       </span>
                     </label>
