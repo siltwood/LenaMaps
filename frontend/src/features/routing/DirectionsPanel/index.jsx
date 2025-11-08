@@ -382,30 +382,6 @@ const DirectionsPanel = ({
   }, [clickedLocation, isOpen, uiLocations, routeSegments, activeInput, onLocationUsed, updateLocation]);
 
   // OLD EFFECT - DISABLED during refactor (now handled by auto-calc effect above)
-  // This was causing double renders and race conditions
-  // Recalculate route when custom draw mode is toggled (NOT when locations change - that's handled above)
-  // useEffect(() => {
-
-  //   const filledLocations = locations.filter(loc => loc !== null);
-  //   if (filledLocations.length >= 2 && onDirectionsCalculated) {
-  //     const segments = buildSegments(filledLocations);
-
-  //     const routeData = {
-  //       origin: filledLocations[0],
-  //       destination: filledLocations[filledLocations.length - 1],
-  //       waypoints: filledLocations.slice(1, -1),
-  //       mode: legModes[0],
-  //       segments,
-  //       allLocations: locations,
-  //       allModes: legModes,
-  //       customPaths: customPoints, // Include custom points for reference
-  //       routeId: filledLocations.map(loc => `${loc.lat},${loc.lng}`).join('_') + '_' + legModes.join('-') + '_' + customDrawEnabled.join('-')
-  //     };
-  //     onDirectionsCalculated(routeData);
-  //   }
-  // }, [customDrawEnabled, legModes, onDirectionsCalculated, customPoints, buildSegments]);
-
-
   // ============================================================================
   // INSERT LOCATION - Simple insert between existing locations
   // ============================================================================
