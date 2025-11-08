@@ -65,7 +65,7 @@ export const useRouteActions = ({
     setLegModes(newModes);
     setCustomDrawEnabled(newCustomDrawEnabled);
 
-    // Notify parent via deprecated callbacks (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLocationsChange) {
       onLocationsChange(newLocations, 'ADD_DESTINATION');
     }
@@ -96,7 +96,7 @@ export const useRouteActions = ({
 
     setLegModes(newModes);
 
-    // Notify parent via deprecated callback (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLegModesChange) {
       onLegModesChange(newModes, segmentIndex);
     }
@@ -139,7 +139,7 @@ export const useRouteActions = ({
     newLocations[index] = location;
     setLocations(newLocations);
 
-    // Notify parent via deprecated callback (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLocationsChange) {
       const actionType = location ? 'ADD_LOCATION' : 'CLEAR_LOCATION';
       onLocationsChange(newLocations, actionType);
@@ -195,7 +195,7 @@ export const useRouteActions = ({
     setCustomDrawEnabled(newCustomDrawEnabled);
     setLockedSegments(newLockedSegments);
 
-    // Notify parent via deprecated callbacks (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLocationsChange) {
       onLocationsChange(newLocations, 'REMOVE_LOCATION');
     }
@@ -247,7 +247,7 @@ export const useRouteActions = ({
     setCustomDrawEnabled([]);
     setLockedSegments([]);
 
-    // Notify parent via deprecated callbacks (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLocationsChange) {
       onLocationsChange([null, null], null); // Don't track this in history
     }

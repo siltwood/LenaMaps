@@ -20,7 +20,7 @@ function AppContent() {
   const [showRouteAnimator, setShowRouteAnimator] = useState(!isMobile); // Show on desktop by default, hide on mobile
   const [mapInstance, setMapInstance] = useState(null); // Store map instance
 
-  // DEPRECATED: Old parallel array state - moved to DirectionsPanel
+  // Route state - managed here and passed to DirectionsPanel as controlled component
   const [directionsLocations, setDirectionsLocations] = useState([null, null]);
   const [directionsLegModes, setDirectionsLegModes] = useState(['walk']);
   
@@ -178,9 +178,6 @@ function AppContent() {
     }
   }, []); // Run only once on mount
 
-  // DEPRECATED: Old undo system - moved to DirectionsPanel
-  // Keeping minimal stubs for compatibility during migration
-
   const handleLocationSearch = useCallback((location) => {
     setMapCenter({ lat: location.lat, lng: location.lng });
     // Don't auto-center - let user control the map view
@@ -199,8 +196,7 @@ function AppContent() {
     setClickedLocation(null);
   }, []);
 
-  // DEPRECATED: Old history wrappers - moved to DirectionsPanel
-  // Simple pass-through for compatibility during migration
+  // Controlled component callbacks - DirectionsPanel calls these to update parent state
   const setDirectionsLocationsWithHistory = useCallback((newLocations, actionType) => {
     setDirectionsLocations(newLocations);
   }, []);

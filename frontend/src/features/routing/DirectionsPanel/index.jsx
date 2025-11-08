@@ -26,13 +26,9 @@ const DirectionsPanel = ({
   editingTrip = null,
   map,
   isAnimating = false,
-  isMobile = false, // NEW: responsive behavior
-  onAnimationStateChange, // NEW: for mobile animator
-  // DEPRECATED PROPS - Will be removed after refactor
-  waypoints = [],
-  waypointModes = [],
-  onWaypointsChange,
-  onWaypointModesChange,
+  isMobile = false,
+  onAnimationStateChange,
+  // Controlled component props - parent manages state
   locations: propsLocations = [null, null],
   legModes: propsLegModes = ['walk'],
   onLocationsChange,
@@ -475,7 +471,7 @@ const DirectionsPanel = ({
     setCustomDrawEnabled(route.customDrawEnabled || []);
     setLockedSegments(route.lockedSegments || []);
 
-    // Notify parent via deprecated callbacks (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLocationsChange) {
       onLocationsChange(loadedLocations, 'load_route');
     }
@@ -537,7 +533,7 @@ const DirectionsPanel = ({
 
     setLocations(newLocations);
 
-    // Notify parent via deprecated callback (will be removed later)
+    // Notify parent (controlled component pattern)
     if (onLocationsChange) {
       onLocationsChange(newLocations, 'ADD_LOCATION');
     }
