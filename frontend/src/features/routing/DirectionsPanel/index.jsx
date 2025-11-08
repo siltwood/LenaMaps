@@ -600,12 +600,14 @@ const DirectionsPanel = ({
   // Render main panel (wrapped in mobile card if on mobile)
   const renderPanelContent = (
     <>
-      <DirectionsHeader
-        isEditing={isEditing}
-        editingTrip={editingTrip}
-        onMinimize={handleMinimize}
-        isMobile={isMobile}
-      />
+      {!isMobile && (
+        <DirectionsHeader
+          isEditing={isEditing}
+          editingTrip={editingTrip}
+          onMinimize={handleMinimize}
+          isMobile={isMobile}
+        />
+      )}
 
       <div className="directions-content">
         {/* Action buttons - above Location A (hidden on mobile, rendered separately) */}
@@ -1029,12 +1031,10 @@ const DirectionsPanel = ({
           flex: 1,
           overflow: 'hidden'
         }}>
-          {/* Fixed header with drag handle and action buttons */}
+          {/* Fixed header with action buttons - no background or border */}
           <div style={{
             flexShrink: 0,
-            backgroundColor: '#f8f9fa',
-            borderBottom: '1px solid #e5e7eb',
-            padding: '35px 12px 8px 12px'
+            padding: '38px 12px 4px 12px'
           }}>
             <ActionButtons
               hasLocations={uiLocations.some(loc => loc !== null)}
@@ -1057,7 +1057,7 @@ const DirectionsPanel = ({
           </div>
 
           {/* Scrollable locations list */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: '4px 12px 12px 12px' }}>
             {renderPanelContent}
           </div>
         </div>
