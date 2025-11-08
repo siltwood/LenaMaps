@@ -133,17 +133,33 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     polylineRef
   );
 
-  // Wrapper for startAnimation to handle minimizing
-  const startAnimation = useCallback(() => {
-    // Save current position and minimize the panel when animation starts
-    savedPositionRef.current = { ...position };
-    if (!embeddedInModal) {
-      setIsMinimized(true);
+  // Check if route is playable
+  const isRoutePlayable = useCallback(() => {
+    if (!directionsRoute || !directionsRoute.allLocations || directionsRoute.allLocations.length < 2) {
+      return false;
     }
 
+    // Check if all locations are the same
+    const locations = directionsRoute.allLocations.filter(loc => loc !== null);
+    if (locations.length >= 2) {
+      const firstLoc = locations[0];
+      const allSame = locations.every(loc =>
+        loc.lat === firstLoc.lat && loc.lng === firstLoc.lng
+      );
+
+      if (allSame) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [directionsRoute]);
+
+  // Wrapper for startAnimation
+  const startAnimation = useCallback(() => {
     // Call hook's startAnimation
     startAnimationFromHook(embeddedInModal, onMinimize);
-  }, [position, embeddedInModal, onMinimize, startAnimationFromHook]);
+  }, [embeddedInModal, onMinimize, startAnimationFromHook]);
 
   const handleMouseDown = (e) => {
     if (e.target.closest('.drag-handle')) {
@@ -265,6 +281,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
                 onResume={resumeAnimation}
                 onStop={stopAnimation}
                 isMobile={true}
+                disabled={!isRoutePlayable()}
               />
             </div>
             
@@ -331,7 +348,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             title="Show Animation Controls"
             style={{ position: 'fixed', left: '20px', bottom: '20px' }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c .55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
             </svg>
           </button>
@@ -347,7 +364,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             onClick={() => setIsMinimized(false)}
             title="Show Animation Controls"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c .55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
             </svg>
           </button>
@@ -418,6 +435,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
                 onResume={resumeAnimation}
                 onStop={stopAnimation}
                 isMobile={false}
+                disabled={!isRoutePlayable()}
               />
             </div>
 

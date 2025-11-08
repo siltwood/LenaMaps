@@ -586,8 +586,8 @@ export const useRouteAnimation = ({
    * Start animation
    */
   const startAnimation = useCallback(async (embeddedInModal, onMinimize) => {
+    // Button should be disabled if no route, but double-check
     if (!directionsRoute || !directionsRoute.allLocations || directionsRoute.allLocations.length < 2) {
-      showModal('Please create a route with at least two locations before starting the animation.', 'No Route Available', 'warning');
       return;
     }
 
@@ -600,7 +600,6 @@ export const useRouteAnimation = ({
       );
 
       if (allSame) {
-        showModal('Cannot animate a route where all locations are the same point.', 'Same Location', 'info');
         return;
       }
     }

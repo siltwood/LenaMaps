@@ -12,13 +12,19 @@ const PlaybackControls = ({
   onPause,
   onResume,
   onStop,
-  isMobile = false
+  isMobile = false,
+  disabled = false
 }) => {
   const buttonClass = isMobile ? 'mobile-control-btn' : 'control-btn';
 
   if (!isAnimating) {
     return (
-      <button onClick={onPlay} className={`${buttonClass} play`} title="Start Animation">
+      <button
+        onClick={onPlay}
+        className={`${buttonClass} play`}
+        title={disabled ? "No route available" : "Start Animation"}
+        disabled={disabled}
+      >
         <FontAwesomeIcon icon={faPlay} />
       </button>
     );

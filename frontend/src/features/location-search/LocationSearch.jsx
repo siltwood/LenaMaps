@@ -93,16 +93,18 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
   }, []);
 
   const fetchPredictions = (input) => {
-    
-    if (!autocompleteService.current || input.length < 2) {
+
+    if (!autocompleteService.current || input.length < 1) {
       setPredictions([]);
       return;
     }
 
     autocompleteService.current.getPlacePredictions(
-      { 
+      {
         input,
-        sessionToken: sessionToken.current 
+        sessionToken: sessionToken.current,
+        // Add more flexible matching
+        types: [] // Allow all types of places
       },
       (predictions, status) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
@@ -111,7 +113,7 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
           if (!hideDropdown) {
             setShowDropdown(true);
           }
-          
+
           // Set ghost text for inline autocomplete on mobile
           if (enableInlineComplete && predictions.length > 0) {
             const firstPrediction = predictions[0].structured_formatting.main_text.toLowerCase();
@@ -147,7 +149,7 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
 
     searchTimeout.current = setTimeout(() => {
       fetchPredictions(value);
-    }, 300);
+    }, 150);
   };
 
   const selectPlace = (placeId, description) => {
