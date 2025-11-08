@@ -150,43 +150,44 @@ export const useRouteActions = ({
    * Remove a location from the route
    */
   const removeLocation = useCallback((index) => {
-    // If we only have 2 locations, just clear the location instead of removing it
-    // This keeps the slot and transportation selector visible
-    if (locations.length <= 2) {
+    // First two locations (A and B) can only be cleared, not deleted
+    if (index === 0 || index === 1) {
       const newLocations = [...locations];
       newLocations[index] = null;
       setLocations(newLocations);
 
-      // Notify parent
       if (onLocationsChange) {
         onLocationsChange(newLocations, 'CLEAR_LOCATION');
       }
 
-      // Clear the route since we don't have 2 filled locations anymore
       if (onDirectionsCalculated) {
         onDirectionsCalculated(null);
       }
       return;
     }
 
-    // More than 2 locations - actually remove from array
+    // For locations after the second (C, D, etc.), allow deletion
     const newLocations = locations.filter((_, i) => i !== index);
 
-    // Remove the corresponding leg mode
-    const newModes = [...legModes];
-    const newCustomDrawEnabled = [...customDrawEnabled];
-    const newLockedSegments = [...lockedSegments];
+    // Handle leg modes based on which location is being removed
+    let newModes = [...legModes];
+    let newCustomDrawEnabled = [...customDrawEnabled];
+    let newLockedSegments = [...lockedSegments];
 
-    if (index === 0 && legModes.length > 0) {
-      // Removing first location - remove first leg mode
-      newModes.splice(0, 1);
-      newCustomDrawEnabled.splice(0, 1);
-      newLockedSegments.splice(0, 1);
-    } else if (index > 0 && index - 1 < legModes.length) {
-      // Removing any other location - remove the leg mode before it
-      newModes.splice(index - 1, 1);
-      newCustomDrawEnabled.splice(index - 1, 1);
-      newLockedSegments.splice(index - 1, 1);
+    // Only remove leg modes if we have more than 2 locations
+    // This preserves the mode selector when going from 2 locations to 1
+    if (locations.length > 2) {
+      if (index === 0 && legModes.length > 0) {
+        // Removing first location - remove first leg mode
+        newModes.splice(0, 1);
+        newCustomDrawEnabled.splice(0, 1);
+        newLockedSegments.splice(0, 1);
+      } else if (index > 0 && index - 1 < legModes.length) {
+        // Removing any other location - remove the leg mode before it
+        newModes.splice(index - 1, 1);
+        newCustomDrawEnabled.splice(index - 1, 1);
+        newLockedSegments.splice(index - 1, 1);
+      }
     }
 
     setLocations(newLocations);

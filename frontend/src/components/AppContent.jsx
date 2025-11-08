@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GoogleMap, LocationSearch } from './Shared';
 import { DirectionsPanel } from './Desktop';
-import { MobileControls } from './Mobile';
 import { useMobileDetection } from '../utils/deviceDetection';
 import { hasSharedTrip, loadSharedTrip, clearSharedTripFromURL } from '../utils/shareUtils';
 import { saveRoute } from '../utils/savedRoutesUtils';
@@ -355,53 +354,22 @@ function AppContent() {
         </div>
       </div>
       
-      {isMobile ? (
-        <MobileControls
-          key="mobile-controls"
-          onDirectionsCalculated={setDirectionsRoute}
-          clickedLocation={clickedLocation}
-          onLocationUsed={handleLocationUsed}
-          locations={directionsLocations}
-          legModes={directionsLegModes}
-          onLocationsChange={setDirectionsLocationsWithHistory}
-          onLegModesChange={setDirectionsLegModesWithHistory}
-          directionsRoute={directionsRoute}
-          onShowAnimator={() => {
-            // Center on first marker when entering animation mode on mobile
-            if (mapInstance && directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
-              const firstLocation = directionsRoute.allLocations[0];
-              if (firstLocation && firstLocation.lat && firstLocation.lng) {
-                mapInstance.setCenter(new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng));
-                mapInstance.setZoom(17);
-              }
-            }
-            setShowRouteAnimator(true);
-          }}
-          onHideAnimator={() => {
-            setShowRouteAnimator(false);
-          }}
-          isAnimating={isAnimating}
-          showRouteAnimator={showRouteAnimator}
-          map={mapInstance}
-          onAnimationStateChange={setIsAnimating}
-          onAnimationStart={handleAnimationStart}
-        />
-      ) : (
-        <DirectionsPanel
-          key="directions-panel"
-          isOpen={!isAnimating}
-          onDirectionsCalculated={setDirectionsRoute}
-          directionsRoute={directionsRoute}
-          clickedLocation={clickedLocation}
-          onLocationUsed={handleLocationUsed}
-          locations={directionsLocations}
-          legModes={directionsLegModes}
-          onLocationsChange={setDirectionsLocationsWithHistory}
-          onLegModesChange={setDirectionsLegModesWithHistory}
-          map={mapInstance}
-          isAnimating={isAnimating}
-        />
-      )}
+      <DirectionsPanel
+        key="directions-panel"
+        isOpen={!isAnimating}
+        onDirectionsCalculated={setDirectionsRoute}
+        directionsRoute={directionsRoute}
+        clickedLocation={clickedLocation}
+        onLocationUsed={handleLocationUsed}
+        locations={directionsLocations}
+        legModes={directionsLegModes}
+        onLocationsChange={setDirectionsLocationsWithHistory}
+        onLegModesChange={setDirectionsLegModesWithHistory}
+        map={mapInstance}
+        isAnimating={isAnimating}
+        isMobile={isMobile}
+        onAnimationStateChange={setIsAnimating}
+      />
       
       {/* Route Error Modal */}
       <Modal

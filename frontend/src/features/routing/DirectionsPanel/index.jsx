@@ -26,6 +26,8 @@ const DirectionsPanel = ({
   editingTrip = null,
   map,
   isAnimating = false,
+  isMobile = false, // NEW: responsive behavior
+  onAnimationStateChange, // NEW: for mobile animator
   // DEPRECATED PROPS - Will be removed after refactor
   waypoints = [],
   waypointModes = [],
@@ -43,6 +45,15 @@ const DirectionsPanel = ({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
   const [expandedWaypoints, setExpandedWaypoints] = useState([]);
+
+  // Mobile-specific state
+  const [showCard, setShowCard] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [cardTranslateY, setCardTranslateY] = useState(0);
+  const [cardHeight, setCardHeight] = useState(40); // Height as vh percentage
+  const initialDragHeight = useRef(40);
+  const cardRef = useRef(null);
 
   // NEW: DirectionsPanel now owns ALL route state internally
   const [locations, setLocations] = useState(propsLocations);
@@ -117,6 +128,72 @@ const DirectionsPanel = ({
     setActiveInput(null); // Clear active input - user is adding a new leg, not editing
     addNextLegAction();
   }, [addNextLegAction]);
+
+  // ============================================================================
+  // MOBILE CARD INTERACTIONS
+  // ============================================================================
+
+  // Reset card position when shown
+  useEffect(() => {
+    if (isMobile && showCard) {
+      setCardTranslateY(0);
+      setCardHeight(40);
+    }
+  }, [showCard, isMobile]);
+
+  // Add global drag listeners for mobile
+  useEffect(() => {
+    if (!isMobile || !isDragging) return;
+
+    const handleGlobalMove = (e) => {
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const deltaY = dragStartY - clientY;
+
+      if (initialDragHeight.current <= 40 && deltaY < 0) {
+        setCardTranslateY(-deltaY);
+      } else {
+        setCardTranslateY(0);
+        const heightDelta = deltaY * 0.1;
+        const newHeight = Math.max(25, Math.min(90, initialDragHeight.current + heightDelta));
+        setCardHeight(newHeight);
+      }
+    };
+
+    const handleGlobalEnd = () => {
+      setIsDragging(false);
+
+      if (cardTranslateY > 80) {
+        setCardTranslateY(window.innerHeight);
+        setTimeout(() => setShowCard(false), 400);
+      } else if (cardTranslateY > 0) {
+        setCardTranslateY(0);
+      } else if (cardHeight < 15) {
+        setCardTranslateY(window.innerHeight);
+        setTimeout(() => setShowCard(false), 400);
+      }
+    };
+
+    document.addEventListener('mousemove', handleGlobalMove);
+    document.addEventListener('mouseup', handleGlobalEnd);
+    document.addEventListener('touchmove', handleGlobalMove, { passive: true });
+    document.addEventListener('touchend', handleGlobalEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMove);
+      document.removeEventListener('mouseup', handleGlobalEnd);
+      document.removeEventListener('touchmove', handleGlobalMove);
+      document.removeEventListener('touchend', handleGlobalEnd);
+    };
+  }, [isMobile, isDragging, dragStartY, cardTranslateY, cardHeight]);
+
+  const handleDragStart = useCallback((e) => {
+    if (!isMobile) return;
+    if (!e.touches) e.preventDefault();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    setIsDragging(true);
+    setDragStartY(clientY);
+    initialDragHeight.current = cardHeight;
+  }, [isMobile, cardHeight]);
 
   // No more sync effects needed - routeSegments is now derived from parent arrays
 
@@ -243,7 +320,8 @@ const DirectionsPanel = ({
 
   // Handle clicked location from map - only trigger when clickedLocation actually changes
   useEffect(() => {
-    if (!clickedLocation || !isOpen) {
+    // For mobile: also check if card is shown
+    if (!clickedLocation || !isOpen || (isMobile && !showCard)) {
       return;
     }
 
@@ -474,8 +552,28 @@ const DirectionsPanel = ({
     setIsMinimized(false);
   };
 
-  // Render minimized state
-  const renderMinimized = isMinimized && (
+  // Render mobile FAB when card is hidden
+  const renderMobileFAB = isMobile && !showCard && (
+    <div style={{ position: 'fixed', left: '20px', bottom: '20px', zIndex: 2000 }}>
+      <button
+        className="unified-icon primary"
+        onClick={() => {
+          setCardTranslateY(0);
+          setShowCard(true);
+        }}
+        title="Plan Your Route"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="18" cy="18" r="3" />
+          <path d="M9 9l6 6" />
+        </svg>
+      </button>
+    </div>
+  );
+
+  // Render minimized state (desktop only)
+  const renderMinimized = !isMobile && isMinimized && (
     <div
       className="directions-panel-minimized"
       style={{
@@ -499,38 +597,39 @@ const DirectionsPanel = ({
     </div>
   );
 
-  // Render main panel
-  const renderPanel = isOpen && !isMinimized && (
-    <div
-      className="directions-panel"
-    >
+  // Render main panel (wrapped in mobile card if on mobile)
+  const renderPanelContent = (
+    <>
       <DirectionsHeader
         isEditing={isEditing}
         editingTrip={editingTrip}
         onMinimize={handleMinimize}
+        isMobile={isMobile}
       />
 
       <div className="directions-content">
-        {/* Action buttons - above Location A */}
-        <ActionButtons
-          hasLocations={uiLocations.some(loc => loc !== null)}
-          hasRoute={directionsRoute && uiLocations.filter(l => l !== null).length >= 2}
-          showCopiedMessage={showCopiedMessage}
-          onReset={() => {
-            handleReset();
-            // Clear the route on the map
-            if (onDirectionsCalculated) {
-              onDirectionsCalculated({
-                routeId: 'empty',
-                allLocations: [],
-                allModes: []
-              });
-            }
-          }}
-          onLoadClick={() => setShowSavedRoutesModal(true)}
-          onSaveClick={() => setShowSaveModal(true)}
-          onShare={handleShare}
-        />
+        {/* Action buttons - above Location A (hidden on mobile, rendered separately) */}
+        {!isMobile && (
+          <ActionButtons
+            hasLocations={uiLocations.some(loc => loc !== null)}
+            hasRoute={directionsRoute && uiLocations.filter(l => l !== null).length >= 2}
+            showCopiedMessage={showCopiedMessage}
+            onReset={() => {
+              handleReset();
+              // Clear the route on the map
+              if (onDirectionsCalculated) {
+                onDirectionsCalculated({
+                  routeId: 'empty',
+                  allLocations: [],
+                  allModes: []
+                });
+              }
+            }}
+            onLoadClick={() => setShowSavedRoutesModal(true)}
+            onSaveClick={() => setShowSaveModal(true)}
+            onShare={handleShare}
+          />
+        )}
 
         <div className="route-inputs">
           {/* Display all locations in sequence - NOW USING uiLocations from routeSegments! */}
@@ -540,35 +639,53 @@ const DirectionsPanel = ({
               <div>
               <div className={`input-group ${!location && index === uiLocations.findIndex(l => !l) ? 'awaiting-click' : ''} ${activeInput === index ? 'awaiting-input' : ''}`}>
                 {!location ? (
-                  <LocationSearch
-                    onLocationSelect={(loc) => {
-                      // Check if this location is part of a segment with custom drawing enabled
-                      const isEndOfDrawSegment = index > 0 && customDrawEnabled[index - 1];
-                      const isStartOfDrawSegment = index < uiLocations.length - 1 && customDrawEnabled[index];
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <LocationSearch
+                      onLocationSelect={(loc) => {
+                        // Check if this location is part of a segment with custom drawing enabled
+                        const isEndOfDrawSegment = index > 0 && customDrawEnabled[index - 1];
+                        const isStartOfDrawSegment = index < uiLocations.length - 1 && customDrawEnabled[index];
 
-                      if (isEndOfDrawSegment || isStartOfDrawSegment) {
-                        // In draw mode - add this as a point to the custom route
-                        const segmentIndex = isEndOfDrawSegment ? index - 1 : index;
-                        const point = { lat: loc.lat, lng: loc.lng };
+                        if (isEndOfDrawSegment || isStartOfDrawSegment) {
+                          // In draw mode - add this as a point to the custom route
+                          const segmentIndex = isEndOfDrawSegment ? index - 1 : index;
+                          const point = { lat: loc.lat, lng: loc.lng };
 
-                        // Add this point to customPoints (this saves to undo)
-                        handlePointAdded({
-                          segmentIndex,
-                          point
-                        });
+                          // Add this point to customPoints (this saves to undo)
+                          handlePointAdded({
+                            segmentIndex,
+                            point
+                          });
 
-                        // Update the location marker
-                        updateLocation(index, loc);
-                      } else {
-                        // Normal mode - just update the location
-                        updateLocation(index, loc);
-                      }
+                          // Update the location marker
+                          updateLocation(index, loc);
+                        } else {
+                          // Normal mode - just update the location
+                          updateLocation(index, loc);
+                        }
 
-                      isEditingRef.current = false;
-                      setActiveInput(null); // Clear active input
-                    }}
-                    placeholder=""
-                  />
+                        isEditingRef.current = false;
+                        setActiveInput(null); // Clear active input
+                      }}
+                      placeholder=""
+                    />
+                    {/* Show X button for third+ slots (can be deleted entirely) */}
+                    {index > 1 && (
+                      <button
+                        className="remove-location-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeLocation(index);
+                        }}
+                        title="Remove location"
+                        style={{ marginLeft: '8px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 ) : activeInput === index ? (
                   // Edit mode - show LocationSearch component to allow typing/searching
                   <div style={{ position: 'relative' }}>
@@ -820,12 +937,143 @@ const DirectionsPanel = ({
         </div>
 
       </div>
-    </div>
+    </>
+  );
+
+  // Wrap in mobile card or desktop panel
+  const renderPanel = isOpen && !isMinimized && (
+    isMobile ? (
+      // Mobile: draggable card
+      <div
+        ref={cardRef}
+        className={`mobile-card ${!showCard ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''}`}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          transform: `translateY(${cardTranslateY}px)`,
+          height: `${cardHeight}vh`,
+          transition: isDragging ? 'none' : 'transform 0.4s ease-in-out, height 0.4s ease-in-out',
+          backgroundColor: 'white',
+          borderRadius: '20px 20px 0 0',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Drag handle */}
+        <div
+          onTouchStart={handleDragStart}
+          onMouseDown={handleDragStart}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '35px',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            zIndex: 2,
+            touchAction: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div style={{
+            width: '40px',
+            height: '4px',
+            backgroundColor: '#cbd5e1',
+            borderRadius: '2px'
+          }} />
+        </div>
+
+        {/* Minimize button */}
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          right: '12px',
+          zIndex: 3
+        }}>
+          <button
+            onClick={() => {
+              const cardRect = cardRef.current?.getBoundingClientRect();
+              if (cardRect) {
+                const slideDistance = window.innerHeight - cardRect.top + 10;
+                setCardTranslateY(slideDistance);
+                setTimeout(() => setShowCard(false), 400);
+              }
+            }}
+            style={{
+              width: '24px',
+              height: '24px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#64748b',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              padding: 0
+            }}
+          >
+            −
+          </button>
+        </div>
+
+        {/* Panel content - split into fixed header and scrollable content */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflow: 'hidden'
+        }}>
+          {/* Fixed header with drag handle and action buttons */}
+          <div style={{
+            flexShrink: 0,
+            backgroundColor: '#f8f9fa',
+            borderBottom: '1px solid #e5e7eb',
+            padding: '35px 12px 8px 12px'
+          }}>
+            <ActionButtons
+              hasLocations={uiLocations.some(loc => loc !== null)}
+              hasRoute={directionsRoute && uiLocations.filter(l => l !== null).length >= 2}
+              showCopiedMessage={showCopiedMessage}
+              onReset={() => {
+                handleReset();
+                if (onDirectionsCalculated) {
+                  onDirectionsCalculated({
+                    routeId: 'empty',
+                    allLocations: [],
+                    allModes: []
+                  });
+                }
+              }}
+              onLoadClick={() => setShowSavedRoutesModal(true)}
+              onSaveClick={() => setShowSaveModal(true)}
+              onShare={handleShare}
+            />
+          </div>
+
+          {/* Scrollable locations list */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+            {renderPanelContent}
+          </div>
+        </div>
+      </div>
+    ) : (
+      // Desktop: sidebar panel
+      <div className="directions-panel">
+        {renderPanelContent}
+      </div>
+    )
   );
 
   // Always render modals and drawers (even when panel is closed/minimized)
   return (
     <>
+      {renderMobileFAB}
       {renderMinimized}
       {renderPanel}
 
