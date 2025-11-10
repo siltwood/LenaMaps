@@ -882,7 +882,7 @@ const DirectionsPanel = ({
           )}
 
           {/* Add Next Location Button - Simple + button */}
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '6px 0' }}>
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -1018,7 +1018,7 @@ const DirectionsPanel = ({
           {/* Fixed header with action buttons - no background or border */}
           <div style={{
             flexShrink: 0,
-            padding: '38px 12px 4px 12px'
+            padding: '24px 12px 4px 12px'
           }}>
             <ActionButtons
               hasLocations={uiLocations.some(loc => loc !== null)}
