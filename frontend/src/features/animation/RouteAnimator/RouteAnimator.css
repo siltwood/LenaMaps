@@ -17,9 +17,9 @@
     position: fixed !important;
     left: 8px !important;
     right: auto !important;
-    bottom: 90px !important;  /* Moved up to not block FAB */
+    bottom: 120px !important;  /* Higher to ensure visibility above mobile card */
     top: auto !important;
-    z-index: 2000 !important;
+    z-index: 3000 !important;  /* Higher z-index to stay above mobile card */
     max-height: 240px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */

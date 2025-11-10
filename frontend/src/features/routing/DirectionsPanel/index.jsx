@@ -381,6 +381,18 @@ const DirectionsPanel = ({
     onLocationUsed?.();
   }, [clickedLocation, isOpen, uiLocations, routeSegments, activeInput, onLocationUsed, updateLocation]);
 
+  // Auto-minimize mobile card when animation starts
+  useEffect(() => {
+    if (isMobile && isAnimating && showCard) {
+      const cardRect = cardRef.current?.getBoundingClientRect();
+      if (cardRect) {
+        const slideDistance = window.innerHeight - cardRect.top + 10;
+        setCardTranslateY(slideDistance);
+        setTimeout(() => setShowCard(false), 400);
+      }
+    }
+  }, [isAnimating, isMobile, showCard]);
+
   // OLD EFFECT - DISABLED during refactor (now handled by auto-calc effect above)
   // ============================================================================
   // INSERT LOCATION - Simple insert between existing locations
