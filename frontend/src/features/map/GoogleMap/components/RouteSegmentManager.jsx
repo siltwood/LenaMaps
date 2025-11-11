@@ -29,6 +29,37 @@ const RouteSegmentManager = ({
   const currentZoomRef = useRef(13);
   const prevRouteRef = useRef(null); // Store previous route for comparison
 
+  // SPECIALIZED CLEARING: Clear only individual markers (single location)
+  const clearIndividualMarkers = useCallback(() => {
+    const individualSegments = segmentsRef.current.filter(s => s && s.id === 'single-marker');
+    individualSegments.forEach(segment => {
+      if (segment) {
+        clearSegment(segment);
+      }
+    });
+    // Remove individual markers from segments
+    segmentsRef.current = segmentsRef.current.filter(s => !s || s.id !== 'single-marker');
+
+    // Update global segments
+    window._routeSegments = segmentsRef.current.filter(s => s && (s.route || s.isCustom));
+  }, []);
+
+  // SPECIALIZED CLEARING: Clear only route segments (2+ locations)
+  const clearRouteSegments = useCallback(() => {
+    const routeSegments = segmentsRef.current.filter(s => s && s.id !== 'single-marker');
+    routeSegments.forEach(segment => {
+      if (segment) {
+        clearSegment(segment);
+      }
+    });
+    // Remove route segments, keep individual markers
+    segmentsRef.current = segmentsRef.current.filter(s => s && s.id === 'single-marker');
+
+    // Update global segments
+    window._routeSegments = segmentsRef.current.filter(s => s && (s.route || s.isCustom));
+  }, []);
+
+  // NUCLEAR OPTION: Clear everything (errors, unmount, full reset)
   const clearAllSegments = useCallback(() => {
     segmentsRef.current.forEach((segment, index) => {
       if (segment) {

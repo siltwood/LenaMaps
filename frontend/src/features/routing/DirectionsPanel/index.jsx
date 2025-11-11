@@ -606,33 +606,56 @@ const DirectionsPanel = ({
   // Track when to show camera FAB with delay
   const [showCameraFAB, setShowCameraFAB] = useState(false);
   const cameraFABTimeoutRef = useRef(null);
+  const wasAutoMinimizedRef = useRef(false);
 
   // Auto-minimize card when animation starts playing (only once, unless user wants it visible)
   useEffect(() => {
     if (isMobile && (isAnimationPlaying || isAnimating) && showCard && showAnimationPanel && !hasAutoMinimizedForAnimationRef.current && !userWantsCardVisibleRef.current) {
       hasAutoMinimizedForAnimationRef.current = true;
+      wasAutoMinimizedRef.current = true; // Mark as auto-minimized for longer delay
       // Hide the card
       setShowCard(false);
-
-      // Show camera FAB after 0.5s delay (time for slide-down animation to complete)
-      cameraFABTimeoutRef.current = setTimeout(() => {
-        setShowCameraFAB(true);
-      }, 500);
     }
 
     // Reset when animation stops or panel closes
     if (!isAnimating && !isAnimationPlaying) {
       hasAutoMinimizedForAnimationRef.current = false;
       userWantsCardVisibleRef.current = false;
-      setShowCameraFAB(false);
-      if (cameraFABTimeoutRef.current) {
-        clearTimeout(cameraFABTimeoutRef.current);
-      }
+      wasAutoMinimizedRef.current = false;
     }
   }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel]);
 
-  // Show camera FAB logic with delay
-  const shouldShowCameraFAB = isMobile && (showAnimationPanel || isAnimating || isAnimationPlaying) && !showCard && showCameraFAB;
+  // Show camera FAB with delay when card is hidden
+  useEffect(() => {
+    // Clear any existing timeout
+    if (cameraFABTimeoutRef.current) {
+      clearTimeout(cameraFABTimeoutRef.current);
+      cameraFABTimeoutRef.current = null;
+    }
+
+    // If on mobile, in animation panel, and card is hidden - show FAB after delay
+    if (isMobile && showAnimationPanel && !showCard) {
+      // Use longer delay (400ms) if auto-minimized by play button, shorter (100ms) for manual minimize
+      const delay = wasAutoMinimizedRef.current ? 400 : 100;
+      cameraFABTimeoutRef.current = setTimeout(() => {
+        setShowCameraFAB(true);
+        wasAutoMinimizedRef.current = false; // Reset after showing
+      }, delay);
+    } else {
+      // Card is visible or not in animation panel - hide FAB immediately
+      setShowCameraFAB(false);
+      wasAutoMinimizedRef.current = false;
+    }
+
+    return () => {
+      if (cameraFABTimeoutRef.current) {
+        clearTimeout(cameraFABTimeoutRef.current);
+      }
+    };
+  }, [isMobile, showAnimationPanel, showCard]);
+
+  // Show camera FAB logic
+  const shouldShowCameraFAB = showCameraFAB;
 
   const renderCameraFAB = shouldShowCameraFAB ? (
     <div style={{
@@ -649,16 +672,12 @@ const DirectionsPanel = ({
           e.stopPropagation();
           // User explicitly wants to see the card, so prevent auto-minimize
           userWantsCardVisibleRef.current = true;
-          // Hide camera FAB immediately when showing card
-          setShowCameraFAB(false);
-          if (cameraFABTimeoutRef.current) {
-            clearTimeout(cameraFABTimeoutRef.current);
-          }
           // Bring back the card with animation controls
           setCardTranslateY(0);
           setAnimationControlsMinimized(false);
           setShowCard(true);
           setCardHeight(40);
+          // Camera FAB will hide automatically via useEffect
         }}
         title="Show animation controls"
       >
@@ -1107,10 +1126,7 @@ const DirectionsPanel = ({
                 setCardTranslateY(slideDistance);
                 setTimeout(() => {
                   setShowCard(false);
-                  // Show camera FAB after additional delay for smooth transition
-                  cameraFABTimeoutRef.current = setTimeout(() => {
-                    setShowCameraFAB(true);
-                  }, 500);
+                  // Camera FAB will show automatically via useEffect after 0.5s
                 }, 400);
               }
             }}
