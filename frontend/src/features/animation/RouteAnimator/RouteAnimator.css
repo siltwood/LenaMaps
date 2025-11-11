@@ -422,7 +422,7 @@
 
 /* Mobile animator controls container */
 .mobile-animator-controls {
-  padding: 12px 16px;
+  padding: 6px 16px 12px 16px;
   max-height: 300px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
@@ -433,7 +433,7 @@
 
 .mobile-animator-controls .controls-section {
   margin: 0;
-  gap: 2px;
+  gap: 4px;
 }
 
 .mobile-animator-controls .timeline-control {
@@ -444,26 +444,27 @@
 
 /* Mobile playback controls */
 .mobile-animator-controls .playback-controls {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .mobile-control-btn {
-  padding: 6px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
   background: white;
-  color: rgba(0, 0, 0, 0.8);
+  color: rgba(0, 0, 0, 0.9);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  margin-right: 6px;
+  margin-right: 0;
 }
 
 .mobile-control-btn:hover {
@@ -512,19 +513,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3px 3px;
-  border: 1.5px solid var(--color-border);
+  padding: 8px 6px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
-  background: var(--color-bg-white);
+  background: white;
   position: relative;
-  min-height: 32px;
+  min-height: 44px;
 }
 
 .mobile-animator-controls .zoom-radio:hover:not(.disabled) {
-  border-color: var(--color-primary);
-  background: var(--color-bg-gray);
+  border-color: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .mobile-animator-controls .zoom-radio.disabled {
@@ -534,10 +535,10 @@
 }
 
 .mobile-animator-controls .zoom-radio.active {
-  border-color: var(--color-primary);
-  background: #e8f0fe;
-  color: #1967d2;
-  font-weight: 500;
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 600;
 }
 
 .mobile-animator-controls .zoom-radio input[type="radio"] {
@@ -548,19 +549,21 @@
 }
 
 .mobile-animator-controls .zoom-radio span {
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 600;
   user-select: none;
 }
 
 .mobile-animator-controls .zoom-radio small {
-  font-size: 7px;
-  color: var(--color-text-secondary);
-  margin-top: 0;
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: 2px;
 }
 
 .speed-radio-group {
   display: flex;
-  gap: var(--compact-sm);
+  gap: 6px;
   width: 100%;
   margin-top: 0;
   margin-bottom: 0;
@@ -572,27 +575,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--compact-sm) var(--compact-md);
-  border: 1.5px solid var(--color-border);
+  padding: 8px 6px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: var(--transition-all);
-  background: var(--color-bg-white);
+  transition: all 0.2s ease;
+  background: white;
   position: relative;
   min-height: 44px;
-  gap: var(--compact-xxs);
+  gap: 2px;
 }
 
 .speed-radio:hover {
-  border-color: var(--color-primary);
-  background: var(--color-bg-gray);
+  border-color: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .speed-radio.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  color: var(--color-primary-hover);
-  font-weight: var(--font-weight-medium);
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 600;
 }
 
 .speed-radio input[type="radio"] {
@@ -603,13 +606,15 @@
 }
 
 .speed-radio span {
-  font-size: var(--font-md);
+  font-size: 12px;
+  font-weight: 600;
   user-select: none;
 }
 
 .speed-radio small {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
   user-select: none;
 }
 

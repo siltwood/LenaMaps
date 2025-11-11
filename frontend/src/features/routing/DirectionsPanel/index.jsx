@@ -54,6 +54,8 @@ const DirectionsPanel = ({
   const [showAnimationPanel, setShowAnimationPanel] = useState(false);
   const [animationControlsMinimized, setAnimationControlsMinimized] = useState(false);
   const hasRecenteredForAnimationRef = useRef(false);
+  const hasAutoMinimizedForAnimationRef = useRef(false);
+  const userWantsCardVisibleRef = useRef(false);
 
   // NEW: DirectionsPanel now owns ALL route state internally
   const [locations, setLocations] = useState(propsLocations);
@@ -601,20 +603,20 @@ const DirectionsPanel = ({
     }
   }, [showAnimationPanel, isMobile, map, directionsRoute]);
 
-  // Auto-minimize card when animation starts playing
+  // Auto-minimize card when animation starts playing (only once, unless user wants it visible)
   useEffect(() => {
-    if (isMobile && isAnimationPlaying && showCard && showAnimationPanel) {
-      const cardRect = cardRef.current?.getBoundingClientRect();
-      if (cardRect) {
-        const slideDistance = window.innerHeight - cardRect.top + 10;
-        setCardTranslateY(slideDistance);
-        setTimeout(() => {
-          setShowCard(false);
-          // Don't set animationControlsMinimized here - let camera FAB stay visible
-        }, 400);
-      }
+    if (isMobile && (isAnimationPlaying || isAnimating) && showCard && showAnimationPanel && !hasAutoMinimizedForAnimationRef.current && !userWantsCardVisibleRef.current) {
+      hasAutoMinimizedForAnimationRef.current = true;
+      // Hide the card to show camera FAB
+      setShowCard(false);
     }
-  }, [isAnimationPlaying, isMobile, showCard, showAnimationPanel]);
+
+    // Reset when animation stops or panel closes
+    if (!isAnimating && !isAnimationPlaying) {
+      hasAutoMinimizedForAnimationRef.current = false;
+      userWantsCardVisibleRef.current = false;
+    }
+  }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel]);
 
   // Show camera FAB when animation is happening (panel mode or actively playing) and card is hidden
   const shouldShowCameraFAB = isMobile && (showAnimationPanel || isAnimating || isAnimationPlaying) && !showCard;
@@ -632,8 +634,11 @@ const DirectionsPanel = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          // User explicitly wants to see the card, so prevent auto-minimize
+          userWantsCardVisibleRef.current = true;
           // Bring back the card with animation controls
           setCardTranslateY(0);
+          setAnimationControlsMinimized(false);
           setShowCard(true);
           setCardHeight(40);
         }}
@@ -1017,7 +1022,9 @@ const DirectionsPanel = ({
   );
 
   // Wrap in mobile card or desktop panel
-  const renderPanel = isOpen && !isMinimized && (
+  // On mobile with animation panel, always allow rendering even if isOpen is false
+  const shouldRenderPanel = isOpen || (isMobile && showAnimationPanel);
+  const renderPanel = shouldRenderPanel && !isMinimized && (
     isMobile ? (
       // Mobile: draggable card
       <div
@@ -1028,7 +1035,8 @@ const DirectionsPanel = ({
           bottom: 0,
           left: 0,
           right: 0,
-          transform: `translateY(${cardTranslateY}px)`,
+          // When showCard is false, slide completely off-screen
+          transform: showCard ? `translateY(${cardTranslateY}px)` : 'translateY(100%)',
           height: `${cardHeight}vh`,
           transition: isDragging ? 'none' : 'transform 0.4s ease-in-out, height 0.4s ease-in-out',
           backgroundColor: 'white',
