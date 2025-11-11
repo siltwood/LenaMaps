@@ -603,23 +603,36 @@ const DirectionsPanel = ({
     }
   }, [showAnimationPanel, isMobile, map, directionsRoute]);
 
+  // Track when to show camera FAB with delay
+  const [showCameraFAB, setShowCameraFAB] = useState(false);
+  const cameraFABTimeoutRef = useRef(null);
+
   // Auto-minimize card when animation starts playing (only once, unless user wants it visible)
   useEffect(() => {
     if (isMobile && (isAnimationPlaying || isAnimating) && showCard && showAnimationPanel && !hasAutoMinimizedForAnimationRef.current && !userWantsCardVisibleRef.current) {
       hasAutoMinimizedForAnimationRef.current = true;
-      // Hide the card to show camera FAB
+      // Hide the card
       setShowCard(false);
+
+      // Show camera FAB after 0.5s delay (time for slide-down animation to complete)
+      cameraFABTimeoutRef.current = setTimeout(() => {
+        setShowCameraFAB(true);
+      }, 500);
     }
 
     // Reset when animation stops or panel closes
     if (!isAnimating && !isAnimationPlaying) {
       hasAutoMinimizedForAnimationRef.current = false;
       userWantsCardVisibleRef.current = false;
+      setShowCameraFAB(false);
+      if (cameraFABTimeoutRef.current) {
+        clearTimeout(cameraFABTimeoutRef.current);
+      }
     }
   }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel]);
 
-  // Show camera FAB when animation is happening (panel mode or actively playing) and card is hidden
-  const shouldShowCameraFAB = isMobile && (showAnimationPanel || isAnimating || isAnimationPlaying) && !showCard;
+  // Show camera FAB logic with delay
+  const shouldShowCameraFAB = isMobile && (showAnimationPanel || isAnimating || isAnimationPlaying) && !showCard && showCameraFAB;
 
   const renderCameraFAB = shouldShowCameraFAB ? (
     <div style={{
@@ -636,6 +649,11 @@ const DirectionsPanel = ({
           e.stopPropagation();
           // User explicitly wants to see the card, so prevent auto-minimize
           userWantsCardVisibleRef.current = true;
+          // Hide camera FAB immediately when showing card
+          setShowCameraFAB(false);
+          if (cameraFABTimeoutRef.current) {
+            clearTimeout(cameraFABTimeoutRef.current);
+          }
           // Bring back the card with animation controls
           setCardTranslateY(0);
           setAnimationControlsMinimized(false);
@@ -1089,7 +1107,10 @@ const DirectionsPanel = ({
                 setCardTranslateY(slideDistance);
                 setTimeout(() => {
                   setShowCard(false);
-                  // Camera FAB will show when card is hidden and animation is playing
+                  // Show camera FAB after additional delay for smooth transition
+                  cameraFABTimeoutRef.current = setTimeout(() => {
+                    setShowCameraFAB(true);
+                  }, 500);
                 }, 400);
               }
             }}
