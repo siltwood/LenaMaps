@@ -216,7 +216,7 @@ const MapComponent = ({
       {/* Animated Marker Box - render at MapComponent level so it's always available */}
       <AnimatedMarkerBoxContainer map={map} directionsRoute={directionsRoute} />
 
-      {/* Show RouteAnimator for desktop only - mobile handles it differently */}
+      {/* RouteAnimator for desktop only - mobile version is embedded in DirectionsPanel */}
       {map && !isMobile && (
         <RouteAnimator
           key="route-animator-desktop"

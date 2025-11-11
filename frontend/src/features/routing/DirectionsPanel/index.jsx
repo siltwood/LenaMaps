@@ -11,6 +11,7 @@ import CustomRouteDrawer from '../../map/GoogleMap/components/CustomRouteDrawer'
 import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConstants';
 import { useRouteSegments, useRouteActions } from '../hooks';
 import ActionButtons from './components/ActionButtons';
+import RouteAnimator from '../../animation/RouteAnimator';
 import '../../../styles/unified-icons.css';
 
 const DirectionsPanel = ({
@@ -50,6 +51,8 @@ const DirectionsPanel = ({
   const [cardHeight, setCardHeight] = useState(40); // Height as vh percentage
   const initialDragHeight = useRef(40);
   const cardRef = useRef(null);
+  const [showAnimationPanel, setShowAnimationPanel] = useState(false);
+  const [animationControlsMinimized, setAnimationControlsMinimized] = useState(false);
 
   // NEW: DirectionsPanel now owns ALL route state internally
   const [locations, setLocations] = useState(propsLocations);
@@ -160,12 +163,18 @@ const DirectionsPanel = ({
 
       if (cardTranslateY > 80) {
         setCardTranslateY(window.innerHeight);
-        setTimeout(() => setShowCard(false), 400);
+        setTimeout(() => {
+          setShowCard(false);
+          // Camera FAB will show when card is hidden and animation is playing
+        }, 400);
       } else if (cardTranslateY > 0) {
         setCardTranslateY(0);
       } else if (cardHeight < 15) {
         setCardTranslateY(window.innerHeight);
-        setTimeout(() => setShowCard(false), 400);
+        setTimeout(() => {
+          setShowCard(false);
+          // Camera FAB will show when card is hidden and animation is playing
+        }, 400);
       }
     };
 
@@ -381,18 +390,6 @@ const DirectionsPanel = ({
     onLocationUsed?.();
   }, [clickedLocation, isOpen, uiLocations, routeSegments, activeInput, onLocationUsed, updateLocation]);
 
-  // Auto-minimize mobile card when animation starts
-  useEffect(() => {
-    if (isMobile && isAnimating && showCard) {
-      const cardRect = cardRef.current?.getBoundingClientRect();
-      if (cardRect) {
-        const slideDistance = window.innerHeight - cardRect.top + 10;
-        setCardTranslateY(slideDistance);
-        setTimeout(() => setShowCard(false), 400);
-      }
-    }
-  }, [isAnimating, isMobile, showCard]);
-
   // OLD EFFECT - DISABLED during refactor (now handled by auto-calc effect above)
   // ============================================================================
   // INSERT LOCATION - Simple insert between existing locations
@@ -536,8 +533,8 @@ const DirectionsPanel = ({
     setIsMinimized(false);
   };
 
-  // Render mobile FAB when card is hidden
-  const renderMobileFAB = isMobile && !showCard && (
+  // Render mobile FAB when card is hidden - show route planner FAB ONLY if not in animation mode
+  const renderMobileFAB = isMobile && !showCard && !showAnimationPanel && !animationControlsMinimized && (
     <div style={{ position: 'fixed', left: '20px', bottom: '20px', zIndex: 2000 }}>
       <button
         className="unified-icon primary"
@@ -555,6 +552,54 @@ const DirectionsPanel = ({
       </button>
     </div>
   );
+
+  // Track if animation is playing
+  const [isAnimationPlaying, setIsAnimationPlaying] = useState(false);
+
+  // Auto-minimize card when animation starts playing
+  useEffect(() => {
+    if (isMobile && isAnimationPlaying && showCard && showAnimationPanel) {
+      const cardRect = cardRef.current?.getBoundingClientRect();
+      if (cardRect) {
+        const slideDistance = window.innerHeight - cardRect.top + 10;
+        setCardTranslateY(slideDistance);
+        setTimeout(() => {
+          setShowCard(false);
+          // Don't set animationControlsMinimized here - let camera FAB stay visible
+        }, 400);
+      }
+    }
+  }, [isAnimationPlaying, isMobile, showCard, showAnimationPanel]);
+
+  // Show camera FAB when animation is happening (panel mode or actively playing) and card is hidden
+  const shouldShowCameraFAB = isMobile && (showAnimationPanel || isAnimating || isAnimationPlaying) && !showCard;
+
+  const renderCameraFAB = shouldShowCameraFAB ? (
+    <div style={{
+      position: 'fixed',
+      left: '20px',
+      bottom: '20px',
+      zIndex: 2000,
+      pointerEvents: 'auto' // Ensure it can receive clicks
+    }}>
+      <button
+        className="unified-icon animation"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Bring back the card with animation controls
+          setCardTranslateY(0);
+          setShowCard(true);
+          setCardHeight(40);
+        }}
+        title="Show animation controls"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c .55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+        </svg>
+      </button>
+    </div>
+  ) : null;
 
   // Render minimized state (desktop only)
   const renderMinimized = !isMobile && isMinimized && (
@@ -989,7 +1034,10 @@ const DirectionsPanel = ({
               if (cardRect) {
                 const slideDistance = window.innerHeight - cardRect.top + 10;
                 setCardTranslateY(slideDistance);
-                setTimeout(() => setShowCard(false), 400);
+                setTimeout(() => {
+                  setShowCard(false);
+                  // Camera FAB will show when card is hidden and animation is playing
+                }, 400);
               }
             }}
             style={{
@@ -1037,12 +1085,31 @@ const DirectionsPanel = ({
               onLoadClick={() => setShowSavedRoutesModal(true)}
               onSaveClick={() => setShowSaveModal(true)}
               onShare={handleShare}
+              onPlayClick={isMobile ? () => setShowAnimationPanel(true) : undefined}
+              showAnimationPanel={showAnimationPanel}
+              onCloseAnimationPanel={() => setShowAnimationPanel(false)}
             />
           </div>
 
-          {/* Scrollable locations list */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '4px 12px 12px 12px' }}>
-            {renderPanelContent}
+          {/* Scrollable locations list or animation controls */}
+          <div style={{ flex: 1, overflow: 'auto', padding: showAnimationPanel ? '0' : '4px 12px 12px 12px' }}>
+            {showAnimationPanel ? (
+              <RouteAnimator
+                map={map}
+                directionsRoute={directionsRoute}
+                onAnimationStateChange={(isPlaying) => {
+                  setIsAnimationPlaying(isPlaying);
+                  if (onAnimationStateChange) onAnimationStateChange(isPlaying);
+                }}
+                isMobile={true}
+                embeddedInModal={true}
+                onClose={() => setShowAnimationPanel(false)}
+                isMinimized={animationControlsMinimized}
+                setIsMinimized={setAnimationControlsMinimized}
+              />
+            ) : (
+              renderPanelContent
+            )}
           </div>
         </div>
       </div>
@@ -1058,6 +1125,7 @@ const DirectionsPanel = ({
   return (
     <>
       {renderMobileFAB}
+      {renderCameraFAB}
       {renderMinimized}
       {renderPanel}
 

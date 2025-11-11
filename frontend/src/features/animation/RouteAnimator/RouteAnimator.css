@@ -301,12 +301,14 @@
 
 /* Mobile section labels */
 .mobile-section-label {
-  font-size: 9px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 8px 0 4px 0;
   display: block;
-  line-height: 1;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Mobile radio group styling */
@@ -410,7 +412,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 2px 10px;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .mobile-card-header h4 {
@@ -421,8 +422,8 @@
 
 /* Mobile animator controls container */
 .mobile-animator-controls {
-  padding: 2px 8px;
-  max-height: 200px;
+  padding: 12px 16px;
+  max-height: 300px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   touch-action: pan-y; /* Only allow vertical scrolling */
@@ -439,27 +440,37 @@
   margin-top: 0;
   margin-bottom: 0;
   padding-top: 0;
-  border-top: 1px solid var(--color-border);
 }
 
 /* Mobile playback controls */
 .mobile-animator-controls .playback-controls {
-  margin-bottom: 2px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 6px;
 }
 
 .mobile-control-btn {
-  padding: var(--spacing-xs) 10px;
-  font-size: 11px;
-  font-weight: 500;
-  border: none;
+  padding: 6px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: white;
+  color: rgba(0, 0, 0, 0.8);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
+  font-size: 13px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
+  transition: all 0.2s ease;
   margin-right: 6px;
+}
+
+.mobile-control-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .mobile-control-btn:disabled {
@@ -468,30 +479,30 @@
 }
 
 .mobile-control-btn.play {
-  background: var(--color-success);
-  color: white;
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .mobile-control-btn.play:hover {
-  background: #059669;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .mobile-control-btn.pause {
-  background: var(--color-warning);
-  color: white;
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .mobile-control-btn.pause:hover {
-  background: #d97706;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
 }
 
 .mobile-control-btn.stop {
-  background: var(--color-danger);
-  color: white;
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .mobile-control-btn.stop:hover {
-  background: var(--color-danger-dark);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* Make zoom controls look good on mobile */

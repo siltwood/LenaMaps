@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faStop } from '@fortawesome/free-solid-svg-icons';
 import { TRANSPORT_ICONS, TRANSPORTATION_COLORS } from '../../../constants/transportationModes';
@@ -22,13 +23,12 @@ import { isMobileDevice } from '../../../utils/deviceDetection';
 import '../../../styles/unified-icons.css';
 import './RouteAnimator.css';
 
-const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimationStart, isMobile = false, forceShow = false, onClose, embeddedInModal = false, onMinimize }) => {
-  
-  // Start expanded on desktop and when forceShow is true on mobile
-  const [isMinimized, setIsMinimized] = useState(() => {
-    // Desktop starts expanded, mobile with forceShow starts expanded too
-    return false; // Always start expanded when shown
-  });
+const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimationStart, isMobile = false, forceShow = false, onClose, embeddedInModal = false, onMinimize, isMinimized: propsIsMinimized, setIsMinimized: propsSetIsMinimized }) => {
+
+  // Use props if provided (embedded mode), otherwise manage internally
+  const [internalIsMinimized, setInternalIsMinimized] = useState(false);
+  const isMinimized = propsIsMinimized !== undefined ? propsIsMinimized : internalIsMinimized;
+  const setIsMinimized = propsSetIsMinimized !== undefined ? propsSetIsMinimized : setInternalIsMinimized;
   const [isAnimating, setIsAnimatingState] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [modalState, setModalState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
@@ -255,15 +255,13 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     return () => window.removeEventListener('resize', handleResize);
   }, [isMinimized]);
 
-  // When embedded in modal on mobile, just render the controls
+  // When embedded in modal on mobile, render the controls only (FAB handled by DirectionsPanel)
   if (embeddedInModal) {
     return (
       <>
-        <div className="mobile-card-header">
-          {!isMobile && <DragHandle />}
-          <h4>Route Animator</h4>
-        </div>
-        <div 
+
+        {!isMinimized && (
+          <div
           className="mobile-animator-controls"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
@@ -307,14 +305,15 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               showLabel={false}
             />
           </div>
-        </div>
-        <Modal
-          isOpen={modalState.isOpen}
-          onClose={() => setModalState({ ...modalState, isOpen: false })}
-          title={modalState.title}
-          message={modalState.message}
-          type={modalState.type}
-        />
+            <Modal
+              isOpen={modalState.isOpen}
+              onClose={() => setModalState({ ...modalState, isOpen: false })}
+              title={modalState.title}
+              message={modalState.message}
+              type={modalState.type}
+            />
+          </div>
+        )}
       </>
     );
   }
