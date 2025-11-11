@@ -53,6 +53,7 @@ const DirectionsPanel = ({
   const cardRef = useRef(null);
   const [showAnimationPanel, setShowAnimationPanel] = useState(false);
   const [animationControlsMinimized, setAnimationControlsMinimized] = useState(false);
+  const hasRecenteredForAnimationRef = useRef(false);
 
   // NEW: DirectionsPanel now owns ALL route state internally
   const [locations, setLocations] = useState(propsLocations);
@@ -555,6 +556,50 @@ const DirectionsPanel = ({
 
   // Track if animation is playing
   const [isAnimationPlaying, setIsAnimationPlaying] = useState(false);
+
+  // Recenter map when switching to animation panel on mobile
+  useEffect(() => {
+    if (isMobile && showAnimationPanel && map && directionsRoute?.allLocations?.[0] && !hasRecenteredForAnimationRef.current) {
+      const firstLocation = directionsRoute.allLocations[0];
+      if (firstLocation?.lat && firstLocation?.lng) {
+        // Mark that we've recentered
+        hasRecenteredForAnimationRef.current = true;
+
+        // Get map projection and dimensions
+        const projection = map.getProjection();
+        const mapDiv = map.getDiv();
+        const mapHeight = mapDiv.offsetHeight;
+
+        if (projection) {
+          // Convert the first location to world coordinates
+          const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
+          const worldPoint = projection.fromLatLngToPoint(point);
+
+          // Calculate how much to offset (1/6 of screen height in world coordinates)
+          const scale = Math.pow(2, map.getZoom());
+          const pixelOffset = mapHeight / 6;
+          const worldOffset = pixelOffset / scale;
+
+          // Create new center point offset downward (so marker moves up)
+          const newWorldPoint = new window.google.maps.Point(
+            worldPoint.x,
+            worldPoint.y + worldOffset / 256 // 256 is the world coordinate scale
+          );
+
+          // Convert back to lat/lng
+          const newCenter = projection.fromPointToLatLng(newWorldPoint);
+
+          // Single pan operation to avoid fighting with Google Maps
+          map.panTo(newCenter);
+        }
+      }
+    }
+
+    // Reset flag when leaving animation panel
+    if (!showAnimationPanel) {
+      hasRecenteredForAnimationRef.current = false;
+    }
+  }, [showAnimationPanel, isMobile, map, directionsRoute]);
 
   // Auto-minimize card when animation starts playing
   useEffect(() => {
