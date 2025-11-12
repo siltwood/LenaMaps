@@ -354,6 +354,9 @@ const RouteSegmentManager = ({
 
   // Main effect to render route segments with their markers
   useEffect(() => {
+    const effectId = Math.random().toString(36).substr(2, 9);
+    console.log(`[MAIN EFFECT ${effectId}] START - segmentsRef:`, segmentsRef.current.length, segmentsRef.current.map(s => s?.id));
+
     // Clear any pending cleanup
     if (cleanupTimeoutRef.current) {
       clearTimeout(cleanupTimeoutRef.current);
@@ -361,34 +364,56 @@ const RouteSegmentManager = ({
     }
 
     if (!map || !directionsService) {
+      console.log(`[MAIN EFFECT ${effectId}] CLEARING: no map or service`);
       clearAllSegments();
       return;
     }
 
     // If no directionsRoute, clear all segments (user cleared route or undid to < 2 locations)
     if (!directionsRoute) {
+      console.log(`[MAIN EFFECT ${effectId}] CLEARING: no directionsRoute`);
       clearAllSegments();
       return;
     }
 
     // Handle empty route (used for clearing)
     if (directionsRoute.routeId === 'empty' || !directionsRoute.allLocations || directionsRoute.allLocations.length === 0) {
+      console.log(`[MAIN EFFECT ${effectId}] CLEARING: empty route or no locations`);
       clearAllSegments();
       return;
     }
 
+    const { allLocations, allModes, singleLocationDrawMode } = directionsRoute;
+
+    // Check for valid locations early to determine if we're transitioning 1→2
+    const validLocations = allLocations.filter(loc => loc !== null && loc !== undefined);
+
+    // HANDOFF PROTOCOL: Check if transitioning from 1→2 locations BEFORE clearing
+    const wasSingleMarker = segmentsRef.current.length === 1 &&
+      segmentsRef.current[0] &&
+      segmentsRef.current[0].id === 'single-marker';
+
+    const isTransitioning1to2 = wasSingleMarker && validLocations.length === 2;
+
     // Force full rebuild if requested (e.g., during drag-and-drop reorder)
-    // This prevents stale segment reuse bugs
-    if (directionsRoute.forceRebuild) {
+    // BUT: Don't clear if we're in 1→2 transition - preserve the single marker for handoff
+    if (directionsRoute.forceRebuild && !isTransitioning1to2) {
+      console.log(`[MAIN EFFECT ${effectId}] CLEARING: forceRebuild`);
       clearAllSegments();
       // Continue with normal rendering below (don't return)
+    } else if (isTransitioning1to2) {
+      console.log(`[MAIN EFFECT ${effectId}] HANDOFF: Skipping forceRebuild clear for 1→2 transition`);
+      // Mark the single marker as owned by main effect
+      segmentsRef.current[0]._ownedBy = 'main-effect';
     }
 
-    const { allLocations, allModes, singleLocationDrawMode } = directionsRoute;
+    console.log('[MAIN EFFECT] Checking conditions:', { singleLocationDrawMode, allLocations: allLocations?.length });
+    console.log('[MAIN EFFECT] Before singleLocationDrawMode check - segmentsRef:', segmentsRef.current.length);
 
     // Special case: single location in draw mode - just show start marker
     if (singleLocationDrawMode) {
-      clearAllSegments();
+      console.log('[MAIN EFFECT] singleLocationDrawMode branch');
+      clearRouteSegments(); // Clear route segments, keep individual markers if any
 
       // Create just the start marker
       const location = allLocations.find(l => l !== null);
@@ -410,15 +435,18 @@ const RouteSegmentManager = ({
       }
       return;
     }
-    
+
+    console.log('[MAIN EFFECT] After singleLocationDrawMode check - segmentsRef:', segmentsRef.current.length);
+
     // Additional check: if all locations are null, clear everything
     if (allLocations.every(loc => !loc)) {
+      console.log('[MAIN EFFECT] All locations null');
       clearAllSegments();
       return;
     }
-    
-    // Filter out null locations
-    const validLocations = allLocations.filter(loc => loc !== null && loc !== undefined);
+
+    // validLocations already declared above for handoff check
+    console.log('[MAIN EFFECT] After filtering - validLocations:', validLocations.length, 'segmentsRef:', segmentsRef.current.length);
     // For modes: keep at least 1 mode for single location, or n-1 modes for n locations
     const validModes = allModes.slice(0, Math.max(1, validLocations.length - 1));
     
@@ -427,26 +455,23 @@ const RouteSegmentManager = ({
       clearAllSegments();
       return;
     }
-    
-    // For single location, only clear if we don't already have a single marker
-    if (validLocations.length === 1) {
-      const alreadyHasSingleMarker = segmentsRef.current.length === 1 &&
-                                     segmentsRef.current[0] &&
-                                     segmentsRef.current[0].id === 'single-marker';
-      if (!alreadyHasSingleMarker) {
-        clearAllSegments();
-      }
-    } else {
-      // Special case: transitioning from 1 location to 2 locations
-      const wasSingleMarker = segmentsRef.current.length === 1 &&
-        segmentsRef.current[0] &&
-        segmentsRef.current[0].id === 'single-marker' &&
-        validLocations.length === 2;
 
-      if (wasSingleMarker) {
-        // DON'T clear - we'll reuse the single marker as segment 0's start marker
-        // This prevents flickering when adding the second location
-      } else {
+    // STRICT BOUNDARY: Main effect only handles 2+ locations
+    // For 0-1 locations, individual effect owns this
+    if (validLocations.length < 2) {
+      clearRouteSegments(); // Clear route segments, keep individual markers
+      return;
+    }
+
+    // wasSingleMarker already declared and marked above during handoff check
+    console.log('[MAIN EFFECT] Handoff check:', {
+      wasSingleMarker,
+      segmentCount: segmentsRef.current.length,
+      firstSegmentId: segmentsRef.current[0]?.id,
+      validLocationCount: validLocations.length
+    });
+
+    if (!wasSingleMarker) {
         // Check if only modes changed (same locations)
         // Need to check ALL locations, not just start locations
         const prevAllLocations = [];
@@ -479,8 +504,8 @@ const RouteSegmentManager = ({
           });
 
           if (modesChanged) {
-            // Clear all segments and recalculate with new modes
-            clearAllSegments();
+            // Clear route segments and recalculate with new modes
+            clearRouteSegments();
             // Continue to the normal route calculation below
           } else if (!customStatusChanged) {
             // No changes needed, return early
@@ -507,9 +532,8 @@ const RouteSegmentManager = ({
           }
           // For route extension, we'll handle it in the rendering section
         }
-      }
     }
-    
+
     // Show markers even with just 1 location
     if (!validLocations || validLocations.length < 1) {
       return;
@@ -577,8 +601,15 @@ const RouteSegmentManager = ({
           return;
         }
 
-        // Start with fresh array
+        // Start with fresh array - but preserve single marker if handed off
         const newSegments = [];
+
+        // HANDOFF: If we adopted a single marker, preserve it to reuse as first segment's start marker
+        let adoptedMarker = null;
+        if (wasSingleMarker && segmentsRef.current[0]?._ownedBy === 'main-effect') {
+          adoptedMarker = segmentsRef.current[0].markers.start;
+          console.log('[MAIN EFFECT] Preserved adopted marker for reuse');
+        }
         
         // Determine which segments need to be rendered
         // Check which segments are in directionsRoute.segments (skip ones that were excluded due to custom drawing)
@@ -701,7 +732,11 @@ const RouteSegmentManager = ({
 
             if (i === 0) {
               // First segment gets START marker - reuse if available
-              if (existingSingleMarker) {
+              if (adoptedMarker) {
+                // HANDOFF: Reuse the adopted single marker
+                markers.start = adoptedMarker;
+                console.log('[MAIN EFFECT] Reused adopted marker as segment[0].start');
+              } else if (existingSingleMarker) {
                 markers.start = existingSingleMarker;
               } else if (canReuseExistingMarkers) {
                 markers.start = existingSegment.markers.start;
@@ -1271,79 +1306,91 @@ const RouteSegmentManager = ({
         cleanupTimeoutRef.current = null;
       }
     };
-  }, [map, directionsRoute, directionsService, clearAllSegments]);
+  }, [map, directionsRoute, directionsService]);
 
-  // Handle showing markers for individual locations (before route is calculated)
+  // INDIVIDUAL EFFECT: Handle single location markers (0-1 locations only)
+  // STRICT BOUNDARY: Main effect owns 2+ locations
   useEffect(() => {
-    
     if (!map) {
       return;
     }
-    
+
     if (!directionsLocations) {
       return;
     }
-    
-    // Filter out null locations FIRST to check if we have any real locations
+
+    // Filter out null locations
     const validLocations = directionsLocations.filter(loc => loc !== null);
 
+    console.log('[INDIVIDUAL EFFECT] Running:', {
+      validLocationCount: validLocations.length,
+      currentSegmentCount: segmentsRef.current.length
+    });
 
-    // Skip if we have 2+ locations - the main route effect will handle markers
+    // STRICT BOUNDARY: If 2+ locations, main effect owns this - don't interfere
     if (validLocations.length >= 2) {
+      console.log('[INDIVIDUAL EFFECT] 2+ locations detected, returning early (main effect owns this)');
       return;
     }
 
-    // Show marker for single location (point A)
-    if (validLocations.length === 1) {
-      const location = validLocations[0];
-      const mode = directionsLegModes[0] || 'walk';
-      
-      // Check if we already have this exact marker
-      const existingMarker = segmentsRef.current.find(s => s.id === 'single-marker');
-      
-      if (existingMarker && 
-          existingMarker.startLocation.lat === location.lat && 
-          existingMarker.startLocation.lng === location.lng &&
-          existingMarker.mode === mode) {
-        return; // Same marker already exists
-      }
-      
-      // Clear any existing markers if location or mode changed
-      if (existingMarker) {
-        clearAllSegments();
-      }
-      
-      const modeIcon = TRANSPORT_ICONS[mode] || '🚶';
-      const modeColor = getTransportationColor(mode);
-
-
-      try {
-        const marker = createMarker(
-          location,
-          modeIcon,
-          modeColor,
-          'Point A',
-          5000,
-          mode === 'bus'
-        );
-
-
-        segmentsRef.current = [{
-          id: 'single-marker',
-          markers: { start: marker },
-          startLocation: location,
-          mode: mode
-        }];
-
-      } catch (error) {
-      }
-    } else if (validLocations.length === 0) {
-      // Clear markers if no locations
-      clearAllSegments();
-    } else {
+    // Handle 0 locations - clear individual markers
+    if (validLocations.length === 0) {
+      clearIndividualMarkers();
+      return;
     }
-    
-  }, [map, directionsLocations, directionsLegModes, directionsRoute, createMarker, clearAllSegments]);
+
+    // Handle 1 location - create/update single marker
+    const location = validLocations[0];
+    const mode = directionsLegModes[0] || 'walk';
+
+    // Check if marker already exists
+    const existingMarker = segmentsRef.current.find(s => s.id === 'single-marker');
+
+    // If marker is owned by main effect, don't touch it (handoff completed)
+    if (existingMarker && existingMarker._ownedBy === 'main-effect') {
+      return;
+    }
+
+    // If same marker already exists, don't recreate
+    if (existingMarker &&
+        existingMarker.startLocation.lat === location.lat &&
+        existingMarker.startLocation.lng === location.lng &&
+        existingMarker.mode === mode &&
+        !existingMarker._ownedBy) {
+      return;
+    }
+
+    // Clear old marker if exists (but not owned)
+    if (existingMarker && !existingMarker._ownedBy) {
+      clearIndividualMarkers();
+    }
+
+    // Create new marker
+    const modeIcon = TRANSPORT_ICONS[mode] || '🚶';
+    const modeColor = getTransportationColor(mode);
+
+    try {
+      const marker = createMarker(
+        location,
+        modeIcon,
+        modeColor,
+        'Point A',
+        5000,
+        mode === 'bus'
+      );
+
+      segmentsRef.current = [{
+        id: 'single-marker',
+        markers: { start: marker },
+        startLocation: location,
+        mode: mode
+      }];
+
+    } catch (error) {
+      // Marker creation failed, silently ignore
+    }
+
+  }, [map, directionsLocations, directionsLegModes, createMarker, clearIndividualMarkers]);
 
   // Cleanup on unmount
   useEffect(() => {
