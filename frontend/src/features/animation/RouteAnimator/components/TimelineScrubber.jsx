@@ -45,7 +45,7 @@ const TimelineScrubber = ({
   }, [updateProgress]);
 
   const handleTouchStart = useCallback((e) => {
-    e.preventDefault();
+    // Don't preventDefault on touch events - they're passive by default
     setIsDragging(true);
     updateProgress(e.touches[0].clientX);
   }, [updateProgress]);
@@ -58,7 +58,7 @@ const TimelineScrubber = ({
 
   const handleTouchMove = useCallback((e) => {
     if (!isDragging) return;
-    e.preventDefault();
+    // Don't preventDefault on touch events - they're passive by default
     updateProgress(e.touches[0].clientX);
   }, [isDragging, updateProgress]);
 
@@ -92,6 +92,7 @@ const TimelineScrubber = ({
           className="timeline-track-custom"
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
+          style={{ touchAction: 'none', userSelect: 'none' }}
         >
           {/* Progress bar */}
           <div

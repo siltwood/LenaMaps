@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { TRANSPORT_ICONS, TRANSPORTATION_COLORS } from '../../../../constants/transportationModes';
 import { ANIMATION_PADDING } from '../../../../constants/animationConstants';
 
@@ -639,6 +639,12 @@ export const useRouteAnimation = ({
     const allLocations = directionsRoute.allLocations;
     const allModes = directionsRoute.allModes || [];
 
+    // Clear any existing polyline before creating new one
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+
     try {
       // Build path from route
       const { fullPath, segmentInfo } = buildPathFromRoute(allLocations, allModes);
@@ -725,15 +731,16 @@ export const useRouteAnimation = ({
       animationRef.current = null;
     }
 
-    // Hide polyline
+    // Keep polyline visible and reset to start - allows scrubbing when stopped
     if (polylineRef.current) {
       const icons = polylineRef.current.get('icons');
       if (icons && icons.length > 0) {
         icons[0].offset = '0%';
         polylineRef.current.set('icons', icons);
       }
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
+      // Don't remove from map - keep for scrubbing
+      // polylineRef.current.setMap(null);
+      // polylineRef.current = null;
     }
 
     offsetRef.current = 0;
@@ -854,6 +861,80 @@ export const useRouteAnimation = ({
       pauseAnimation();
     }
   }, [map, isAnimating, isPaused, pauseAnimation, zoomLevelRef]);
+
+  // Auto-create polyline when route exists (for scrubbing without playing)
+  useEffect(() => {
+    if (!map || !directionsRoute || isAnimating) return;
+
+    const allLocations = directionsRoute.allLocations;
+    const allModes = directionsRoute.allModes || [];
+
+    if (!allLocations || allLocations.length < 2) return;
+
+    // If polyline already exists for this route, don't recreate
+    if (polylineRef.current && directionsRoute.routeId === polylineRef.current._routeId) return;
+
+    // Poll for route segments to be ready (they're set by RouteSegmentManager)
+    const checkAndCreate = () => {
+      if (!window._routeSegments || window._routeSegments.length === 0) {
+        return false;
+      }
+
+      // Clear old polyline if exists and reset progress
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+
+      // Reset progress to 0
+      offsetRef.current = 0;
+      countRef.current = 0;
+      visualOffsetRef.current = 0;
+      setAnimationProgress(0);
+
+      try {
+      const { fullPath, segmentInfo } = buildPathFromRoute(allLocations, allModes);
+      if (fullPath.length === 0) return;
+
+      const { densifiedPath, densifiedSegmentInfo } = optimizePath(fullPath, segmentInfo);
+      if (!densifiedPath || densifiedPath.length < 2) return false;
+
+      pathRef.current = densifiedPath;
+      segmentPathsRef.current = densifiedSegmentInfo;
+
+      // Calculate total distance
+      let totalDistance = 0;
+      for (let i = 0; i < densifiedPath.length - 1; i++) {
+        totalDistance += window.google.maps.geometry.spherical.computeDistanceBetween(
+          densifiedPath[i],
+          densifiedPath[i + 1]
+        );
+      }
+      totalDistanceRef.current = totalDistance / 1000;
+
+      // Create polyline and mark with routeId
+      polylineRef.current = createAnimatedPolyline(densifiedPath, allModes);
+      polylineRef.current._routeId = directionsRoute.routeId;
+      return true;
+    } catch (e) {
+      return false;
+    }
+    };
+
+    // Try immediately
+    if (checkAndCreate()) return;
+
+    // Otherwise poll every 100ms for up to 2 seconds
+    let attempts = 0;
+    const pollInterval = setInterval(() => {
+      attempts++;
+      if (checkAndCreate() || attempts >= 20) {
+        clearInterval(pollInterval);
+      }
+    }, 100);
+
+    return () => clearInterval(pollInterval);
+  }, [map, directionsRoute, isAnimating, buildPathFromRoute, optimizePath, createAnimatedPolyline]);
 
   return {
     startAnimation,
