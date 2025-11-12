@@ -620,6 +620,9 @@ const DirectionsPanel = ({
   const cameraFABTimeoutRef = useRef(null);
   const wasAutoMinimizedRef = useRef(false);
 
+  // Track previous showAnimationPanel value to detect close transition
+  const prevShowAnimationPanel = useRef(showAnimationPanel);
+
   // Auto-minimize card when animation starts playing (only once, unless user wants it visible)
   useEffect(() => {
     if (isMobile && (isAnimationPlaying || isAnimating) && showCard && showAnimationPanel && !hasAutoMinimizedForAnimationRef.current && !userWantsCardVisibleRef.current) {
@@ -629,18 +632,18 @@ const DirectionsPanel = ({
       setShowCard(false);
     }
 
-    // Reset when animation panel closes
-    if (!showAnimationPanel) {
+    // Reset ONLY when animation panel transitions from open to closed (not continuously while closed)
+    if (prevShowAnimationPanel.current && !showAnimationPanel) {
       hasAutoMinimizedForAnimationRef.current = false;
       userWantsCardVisibleRef.current = false;
       wasAutoMinimizedRef.current = false;
       // Always ensure card is visible when closing animation panel
-      if (!showCard || cardTranslateY !== 0) {
-        setShowCard(true);
-        setCardTranslateY(0);
-      }
+      setShowCard(true);
+      setCardTranslateY(0);
     }
-  }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel, cardTranslateY]);
+
+    prevShowAnimationPanel.current = showAnimationPanel;
+  }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel]);
 
   // Show camera FAB with delay when card is hidden
   useEffect(() => {
