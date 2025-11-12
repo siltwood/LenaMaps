@@ -201,7 +201,19 @@ const DirectionsPanel = ({
     setIsDragging(true);
     setDragStartY(clientY);
     initialDragHeight.current = cardHeight;
-  }, [isMobile, cardHeight]);
+  }, [isMobile, cardHeight, showAnimationPanel]);
+
+  const handleMinimizeCard = useCallback(() => {
+    const cardRect = cardRef.current?.getBoundingClientRect();
+    if (cardRect) {
+      const slideDistance = window.innerHeight - cardRect.top + 10;
+      setCardTranslateY(slideDistance);
+      setTimeout(() => {
+        setShowCard(false);
+        // Camera FAB will show automatically via useEffect after 0.5s
+      }, 400);
+    }
+  }, []);
 
   // No more sync effects needed - routeSegments is now derived from parent arrays
 
@@ -1135,17 +1147,7 @@ const DirectionsPanel = ({
           zIndex: 3
         }}>
           <button
-            onClick={() => {
-              const cardRect = cardRef.current?.getBoundingClientRect();
-              if (cardRect) {
-                const slideDistance = window.innerHeight - cardRect.top + 10;
-                setCardTranslateY(slideDistance);
-                setTimeout(() => {
-                  setShowCard(false);
-                  // Camera FAB will show automatically via useEffect after 0.5s
-                }, 400);
-              }
-            }}
+            onClick={handleMinimizeCard}
             style={{
               width: '24px',
               height: '24px',
