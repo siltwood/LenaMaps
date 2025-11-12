@@ -731,16 +731,10 @@ export const useRouteAnimation = ({
       animationRef.current = null;
     }
 
-    // Keep polyline visible and reset to start - allows scrubbing when stopped
+    // Remove polyline from map
     if (polylineRef.current) {
-      const icons = polylineRef.current.get('icons');
-      if (icons && icons.length > 0) {
-        icons[0].offset = '0%';
-        polylineRef.current.set('icons', icons);
-      }
-      // Don't remove from map - keep for scrubbing
-      // polylineRef.current.setMap(null);
-      // polylineRef.current = null;
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
     }
 
     offsetRef.current = 0;

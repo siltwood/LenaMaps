@@ -893,6 +893,8 @@ body {
   .directions-content {
     padding: 0.375rem 0.5rem;
     padding-bottom: 0.75rem;
+    touch-action: pan-y; /* Only allow vertical scrolling */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   }
 }
 
@@ -1053,8 +1055,9 @@ body {
 @media (max-width: 768px) {
   .selected-location {
     padding: 0.2rem 0.375rem;
-    font-size: 13px;
+    font-size: 16px;
     height: 36px;
+    box-sizing: border-box;
   }
 
   /* Reduce input field padding on mobile */
@@ -1599,6 +1602,7 @@ body {
   z-index: 10000;
   padding: 0;
   line-height: 0; /* Remove line-height gaps */
+  pointer-events: none; /* Don't capture scroll events */
   font-size: 0; /* Remove font-size gaps */
 }
 
@@ -1619,6 +1623,7 @@ body {
   border-bottom: 1px solid #f1f5f9;
   transition: background-color 0.2s ease;
   background: white;
+  pointer-events: auto; /* Re-enable clicks on items */
 }
 
 .location-search-item:first-child {

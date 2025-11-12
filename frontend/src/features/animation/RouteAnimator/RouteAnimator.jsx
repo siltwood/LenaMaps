@@ -117,6 +117,36 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     forceCenterOnNextFrameRef
   });
 
+  // Exit animation mode - clean up everything
+  const exitAnimationMode = useCallback(() => {
+    // Stop animation and remove polyline
+    stopAnimation();
+
+    // Hide animated marker box (top-left transport icon)
+    window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+      detail: {
+        isAnimating: false,
+        currentModeIcon: null,
+        segmentColor: null
+      }
+    }));
+
+    // Close animation panel
+    if (onClose) {
+      onClose();
+    }
+  }, [stopAnimation, onClose]);
+
+  // Listen for exit animation mode event (triggered by mobile X button)
+  useEffect(() => {
+    const handleExitAnimationMode = () => {
+      exitAnimationMode();
+    };
+
+    window.addEventListener('exitAnimationMode', handleExitAnimationMode);
+    return () => window.removeEventListener('exitAnimationMode', handleExitAnimationMode);
+  }, [exitAnimationMode]);
+
   // Use zoom manager hook
   const {
     calculateBoundsZoomLevel,
@@ -398,13 +428,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
                   <path d="M4 9h8v1H4z"/>
                 </svg>
               </button>
-              <button className="close-button" onClick={() => {
-                // Stop animation if running to clean up markers
-                if (isAnimating) {
-                  stopAnimation();
-                }
-                onClose();
-              }} title="Back to Route">
+              <button className="close-button" onClick={exitAnimationMode} title="Back to Route">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M15 7H3.83l5.59-5.59L8 0 0 8l8 8 1.41-1.41L3.83 9H15V7z"/>
                 </svg>

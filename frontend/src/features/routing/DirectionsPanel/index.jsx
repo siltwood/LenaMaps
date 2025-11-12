@@ -577,9 +577,9 @@ const DirectionsPanel = ({
           const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
           const worldPoint = projection.fromLatLngToPoint(point);
 
-          // Calculate how much to offset (1/6 of screen height in world coordinates)
+          // Calculate how much to offset (1/3 of screen height to place marker at 2/3 from bottom)
           const scale = Math.pow(2, map.getZoom());
-          const pixelOffset = mapHeight / 6;
+          const pixelOffset = mapHeight / 3;
           const worldOffset = pixelOffset / scale;
 
           // Create new center point offset downward (so marker moves up)
@@ -617,13 +617,18 @@ const DirectionsPanel = ({
       setShowCard(false);
     }
 
-    // Reset when animation stops or panel closes
-    if (!isAnimating && !isAnimationPlaying) {
+    // Reset when animation panel closes
+    if (!showAnimationPanel) {
       hasAutoMinimizedForAnimationRef.current = false;
       userWantsCardVisibleRef.current = false;
       wasAutoMinimizedRef.current = false;
+      // Always ensure card is visible when closing animation panel
+      if (!showCard || cardTranslateY !== 0) {
+        setShowCard(true);
+        setCardTranslateY(0);
+      }
     }
-  }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel]);
+  }, [isAnimationPlaying, isAnimating, isMobile, showCard, showAnimationPanel, cardTranslateY]);
 
   // Show camera FAB with delay when card is hidden
   useEffect(() => {
@@ -963,7 +968,11 @@ const DirectionsPanel = ({
                       alignItems: 'center',
                       justifyContent: 'center',
                       transition: 'all 0.2s',
-                      padding: 0
+                      padding: 0,
+                      lineHeight: 0,
+                      margin: 0,
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none'
                     }}
                     onMouseEnter={(e) => {
                       e.target.style.borderColor = '#3b82f6';
@@ -976,7 +985,7 @@ const DirectionsPanel = ({
                       e.target.style.color = '#64748b';
                     }}
                   >
-                    +
+                    <span style={{ display: 'block', transform: 'translateY(-1px)' }}>+</span>
                   </button>
 
                   {/* Dotted line below */}
@@ -1034,7 +1043,11 @@ const DirectionsPanel = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s',
-                padding: 0
+                padding: 0,
+                lineHeight: 0,
+                margin: 0,
+                WebkitAppearance: 'none',
+                MozAppearance: 'none'
               }}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = '#3b82f6';
@@ -1047,7 +1060,7 @@ const DirectionsPanel = ({
                 e.target.style.color = '#64748b';
               }}
             >
-              +
+              <span style={{ display: 'block', transform: 'translateY(-1px)' }}>+</span>
             </button>
           </div>
 
@@ -1060,7 +1073,8 @@ const DirectionsPanel = ({
 
   // Wrap in mobile card or desktop panel
   // On mobile with animation panel, always allow rendering even if isOpen is false
-  const shouldRenderPanel = isOpen || (isMobile && showAnimationPanel);
+  // Also keep rendering if showCard is true (user has opened the card)
+  const shouldRenderPanel = isOpen || (isMobile && (showAnimationPanel || showCard));
   const renderPanel = shouldRenderPanel && !isMinimized && (
     isMobile ? (
       // Mobile: draggable card
@@ -1082,7 +1096,9 @@ const DirectionsPanel = ({
           zIndex: 1000,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          touchAction: 'pan-y', // Capture scroll, don't pass to map
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         {/* Drag handle */}
@@ -1177,12 +1193,16 @@ const DirectionsPanel = ({
               onShare={handleShare}
               onPlayClick={isMobile ? () => setShowAnimationPanel(true) : undefined}
               showAnimationPanel={showAnimationPanel}
-              onCloseAnimationPanel={() => setShowAnimationPanel(false)}
+              onCloseAnimationPanel={() => {
+                // Dispatch event to clean up animation (polyline, marker, icon)
+                window.dispatchEvent(new CustomEvent('exitAnimationMode'));
+                setShowAnimationPanel(false);
+              }}
             />
           </div>
 
           {/* Scrollable locations list or animation controls */}
-          <div style={{ flex: 1, overflow: 'auto', padding: showAnimationPanel ? '0' : '4px 12px 12px 12px' }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: showAnimationPanel ? '0' : '4px 12px 12px 12px', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             {showAnimationPanel ? (
               <RouteAnimator
                 map={map}
