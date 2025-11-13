@@ -575,6 +575,7 @@ const DirectionsPanel = ({
   useEffect(() => {
     if (isMobile && showAnimationPanel && map && directionsRoute?.allLocations?.[0] && !hasRecenteredForAnimationRef.current) {
       const firstLocation = directionsRoute.allLocations[0];
+
       if (firstLocation?.lat && firstLocation?.lng) {
         // Mark that we've recentered
         hasRecenteredForAnimationRef.current = true;
@@ -585,25 +586,27 @@ const DirectionsPanel = ({
         const mapHeight = mapDiv.offsetHeight;
 
         if (projection) {
-          // Convert the first location to world coordinates
+          // Center on the first location with vertical offset
           const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-          const worldPoint = projection.fromLatLngToPoint(point);
 
-          // Calculate how much to offset (1/3 of screen height to place marker at 2/3 from bottom)
+          // Calculate offset to position marker at 1/3 from top vertically
           const scale = Math.pow(2, map.getZoom());
-          const pixelOffset = mapHeight / 3;
-          const worldOffset = pixelOffset / scale;
+          const pixelOffsetY = mapHeight / 3;
+          const worldOffsetY = pixelOffsetY / scale;
+
+          // Get the world point for the location
+          const worldPoint = projection.fromLatLngToPoint(point);
 
           // Create new center point offset downward (so marker moves up)
           const newWorldPoint = new window.google.maps.Point(
             worldPoint.x,
-            worldPoint.y + worldOffset / 256 // 256 is the world coordinate scale
+            worldPoint.y + worldOffsetY
           );
 
           // Convert back to lat/lng
           const newCenter = projection.fromPointToLatLng(newWorldPoint);
 
-          // Single pan operation to avoid fighting with Google Maps
+          // Single pan operation to center horizontally and position vertically at 1/3 from top
           map.panTo(newCenter);
         }
       }
