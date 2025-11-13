@@ -327,13 +327,6 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               isAnimating={isAnimating}
               isMobile={true}
             />
-            
-            <TimelineScrubber
-              animationProgress={animationProgress}
-              onChange={handleTimelineChange}
-              isMobile={true}
-              showLabel={false}
-            />
           </div>
             <Modal
               isOpen={modalState.isOpen}
