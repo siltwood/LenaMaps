@@ -20,7 +20,8 @@ const RouteSegmentManager = ({
   directionsLegModes = [],
   customDrawEnabled = [],
   isMobile = false,
-  onModesAutoUpdate = null
+  onModesAutoUpdate = null,
+  usageTracking = null
 }) => {
   const segmentsRef = useRef([]);
   const currentRouteIdRef = useRef(null);
@@ -1263,7 +1264,14 @@ const RouteSegmentManager = ({
           // This ensures animation follows the EXACT displayed route
           // Include both regular segments (with route) AND custom segments (with customPath)
           window._routeSegments = newSegments.filter(s => s && (s.route || s.isCustom));
-          
+
+          // Track usage if we have valid locations (2+)
+          if (usageTracking && validLocations.length >= 2) {
+            usageTracking.trackRoute(validLocations, 'calculation').catch(err => {
+              console.error('Usage tracking error:', err);
+            });
+          }
+
           // If modes were automatically changed to flight, notify parent
           if (modesChanged && onModesAutoUpdate) {
             onModesAutoUpdate(autoUpdatedModes);

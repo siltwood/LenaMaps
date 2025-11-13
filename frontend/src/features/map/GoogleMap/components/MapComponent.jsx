@@ -211,6 +211,7 @@ const MapComponent = ({
         customDrawEnabled={customDrawEnabled}
         isMobile={isMobile}
         onModesAutoUpdate={onModesAutoUpdate}
+        usageTracking={usageTracking}
       />
 
       {/* Animated Marker Box - render at MapComponent level so it's always available */}
