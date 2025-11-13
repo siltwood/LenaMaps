@@ -8,6 +8,7 @@ const app = express();
 // Import routes
 const authRoutes = require('./src/routes/auth');
 const usageRoutes = require('./src/routes/usage');
+const stripeRoutes = require('./src/routes/stripe');
 
 // Middleware
 app.use(cors({
@@ -16,11 +17,17 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Stripe webhook needs raw body - must be before express.json()
+app.use('/api/stripe/webhook', stripeRoutes);
+
+// Parse JSON for all other routes
 app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/usage', usageRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // 404 handler
 app.use((req, res) => {
