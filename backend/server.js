@@ -1,9 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const { PORT, FRONTEND_URL, NODE_ENV } = require('./src/config/env');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Import routes
 const authRoutes = require('./src/routes/auth');
@@ -27,5 +27,14 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', environment: NODE_ENV });
+});
+
 // Start server
-app.listen(PORT, () => {});
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📦 Environment: ${NODE_ENV}`);
+  console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
+});
