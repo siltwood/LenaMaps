@@ -1,18 +1,19 @@
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+/**
+ * Supabase client for backend operations
+ *
+ * Uses service role key to bypass RLS (Row Level Security)
+ * Only use server-side - never expose service role key to frontend
+ */
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { createClient } = require('@supabase/supabase-js');
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = require('./env');
 
 // Create Supabase client with service role key for backend operations
-// This bypasses Row Level Security and should only be used server-side
-const supabase = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : null;
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 module.exports = { supabase };
