@@ -870,6 +870,10 @@
   padding: 12px 16px 0 16px;
 }
 
+.timeline-container-custom {
+  padding: 12px 0;
+}
+
 .timeline-track-custom {
   position: relative;
   width: 100%;
@@ -904,6 +908,23 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transform: translate(-50%, -50%);
   pointer-events: none;
+}
+
+/* Mobile-specific: larger touch targets */
+@media (max-width: 768px) {
+  .timeline-container-custom {
+    padding: 16px 0;
+  }
+
+  .timeline-track-custom {
+    height: 8px;
+  }
+
+  .timeline-handle-custom {
+    width: 28px;
+    height: 28px;
+    border-width: 3px;
+  }
 }
 
 .timeline-track-custom:hover .timeline-handle-custom {
