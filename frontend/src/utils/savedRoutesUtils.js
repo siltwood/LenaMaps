@@ -1,9 +1,29 @@
 const STORAGE_KEY = 'lenamaps_saved_routes';
+const MAX_CACHE_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds (Google ToS compliant)
 
 export const getSavedRoutes = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+
+    const routes = JSON.parse(saved);
+    const now = Date.now();
+
+    // Filter out expired routes (Google ToS: coordinates can only be cached for 30 days)
+    const validRoutes = routes.filter(route => {
+      if (!route.expiresAt) {
+        // Old routes without expiration - mark as expired
+        return false;
+      }
+      return now < route.expiresAt;
+    });
+
+    // If any routes were expired, update storage
+    if (validRoutes.length !== routes.length) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validRoutes));
+    }
+
+    return validRoutes;
   } catch (error) {
     return [];
   }
@@ -12,9 +32,10 @@ export const getSavedRoutes = () => {
 export const saveRoute = (routeData) => {
   try {
     const savedRoutes = getSavedRoutes();
+    const now = Date.now();
 
     const newRoute = {
-      id: Date.now().toString(),
+      id: now.toString(),
       name: routeData.name || `Route ${new Date().toLocaleDateString()}`,
       locations: routeData.locations.filter(loc => loc !== null),
       modes: routeData.modes,
@@ -24,7 +45,9 @@ export const saveRoute = (routeData) => {
       snapToRoads: routeData.snapToRoads || [],
       lockedSegments: routeData.lockedSegments || [],
       savedAt: new Date().toISOString(),
-      description: routeData.description || ''
+      description: routeData.description || '',
+      // Add expiration timestamp (30 days from now - Google ToS compliant)
+      expiresAt: now + MAX_CACHE_AGE
     };
 
     const updated = [newRoute, ...savedRoutes];

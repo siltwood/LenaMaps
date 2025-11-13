@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import geocodingCache from '../../utils/caching/GeocodingCache';
+import placeStore from '../../utils/caching/PlaceStore';
 
 // Custom autocomplete implementation using Places Service
 const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or location...", enableInlineComplete = false, hideDropdown = false, autoFocus = false, defaultValue = '' }) => {
@@ -152,18 +154,43 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
     }, 150);
   };
 
-  const selectPlace = (placeId, description) => {
+  const selectPlace = async (placeId, description) => {
     if (!placesService.current) {
       return;
     }
 
+    // Check PlaceStore cache first
+    const cachedPlace = await placeStore.get(placeId);
+    if (cachedPlace) {
+      const location = {
+        lat: cachedPlace.lat,
+        lng: cachedPlace.lng,
+        name: cachedPlace.name,
+        address: cachedPlace.formatted_address
+      };
+
+      setSearchInput(description);
+      setPredictions([]);
+      setShowDropdown(false);
+      setGhostText('');
+
+      // Create new session token after place selection
+      sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
+
+      if (onLocationSelect) {
+        onLocationSelect(location);
+      }
+      return;
+    }
+
+    // Not in cache - fetch from API
     placesService.current.getDetails(
       {
         placeId,
         fields: ['geometry', 'name', 'formatted_address'],
         sessionToken: sessionToken.current
       },
-      (place, status) => {
+      async (place, status) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
           const location = {
             lat: place.geometry.location.lat(),
@@ -171,6 +198,14 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
             name: place.name,
             address: place.formatted_address
           };
+
+          // Store in PlaceStore for future use
+          await placeStore.set(placeId, {
+            place_id: placeId,
+            name: place.name,
+            geometry: place.geometry,
+            formatted_address: place.formatted_address
+          });
 
           setSearchInput(description);
           setPredictions([]);
@@ -190,7 +225,7 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
     );
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = async (e) => {
     switch (e.key) {
       case 'Tab':
         // Accept ghost text suggestion on Tab
@@ -237,8 +272,33 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
           selectPlace(prediction.place_id, prediction.description);
         } else if (searchInput.trim()) {
           // No dropdown or selection - perform geocoding search
+          // Check cache first
+          const cachedGeocode = await geocodingCache.getForward(searchInput);
+          if (cachedGeocode) {
+            const location = {
+              lat: cachedGeocode.lat,
+              lng: cachedGeocode.lng,
+              name: cachedGeocode.formatted_address?.split(',')[0] || searchInput,
+              address: cachedGeocode.formatted_address
+            };
+
+            setSearchInput(cachedGeocode.formatted_address);
+            setPredictions([]);
+            setShowDropdown(false);
+            setGhostText('');
+
+            // Create new session token after geocoding search
+            sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
+
+            if (onLocationSelect) {
+              onLocationSelect(location);
+            }
+            return;
+          }
+
+          // Not in cache - fetch from API
           const geocoder = new window.google.maps.Geocoder();
-          geocoder.geocode({ address: searchInput }, (results, status) => {
+          geocoder.geocode({ address: searchInput }, async (results, status) => {
             if (status === 'OK' && results[0]) {
               const result = results[0];
               const location = {
@@ -247,15 +307,23 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Search for a city or 
                 name: result.address_components[0]?.long_name || searchInput,
                 address: result.formatted_address
               };
-              
+
+              // Store in GeocodingCache
+              await geocodingCache.setForward(searchInput, {
+                lat: result.geometry.location.lat(),
+                lng: result.geometry.location.lng(),
+                place_id: result.place_id,
+                formatted_address: result.formatted_address
+              });
+
               setSearchInput(result.formatted_address);
               setPredictions([]);
               setShowDropdown(false);
               setGhostText('');
-              
+
               // Create new session token after geocoding search
               sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
-              
+
               if (onLocationSelect) {
                 onLocationSelect(location);
               }

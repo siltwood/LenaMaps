@@ -10,7 +10,7 @@ import {
   createStraightLineRoute,
   clearSegment
 } from '../utils/segmentUtils';
-import directionsCache from '../../../../utils/directionsCache';
+import directionsCache from '../../../../utils/caching/DirectionsCache';
 
 const RouteSegmentManager = ({
   map,
@@ -957,7 +957,7 @@ const RouteSegmentManager = ({
           try {
 
             // Check cache first
-            const cachedResult = directionsCache.get(segmentOrigin, segmentDestination, actualModeUsed);
+            const cachedResult = await directionsCache.get(segmentOrigin, segmentDestination, actualModeUsed);
             if (cachedResult) {
               result = cachedResult;
               routeFound = true;
@@ -982,7 +982,7 @@ const RouteSegmentManager = ({
 
                 routeFound = true;
                 // Cache the successful result
-                directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
+                await directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
             } catch (err) {
               // No mode-specific fallbacks - will use general straight line fallback below
               // (removed all special fallbacks: transit→curved arc, bike→walk/car, walk→car)
@@ -1026,7 +1026,7 @@ const RouteSegmentManager = ({
                 // Route failed validation - use straight line fallback
                 result = createStraightLineRoute(request.origin, request.destination);
                 // Cache the straight line to avoid repeated API calls for impossible routes
-                directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
+                await directionsCache.set(segmentOrigin, segmentDestination, actualModeUsed, result);
               }
             }
             
