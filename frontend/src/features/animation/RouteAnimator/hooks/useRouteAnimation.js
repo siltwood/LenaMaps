@@ -944,6 +944,23 @@ export const useRouteAnimation = ({
         polylineRef.current = null;
       }
 
+      // CRITICAL: Remove ALL animated polylines from map (in case multiple RouteAnimator instances exist)
+      if (map && window.google?.maps) {
+        // Store reference to any polylines marked as animated
+        if (!window._cleanupAnimatedPolylines) {
+          window._cleanupAnimatedPolylines = [];
+        }
+        // Clean up all previously tracked polylines
+        window._cleanupAnimatedPolylines.forEach(polyline => {
+          try {
+            polyline.setMap(null);
+          } catch (e) {
+            // Polyline might already be removed
+          }
+        });
+        window._cleanupAnimatedPolylines = [];
+      }
+
       // Reset progress to 0
       offsetRef.current = 0;
       countRef.current = 0;
@@ -973,6 +990,13 @@ export const useRouteAnimation = ({
       // Create polyline and mark with routeId
       polylineRef.current = createAnimatedPolyline(densifiedPath, allModes);
       polylineRef.current._routeId = directionsRoute.routeId;
+
+      // Track this polyline globally so other instances can clean it up
+      if (!window._cleanupAnimatedPolylines) {
+        window._cleanupAnimatedPolylines = [];
+      }
+      window._cleanupAnimatedPolylines.push(polylineRef.current);
+
       return true;
     } catch (e) {
       return false;

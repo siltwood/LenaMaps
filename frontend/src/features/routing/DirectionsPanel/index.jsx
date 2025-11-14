@@ -1218,6 +1218,7 @@ const DirectionsPanel = ({
           <div style={{ flex: 1, overflow: 'auto', padding: showAnimationPanel ? '0' : '4px 12px 12px 12px', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             {showAnimationPanel ? (
               <RouteAnimator
+                key="route-animator-mobile"
                 map={map}
                 directionsRoute={directionsRoute}
                 onAnimationStateChange={(isPlaying) => {
