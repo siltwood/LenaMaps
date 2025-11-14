@@ -850,6 +850,70 @@ export const useRouteAnimation = ({
       }
     }
 
+    // Update current segment mode based on scrubber position
+    if (segmentPathsRef.current && segmentPathsRef.current.length > 0) {
+      const path = pathRef.current;
+      if (path && path.length > 0) {
+        let totalDistance = 0;
+        const distances = [];
+        for (let i = 0; i < path.length - 1; i++) {
+          const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
+            path[i],
+            path[i + 1]
+          );
+          distances.push(dist);
+          totalDistance += dist;
+        }
+
+        const targetDistance = totalDistance * (newProgress / 100);
+        let accumulatedDistance = 0;
+        let currentPathIndex = 0;
+
+        for (let i = 0; i < distances.length; i++) {
+          if (accumulatedDistance + distances[i] >= targetDistance) {
+            currentPathIndex = i;
+            break;
+          }
+          accumulatedDistance += distances[i];
+        }
+
+        let foundSegment = null;
+        for (const seg of segmentPathsRef.current) {
+          if (currentPathIndex >= seg.startIndex && currentPathIndex <= seg.endIndex) {
+            foundSegment = seg;
+            break;
+          }
+        }
+
+        if (!foundSegment && segmentPathsRef.current.length > 0) {
+          foundSegment = segmentPathsRef.current.reduce((closest, seg) => {
+            const currentDist = Math.min(
+              Math.abs(currentPathIndex - seg.startIndex),
+              Math.abs(currentPathIndex - seg.endIndex)
+            );
+            const closestDist = Math.min(
+              Math.abs(currentPathIndex - closest.startIndex),
+              Math.abs(currentPathIndex - closest.endIndex)
+            );
+            return currentDist < closestDist ? seg : closest;
+          }, segmentPathsRef.current[0]);
+        }
+
+        if (foundSegment && foundSegment.mode) {
+          const newMode = foundSegment.mode;
+          setCurrentSegmentMode(newMode);
+
+          window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+            detail: {
+              isAnimating: true,
+              currentModeIcon: TRANSPORT_ICONS[newMode],
+              segmentColor: TRANSPORTATION_COLORS[newMode]
+            }
+          }));
+        }
+      }
+    }
+
     // Pause if playing
     if (isAnimating && !isPaused) {
       pauseAnimation();
