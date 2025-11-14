@@ -944,21 +944,14 @@ export const useRouteAnimation = ({
         polylineRef.current = null;
       }
 
-      // CRITICAL: Remove ALL animated polylines from map (in case multiple RouteAnimator instances exist)
-      if (map && window.google?.maps) {
-        // Store reference to any polylines marked as animated
-        if (!window._cleanupAnimatedPolylines) {
-          window._cleanupAnimatedPolylines = [];
+      // CRITICAL: Remove the global active animated polyline (singleton pattern)
+      if (window._activeAnimatedPolyline) {
+        try {
+          window._activeAnimatedPolyline.setMap(null);
+        } catch (e) {
+          // Already removed
         }
-        // Clean up all previously tracked polylines
-        window._cleanupAnimatedPolylines.forEach(polyline => {
-          try {
-            polyline.setMap(null);
-          } catch (e) {
-            // Polyline might already be removed
-          }
-        });
-        window._cleanupAnimatedPolylines = [];
+        window._activeAnimatedPolyline = null;
       }
 
       // Reset progress to 0
@@ -991,11 +984,8 @@ export const useRouteAnimation = ({
       polylineRef.current = createAnimatedPolyline(densifiedPath, allModes);
       polylineRef.current._routeId = directionsRoute.routeId;
 
-      // Track this polyline globally so other instances can clean it up
-      if (!window._cleanupAnimatedPolylines) {
-        window._cleanupAnimatedPolylines = [];
-      }
-      window._cleanupAnimatedPolylines.push(polylineRef.current);
+      // Store as THE active animated polyline globally (singleton)
+      window._activeAnimatedPolyline = polylineRef.current;
 
       return true;
     } catch (e) {
@@ -1020,6 +1010,10 @@ export const useRouteAnimation = ({
       // Clean up polyline when component unmounts or dependencies change
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
+        // Only clear global if it's our polyline
+        if (window._activeAnimatedPolyline === polylineRef.current) {
+          window._activeAnimatedPolyline = null;
+        }
         polylineRef.current = null;
       }
     };
