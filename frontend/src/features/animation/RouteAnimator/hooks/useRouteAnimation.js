@@ -1010,7 +1010,12 @@ export const useRouteAnimation = ({
 
     return () => {
       clearInterval(pollInterval);
-      // Clean up polyline when component unmounts or dependencies change
+      // DON'T clean up polyline if we're animating - startAnimation owns it now
+      // Use ref to get current value (cleanup closure captures old value)
+      if (isAnimatingRef.current) {
+        return;
+      }
+      // Clean up polyline when component unmounts or dependencies change (but not during animation)
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
         // Only clear global if it's our polyline
