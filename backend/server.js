@@ -41,7 +41,8 @@ if (NODE_ENV === 'production') {
   app.use(express.static(frontendBuildPath));
 
   // Catch-all handler: send back index.html for any request that doesn't match API routes
-  app.get('*', (req, res) => {
+  // Express 5+ requires regex instead of '*' for catch-all routes
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.join(frontendBuildPath, 'index.html'));
   });
 } else {
