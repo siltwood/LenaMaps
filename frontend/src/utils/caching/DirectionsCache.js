@@ -47,39 +47,14 @@ class DirectionsCache {
   async get(origin, destination, mode) {
     const key = this.generateKey(origin, destination, mode);
 
-    // Layer 1: Check memory cache
+    // Check memory cache (IndexedDB disabled - see notes in set() method)
     if (this.memoryCache.has(key)) {
       this.stats.hits++;
       this.stats.memoryHits++;
       return this.memoryCache.get(key);
     }
 
-    // Layer 2: Check IndexedDB
-    try {
-      const cached = await db.routes.get(key);
-
-      if (cached) {
-        const now = Date.now();
-
-        // Check if expired
-        if (now < cached.expires) {
-          // Valid cache - promote to memory
-          this.memoryCache.set(key, cached.data);
-          this.enforceLRU();
-
-          this.stats.hits++;
-          this.stats.diskHits++;
-          return cached.data;
-        } else {
-          // Expired - delete it
-          await db.routes.delete(key);
-        }
-      }
-    } catch (error) {
-      console.error('[DirectionsCache] Error reading from IndexedDB:', error);
-    }
-
-    // Cache miss
+    // Cache miss - memory only
     this.stats.misses++;
     return null;
   }
@@ -108,19 +83,11 @@ class DirectionsCache {
     this.memoryCache.set(key, routeData);
     this.enforceLRU();
 
-    // Store in IndexedDB (coordinates only)
-    try {
-      await db.routes.put({
-        key: key,
-        data: routeData, // Store full data for now, can optimize later
-        coords: coords,
-        mode: mode,
-        stored: now,
-        expires: now + this.maxAge
-      });
-    } catch (error) {
-      console.error('[DirectionsCache] Error writing to IndexedDB:', error);
-    }
+    // NOTE: IndexedDB storage disabled for routes
+    // Google Maps route objects contain functions/circular refs that can't be serialized
+    // Memory cache (session-only) works fine and provides good performance
+    // For persistent caching, would need to reconstruct routes from coordinates
+    // which defeats the purpose (would require another API call)
   }
 
   /**
