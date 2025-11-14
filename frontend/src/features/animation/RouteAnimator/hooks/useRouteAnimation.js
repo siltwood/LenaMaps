@@ -1010,6 +1010,16 @@ export const useRouteAnimation = ({
 
     return () => {
       clearInterval(pollInterval);
+
+      // Dispatch cleanup event to hide mode icon when switching mobile/desktop
+      window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+        detail: {
+          isAnimating: false,
+          currentModeIcon: null,
+          segmentColor: null
+        }
+      }));
+
       // DON'T clean up polyline if we're animating - startAnimation owns it now
       // Use ref to get current value (cleanup closure captures old value)
       if (isAnimatingRef.current) {
