@@ -481,7 +481,16 @@ const DirectionsPanel = ({
 
     if (route.locations.length >= 2) {
       setTimeout(() => {
-        const segments = buildSegments(route.locations);
+        // Build segments manually from loaded route (don't use buildSegments - it uses stale state)
+        const segments = [];
+        for (let i = 0; i < route.locations.length - 1; i++) {
+          segments.push({
+            mode: route.modes[i] || 'walk',
+            startIndex: i,
+            endIndex: i + 1,
+            isCustom: route.customDrawEnabled?.[i] || false
+          });
+        }
 
         const routeData = {
           origin: route.locations[0],
@@ -497,7 +506,7 @@ const DirectionsPanel = ({
         onDirectionsCalculated(routeData);
       }, 100);
     }
-  }, [onLocationsChange, onLegModesChange, onDirectionsCalculated, buildSegments]);
+  }, [onLocationsChange, onLegModesChange, onDirectionsCalculated]);
 
   const handleShare = async () => {
     const shareableURL = generateShareableURL(locations, legModes);
