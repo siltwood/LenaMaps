@@ -991,7 +991,14 @@ export const useRouteAnimation = ({
       }
     }, 100);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      clearInterval(pollInterval);
+      // Clean up polyline when component unmounts or dependencies change
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+    };
   }, [map, directionsRoute, isAnimating, buildPathFromRoute, optimizePath, createAnimatedPolyline]);
 
   return {
