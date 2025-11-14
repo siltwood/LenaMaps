@@ -147,6 +147,20 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     return () => window.removeEventListener('exitAnimationMode', handleExitAnimationMode);
   }, [exitAnimationMode]);
 
+  // Cleanup mode icon when component unmounts (e.g., switching mobile/desktop)
+  useEffect(() => {
+    return () => {
+      // Hide mode icon when RouteAnimator unmounts
+      window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+        detail: {
+          isAnimating: false,
+          currentModeIcon: null,
+          segmentColor: null
+        }
+      }));
+    };
+  }, []);
+
   // Use zoom manager hook
   const {
     calculateBoundsZoomLevel,
