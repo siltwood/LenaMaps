@@ -1265,12 +1265,13 @@ const RouteSegmentManager = ({
           // Include both regular segments (with route) AND custom segments (with customPath)
           window._routeSegments = newSegments.filter(s => s && (s.route || s.isCustom));
 
+          // DISCONNECTED: Usage tracking paused for release - see STATUS.md
           // Track usage if we have valid locations (2+)
-          if (usageTracking && validLocations.length >= 2) {
-            usageTracking.trackRoute(validLocations, 'calculation').catch(err => {
-              console.error('Usage tracking error:', err);
-            });
-          }
+          // if (usageTracking && validLocations.length >= 2) {
+          //   usageTracking.trackRoute(validLocations, 'calculation').catch(err => {
+          //     console.error('Usage tracking error:', err);
+          //   });
+          // }
 
           // If modes were automatically changed to flight, notify parent
           if (modesChanged && onModesAutoUpdate) {

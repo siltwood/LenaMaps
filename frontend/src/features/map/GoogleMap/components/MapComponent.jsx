@@ -21,7 +21,8 @@ const MapComponent = ({
   onHideRouteAnimator,
   onMapReady,
   onModesAutoUpdate,
-  usageTracking
+  // DISCONNECTED: Usage tracking paused for release - see STATUS.md
+  // usageTracking
 }) => {
   const mapRef = useRef();
   const [map, setMap] = useState(null);
@@ -212,7 +213,8 @@ const MapComponent = ({
         customDrawEnabled={customDrawEnabled}
         isMobile={isMobile}
         onModesAutoUpdate={onModesAutoUpdate}
-        usageTracking={usageTracking}
+        // DISCONNECTED: Usage tracking paused for release - see STATUS.md
+        // usageTracking={usageTracking}
       />
 
       {/* Animated Marker Box - render at MapComponent level so it's always available */}

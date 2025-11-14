@@ -9,8 +9,9 @@ import { SaveRouteModal } from '../features/saved-routes/SaveRouteModal';
 import { SavedRoutesModal } from '../features/saved-routes/SavedRoutesModal';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 import { initFingerprint } from '../utils/fingerprint';
-import { useUsageTracking } from '../hooks/useUsageTracking';
-import UpgradeModal from './UpgradeModal';
+// DISCONNECTED: Usage tracking paused for release - see STATUS.md
+// import { useUsageTracking } from '../hooks/useUsageTracking';
+// import UpgradeModal from './UpgradeModal';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -40,8 +41,8 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
 
-  // Usage tracking
-  const usageTracking = useUsageTracking();
+  // DISCONNECTED: Usage tracking paused for release - see STATUS.md
+  // const usageTracking = useUsageTracking();
   
   // Listen for route calculation errors
   useEffect(() => {
@@ -312,7 +313,8 @@ function AppContent() {
               // When routes are auto-switched to flight, update the UI modes
               setDirectionsLegModes(updatedModes);
             }}
-            usageTracking={usageTracking}
+            // DISCONNECTED: Usage tracking paused for release - see STATUS.md
+            // usageTracking={usageTracking}
           />
           {!isAnimating && (
             <>
@@ -397,12 +399,13 @@ function AppContent() {
         onLoadRoute={handleLoadRoute}
       />
 
+      {/* DISCONNECTED: Usage tracking paused for release - see STATUS.md */}
       {/* Upgrade Modal - shown when daily limit reached */}
-      <UpgradeModal
+      {/* <UpgradeModal
         isOpen={usageTracking.limitReached}
         onClose={usageTracking.dismissLimitWarning}
         usageInfo={usageTracking.usageInfo}
-      />
+      /> */}
     </div>
   );
 }
