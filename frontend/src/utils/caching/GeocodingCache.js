@@ -234,7 +234,6 @@ class GeocodingCache {
 
       if (expired.length > 0) {
         await db.geocoding.bulkDelete(expired.map(entry => entry.key));
-        console.log(`[GeocodingCache] Cleaned up ${expired.length} expired entries`);
       }
     } catch (error) {
       console.error('[GeocodingCache] Error during cleanup:', error);

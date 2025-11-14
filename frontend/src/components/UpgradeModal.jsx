@@ -42,12 +42,10 @@ const UpgradeModal = ({ isOpen, onClose, usageInfo }) => {
 
   const handlePrimaryAction = () => {
     if (primaryAction === 'signup') {
-      // TODO: Open signup modal
-      console.log('Open signup modal');
+      // TODO: Open signup modal when backend is reconnected
       onClose();
     } else if (primaryAction === 'upgrade') {
-      // TODO: Open Stripe checkout
-      console.log('Open Stripe checkout');
+      // TODO: Open Stripe checkout when backend is reconnected
       onClose();
     } else {
       onClose();

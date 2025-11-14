@@ -153,7 +153,6 @@ class DirectionsCache {
 
       if (expired.length > 0) {
         await db.routes.bulkDelete(expired.map(entry => entry.key));
-        console.log(`[DirectionsCache] Cleaned up ${expired.length} expired entries`);
       }
     } catch (error) {
       console.error('[DirectionsCache] Error during cleanup:', error);
