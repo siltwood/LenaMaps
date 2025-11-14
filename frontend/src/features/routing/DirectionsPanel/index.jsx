@@ -976,34 +976,32 @@ const DirectionsPanel = ({
                     style={{
                       width: '24px',
                       height: '24px',
-                      borderRadius: '50%',
-                      border: '1.5px solid #cbd5e1',
-                      background: 'white',
+                      border: 'none',
+                      background: 'transparent',
                       color: '#64748b',
                       cursor: 'pointer',
-                      fontSize: '16px',
+                      fontSize: '24px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       transition: 'all 0.2s',
                       padding: 0,
-                      lineHeight: 0,
+                      lineHeight: '1',
                       margin: 0,
                       WebkitAppearance: 'none',
-                      MozAppearance: 'none'
+                      MozAppearance: 'none',
+                      fontFamily: 'system-ui, -apple-system, sans-serif'
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.borderColor = '#3b82f6';
-                      e.target.style.background = '#eff6ff';
                       e.target.style.color = '#3b82f6';
+                      e.target.style.transform = 'scale(1.1)';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = '#cbd5e1';
-                      e.target.style.background = 'white';
                       e.target.style.color = '#64748b';
+                      e.target.style.transform = 'scale(1)';
                     }}
                   >
-                    <span style={{ display: 'block', transform: 'translateY(-1px)' }}>+</span>
+                    ⊕
                   </button>
 
                   {/* Dotted line below */}
@@ -1051,34 +1049,32 @@ const DirectionsPanel = ({
               style={{
                 width: '40px',
                 height: '40px',
-                borderRadius: '50%',
-                border: '2px solid #cbd5e1',
-                background: 'white',
+                border: 'none',
+                background: 'transparent',
                 color: '#64748b',
                 cursor: 'pointer',
-                fontSize: '24px',
+                fontSize: '36px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s',
                 padding: 0,
-                lineHeight: 0,
+                lineHeight: '1',
                 margin: 0,
                 WebkitAppearance: 'none',
-                MozAppearance: 'none'
+                MozAppearance: 'none',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
               }}
               onMouseEnter={(e) => {
-                e.target.style.borderColor = '#3b82f6';
-                e.target.style.background = '#eff6ff';
                 e.target.style.color = '#3b82f6';
+                e.target.style.transform = 'scale(1.1)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.borderColor = '#cbd5e1';
-                e.target.style.background = 'white';
                 e.target.style.color = '#64748b';
+                e.target.style.transform = 'scale(1)';
               }}
             >
-              <span style={{ display: 'block', transform: 'translateY(-1px)' }}>+</span>
+              ⊕
             </button>
           </div>
 

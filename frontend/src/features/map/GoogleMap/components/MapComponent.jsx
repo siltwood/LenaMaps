@@ -20,7 +20,8 @@ const MapComponent = ({
   showRouteAnimator,
   onHideRouteAnimator,
   onMapReady,
-  onModesAutoUpdate
+  onModesAutoUpdate,
+  usageTracking
 }) => {
   const mapRef = useRef();
   const [map, setMap] = useState(null);
