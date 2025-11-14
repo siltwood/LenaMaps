@@ -230,9 +230,34 @@ function AppContent() {
 
   // Handle loading a saved route
   const handleLoadRoute = useCallback((route) => {
-    // Set locations and modes - DirectionsPanel will handle route calculation
+    // Set locations and modes
     setDirectionsLocations(route.locations);
     setDirectionsLegModes(route.modes);
+
+    // Build directionsRoute object (same as shared trip loading)
+    if (route.locations.length >= 2) {
+      const segments = [];
+      for (let i = 0; i < route.locations.length - 1; i++) {
+        segments.push({
+          mode: route.modes[i] || 'walk',
+          startIndex: i,
+          endIndex: i + 1
+        });
+      }
+
+      const routeData = {
+        origin: route.locations[0],
+        destination: route.locations[route.locations.length - 1],
+        waypoints: route.locations.slice(1, -1),
+        mode: route.modes[0] || 'walk',
+        segments,
+        allLocations: route.locations,
+        allModes: route.modes,
+        routeId: `saved_${Date.now()}`
+      };
+
+      setDirectionsRoute(routeData);
+    }
 
     // Center map on first location
     if (route.locations[0]) {
