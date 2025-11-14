@@ -5,19 +5,21 @@
 
 require('dotenv').config();
 
-const requiredEnvVars = [
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'JWT_SECRET'
-];
-
-// Validate required environment variables
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0) {
-  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
-  console.error('Please check your .env file');
-  process.exit(1);
-}
+// DISCONNECTED: Usage tracking paused for release - see STATUS.md
+// Backend features are optional - env vars no longer required
+// const requiredEnvVars = [
+//   'SUPABASE_URL',
+//   'SUPABASE_SERVICE_ROLE_KEY',
+//   'JWT_SECRET'
+// ];
+//
+// // Validate required environment variables
+// const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+// if (missingVars.length > 0) {
+//   console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+//   console.error('Please check your .env file');
+//   process.exit(1);
+// }
 
 module.exports = {
   // Environment
