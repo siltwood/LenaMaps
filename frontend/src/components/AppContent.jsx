@@ -10,6 +10,7 @@ import { SavedRoutesModal } from '../features/saved-routes/SavedRoutesModal';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 import { initFingerprint } from '../utils/fingerprint';
 import { useUsageTracking } from '../hooks/useUsageTracking';
+import UpgradeModal from './UpgradeModal';
 
 function AppContent() {
   const [directionsRoute, setDirectionsRoute] = useState(null);
@@ -394,6 +395,13 @@ function AppContent() {
         isOpen={showSavedRoutesModal}
         onClose={() => setShowSavedRoutesModal(false)}
         onLoadRoute={handleLoadRoute}
+      />
+
+      {/* Upgrade Modal - shown when daily limit reached */}
+      <UpgradeModal
+        isOpen={usageTracking.limitReached}
+        onClose={usageTracking.dismissLimitWarning}
+        usageInfo={usageTracking.usageInfo}
       />
     </div>
   );
