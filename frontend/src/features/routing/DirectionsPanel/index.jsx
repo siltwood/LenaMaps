@@ -1216,7 +1216,7 @@ const DirectionsPanel = ({
 
           {/* Scrollable locations list or animation controls */}
           <div style={{ flex: 1, overflow: 'auto', padding: showAnimationPanel ? '0' : '4px 12px 12px 12px', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
-            {showAnimationPanel ? (
+            {showAnimationPanel && isMobile ? (
               <RouteAnimator
                 key="route-animator-mobile"
                 map={map}

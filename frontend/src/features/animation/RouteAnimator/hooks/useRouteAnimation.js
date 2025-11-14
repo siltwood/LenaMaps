@@ -678,6 +678,9 @@ export const useRouteAnimation = ({
       // Create animated polyline
       polylineRef.current = createAnimatedPolyline(densifiedPath, allModes);
 
+      // Store as THE active animated polyline globally (singleton)
+      window._activeAnimatedPolyline = polylineRef.current;
+
       // Set zoom based on selected level
       if (zoomLevel === 'follow') {
         const startPos = densifiedPath[0];
