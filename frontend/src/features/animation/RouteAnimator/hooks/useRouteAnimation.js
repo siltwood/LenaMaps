@@ -779,6 +779,15 @@ export const useRouteAnimation = ({
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
+
+    // Hide mode icon when paused
+    window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
+      detail: {
+        isAnimating: false,
+        currentModeIcon: null,
+        segmentColor: null
+      }
+    }));
   }, [setIsPaused]);
 
   /**

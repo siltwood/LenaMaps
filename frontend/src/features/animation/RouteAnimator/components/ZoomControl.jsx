@@ -15,7 +15,7 @@ const ZoomControl = ({ zoomLevel, onChange, isAnimating, isMobile = false }) => 
         {modes.map(({ value, label, sublabel }) => (
           <label
             key={value}
-            className={`zoom-radio ${zoomLevel === value ? 'active' : ''} ${isAnimating ? 'disabled' : ''}`}
+            className={`zoom-radio ${zoomLevel === value ? 'active' : ''}`}
           >
             <input
               type="radio"
@@ -23,7 +23,6 @@ const ZoomControl = ({ zoomLevel, onChange, isAnimating, isMobile = false }) => 
               value={value}
               checked={zoomLevel === value}
               onChange={() => onChange(value)}
-              disabled={isAnimating}
             />
             <span>{label}</span>
             <small>{sublabel}</small>
