@@ -256,12 +256,24 @@ frontend/src/
 
 ## 🚀 Quick Start (When Ready)
 
+### Development Mode (Local)
+
 1. **Add credentials to `backend/.env`** (see sections above)
 
-2. **Start backend:**
+2. **Start both servers:**
 ```bash
+# Terminal 1: Backend API (port 5001)
 cd backend
-npm install
+npm run dev
+
+# Terminal 2: Frontend dev server (port 3000)
+cd frontend
+npm run dev
+```
+
+Or use the convenience script:
+```bash
+# From root - runs both in parallel
 npm run dev
 ```
 
@@ -289,6 +301,45 @@ curl "http://localhost:5001/api/usage/check?anonymousId=test123"
    - Create a route
    - Check browser console for `✅ Route tracked` messages
    - Verify Supabase `usage_tracking` table shows new records
+
+---
+
+### Production Mode (Heroku)
+
+**Architecture:** Backend serves frontend (single server)
+
+1. **Set environment variables on Heroku:**
+```bash
+heroku config:set NODE_ENV=production
+heroku config:set SUPABASE_URL=your_url
+heroku config:set SUPABASE_SERVICE_ROLE_KEY=your_key
+heroku config:set JWT_SECRET=your_secret
+# ... other credentials
+```
+
+2. **Deploy to Heroku:**
+```bash
+git push heroku dev:main
+```
+
+3. **What happens on deploy:**
+   - Heroku runs `heroku-postbuild`: installs backend + frontend deps, builds frontend
+   - Heroku runs `npm start`: starts backend server (port from Heroku)
+   - Backend serves built frontend from `../frontend/build`
+   - Backend API available at `/api/*`
+   - Frontend available at `/` (all other routes)
+
+4. **Test production:**
+```bash
+# Check health
+curl https://your-app.herokuapp.com/health
+
+# Check API
+curl "https://your-app.herokuapp.com/api/usage/check?anonymousId=test123"
+
+# Open app
+open https://your-app.herokuapp.com
+```
 
 ---
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 const { PORT, FRONTEND_URL, NODE_ENV } = require('./src/config/env');
 
@@ -18,6 +19,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Health check endpoint (before other routes to avoid conflicts)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', environment: NODE_ENV });
+});
+
 // Stripe webhook needs raw body - must be before express.json()
 app.use('/api/stripe/webhook', stripeRoutes);
 
@@ -29,15 +35,22 @@ app.use('/api/auth', authRoutes);
 app.use('/api/usage', usageRoutes);
 app.use('/api/stripe', stripeRoutes);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// Serve static files from frontend build (production)
+if (NODE_ENV === 'production') {
+  const frontendBuildPath = path.join(__dirname, '../frontend/build');
+  app.use(express.static(frontendBuildPath));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', environment: NODE_ENV });
-});
+  // Catch-all handler: send back index.html for any request that doesn't match API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+} else {
+  // In development, frontend runs separately on Vite dev server
+  // API only - 404 for non-API routes
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Route not found' });
+  });
+}
 
 // Start server
 app.listen(PORT, () => {
