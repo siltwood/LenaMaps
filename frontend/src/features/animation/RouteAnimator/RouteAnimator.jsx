@@ -186,7 +186,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     if (!map || !directionsRoute?.allLocations?.[0]) return;
 
     if (zoomLevel === 'follow') {
-      // Zoom in and center on appropriate position
+      // Instantly zoom in to follow distance
       map.setZoom(getFollowModeZoom());
 
       if (isAnimating && !isPaused) {
@@ -196,14 +196,47 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
         // Before animation or when paused: center on start marker
         const firstLocation = directionsRoute.allLocations[0];
         if (firstLocation?.lat && firstLocation?.lng) {
-          map.panTo(new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng));
+          const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
+
+          // On mobile, position marker at 1/3 from top (2/3 up the screen)
+          if (isMobile) {
+            const projection = map.getProjection();
+            const mapDiv = map.getDiv();
+            const mapHeight = mapDiv.offsetHeight;
+
+            if (projection) {
+              // Calculate offset to position marker at 1/3 from top vertically
+              const scale = Math.pow(2, map.getZoom());
+              const pixelOffsetY = mapHeight / 3;
+              const worldOffsetY = pixelOffsetY / scale;
+
+              // Get the world point for the location
+              const worldPoint = projection.fromLatLngToPoint(point);
+
+              // Create new center point offset downward (so marker moves up)
+              const newWorldPoint = new window.google.maps.Point(
+                worldPoint.x,
+                worldPoint.y + worldOffsetY
+              );
+
+              // Convert back to lat/lng
+              const newCenter = projection.fromPointToLatLng(newWorldPoint);
+              map.setCenter(newCenter); // Use setCenter for instant positioning
+            } else {
+              // Fallback to instant center if projection not available
+              map.setCenter(point);
+            }
+          } else {
+            // Desktop: instant center
+            map.setCenter(point);
+          }
         }
       }
     } else if (zoomLevel === 'whole') {
       // Fit whole route in view
       fitWholeRoute();
     }
-  }, [zoomLevel, map, directionsRoute, isAnimating, isPaused, getFollowModeZoom, fitWholeRoute]);
+  }, [zoomLevel, map, directionsRoute, isAnimating, isPaused, isMobile, getFollowModeZoom, fitWholeRoute]);
 
   // Check if route is playable
   const isRoutePlayable = useCallback(() => {
