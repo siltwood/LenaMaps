@@ -13,7 +13,9 @@ const ActionButtons = ({
   onShare,
   onPlayClick,
   showAnimationPanel,
-  onCloseAnimationPanel
+  onCloseAnimationPanel,
+  showMileage,
+  onToggleMileage
 }) => {
   const buttonBaseStyle = {
     padding: '4px 8px',
@@ -138,6 +140,24 @@ const ActionButtons = ({
         >
           {showCopiedMessage ? '✅' : '🔗'}
         </button>
+
+        {/* Mileage toggle button */}
+        {onToggleMileage && (
+          <button
+            onClick={onToggleMileage}
+            disabled={!hasRoute}
+            style={{
+              ...(hasRoute ? enabledStyle : disabledStyle),
+              backgroundColor: showMileage ? '#e0e7ff' : (hasRoute ? '#f3f4f6' : '#f3f4f6'),
+              borderColor: showMileage ? '#818cf8' : (hasRoute ? '#d1d5db' : '#e5e7eb')
+            }}
+            title="Toggle distance breakdown"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={(e) => handleMouseLeave(e, !hasRoute)}
+          >
+            📏
+          </button>
+        )}
         </div>
 
         {/* Right side: Animate button or Close button */}

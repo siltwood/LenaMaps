@@ -684,7 +684,7 @@ body {
   position: fixed;
   left: 0;
   top: 60px;
-  width: 320px;
+  width: 380px;
   height: calc(100vh - 60px);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
   backdrop-filter: blur(20px);
@@ -1202,6 +1202,129 @@ body {
   color: #ef4444;
 }
 
+/* ===================================
+   MILEAGE DISPLAY
+   =================================== */
+
+.mileage-display {
+  background: var(--bg-gray);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-base);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.mileage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.mileage-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.unit-toggle {
+  display: flex;
+  gap: 2px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.unit-btn {
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  min-width: 32px;
+}
+
+.unit-btn:hover {
+  background: var(--bg-gray);
+}
+
+.unit-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.mileage-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.mileage-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+  background: white;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.mode-icon {
+  font-size: 18px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mode-name {
+  flex: 1;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.mode-distance {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mileage-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-sm);
+  background: white;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--primary);
+  margin-top: var(--space-sm);
+}
+
+.total-label {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.total-distance {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Waypoint/Stop styles */
 .waypoint-section {
   background: rgba(0, 0, 0, 0.03);
@@ -1254,6 +1377,7 @@ body {
 
 .mode-buttons.compact {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 

@@ -12,6 +12,7 @@ import { COLORS, FONT_SIZES, COMPACT_SPACING } from '../../../constants/uiConsta
 import { useRouteSegments, useRouteActions } from '../hooks';
 import ActionButtons from './components/ActionButtons';
 import RouteAnimator from '../../animation/RouteAnimator';
+import MileageDisplay from './components/MileageDisplay';
 import '../../../styles/unified-icons.css';
 
 const DirectionsPanel = ({
@@ -42,6 +43,7 @@ const DirectionsPanel = ({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
   const [expandedWaypoints, setExpandedWaypoints] = useState([]);
+  const [showMileage, setShowMileage] = useState(false);
 
   // Mobile-specific state
   const [showCard, setShowCard] = useState(true);
@@ -789,7 +791,14 @@ const DirectionsPanel = ({
             onLoadClick={() => setShowSavedRoutesModal(true)}
             onSaveClick={() => setShowSaveModal(true)}
             onShare={handleShare}
+            showMileage={showMileage}
+            onToggleMileage={() => setShowMileage(!showMileage)}
           />
+        )}
+
+        {/* Mileage display - shows distance breakdown by transport mode */}
+        {!isMobile && showMileage && (
+          <MileageDisplay directionsRoute={directionsRoute} />
         )}
 
         <div className="route-inputs">
@@ -1236,7 +1245,14 @@ const DirectionsPanel = ({
                 window.dispatchEvent(new CustomEvent('exitAnimationMode'));
                 setShowAnimationPanel(false);
               }}
+              showMileage={showMileage}
+              onToggleMileage={() => setShowMileage(!showMileage)}
             />
+
+            {/* Mileage display - shows distance breakdown by transport mode */}
+            {showMileage && (
+              <MileageDisplay directionsRoute={directionsRoute} />
+            )}
           </div>
 
           {/* Scrollable locations list or animation controls */}
