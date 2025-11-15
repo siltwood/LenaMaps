@@ -343,6 +343,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               zoomLevel={zoomLevel}
               onChange={setZoomLevel}
               isAnimating={isAnimating}
+              isPaused={isPaused}
               isMobile={true}
             />
           </div>
@@ -498,6 +499,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               zoomLevel={zoomLevel}
               onChange={setZoomLevel}
               isAnimating={isAnimating}
+              isPaused={isPaused}
               isMobile={false}
             />
 
