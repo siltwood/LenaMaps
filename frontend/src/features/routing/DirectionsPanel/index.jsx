@@ -720,8 +720,11 @@ const DirectionsPanel = ({
     </div>
   ) : null;
 
-  // Render minimized state (desktop only)
-  const renderMinimized = !isMobile && isMinimized && (
+  // Render minimized state or animation FAB (desktop only)
+  // Show when: minimized OR (animating and panel hidden)
+  const shouldShowDesktopFAB = !isMobile && (isMinimized || (isAnimating && !isOpen));
+
+  const renderMinimized = shouldShowDesktopFAB && (
     <div
       className="directions-panel-minimized"
       style={{
@@ -733,8 +736,16 @@ const DirectionsPanel = ({
     >
       <button
         className="unified-icon primary"
-        onClick={handleExpand}
-        title="Plan Your Route"
+        onClick={() => {
+          if (isAnimating && !isOpen) {
+            // During animation, stop the animation
+            window.dispatchEvent(new CustomEvent('exitAnimationMode'));
+          } else {
+            // Otherwise, expand the panel
+            handleExpand();
+          }
+        }}
+        title={isAnimating && !isOpen ? "Stop Animation" : "Plan Your Route"}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="6" cy="6" r="3" />

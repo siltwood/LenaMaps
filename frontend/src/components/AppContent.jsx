@@ -186,8 +186,7 @@ function AppContent() {
 
   const handleLocationSearch = useCallback((location) => {
     setMapCenter({ lat: location.lat, lng: location.lng });
-    // Don't auto-center - let user control the map view
-    // setShouldCenterMap(true);
+    setShouldCenterMap(true);
   }, []);
 
   const handleMapCentered = useCallback(() => {

@@ -27,7 +27,8 @@ export const useRouteAnimation = ({
   getFollowModeZoom,
   zoomLevelRef,
   playbackSpeedRef,
-  forceCenterOnNextFrameRef
+  forceCenterOnNextFrameRef,
+  isMobile
 }) => {
   // Animation refs
   const animationRef = useRef(null);
@@ -617,11 +618,45 @@ export const useRouteAnimation = ({
     isAnimatingRef.current = true;
     isPausedRef.current = false;
 
-    // Center on first marker
+    // Center on first marker (1/3 from top on mobile)
     if (directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
       const firstLocation = directionsRoute.allLocations[0];
       if (firstLocation && firstLocation.lat && firstLocation.lng) {
-        map.panTo(new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng));
+        const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
+
+        // On mobile, position marker at 1/3 from top
+        if (isMobile) {
+          const projection = map.getProjection();
+          const mapDiv = map.getDiv();
+          const mapHeight = mapDiv.offsetHeight;
+
+          if (projection) {
+            // Calculate offset to position marker at 1/3 from top vertically
+            const scale = Math.pow(2, map.getZoom());
+            const pixelOffsetY = mapHeight / 3;
+            const worldOffsetY = pixelOffsetY / scale;
+
+            // Get the world point for the location
+            const worldPoint = projection.fromLatLngToPoint(point);
+
+            // Create new center point offset downward (so marker moves up)
+            const newWorldPoint = new window.google.maps.Point(
+              worldPoint.x,
+              worldPoint.y + worldOffsetY
+            );
+
+            // Convert back to lat/lng
+            const newCenter = projection.fromPointToLatLng(newWorldPoint);
+            map.panTo(newCenter);
+          } else {
+            // Fallback to simple pan if projection not available
+            map.panTo(point);
+          }
+        } else {
+          // Desktop: simple center
+          map.panTo(point);
+        }
+
         if (zoomLevel === 'follow') {
           map.setZoom(getFollowModeZoom());
         }
@@ -726,9 +761,10 @@ export const useRouteAnimation = ({
   ]);
 
   /**
-   * Stop animation
+   * Handle stop animation with recenter to start marker
+   * This is the main stop function that should be called for all stop actions
    */
-  const stopAnimation = useCallback(() => {
+  const handleStopAnimation = useCallback((shouldRecenter = true) => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
@@ -768,7 +804,55 @@ export const useRouteAnimation = ({
         gestureHandling: 'auto'
       });
     }
-  }, [map, setIsAnimating, setIsPaused]);
+
+    // Recenter on start marker if route exists
+    if (shouldRecenter && map && directionsRoute?.allLocations?.[0]) {
+      const firstLocation = directionsRoute.allLocations[0];
+      if (firstLocation?.lat && firstLocation?.lng) {
+        const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
+
+        // On mobile, position marker at 1/3 from top (same as when entering animation mode)
+        if (isMobile) {
+          const projection = map.getProjection();
+          const mapDiv = map.getDiv();
+          const mapHeight = mapDiv.offsetHeight;
+
+          if (projection) {
+            // Calculate offset to position marker at 1/3 from top vertically
+            const scale = Math.pow(2, map.getZoom());
+            const pixelOffsetY = mapHeight / 3;
+            const worldOffsetY = pixelOffsetY / scale;
+
+            // Get the world point for the location
+            const worldPoint = projection.fromLatLngToPoint(point);
+
+            // Create new center point offset downward (so marker moves up)
+            const newWorldPoint = new window.google.maps.Point(
+              worldPoint.x,
+              worldPoint.y + worldOffsetY
+            );
+
+            // Convert back to lat/lng
+            const newCenter = projection.fromPointToLatLng(newWorldPoint);
+            map.panTo(newCenter);
+          } else {
+            // Fallback to simple pan if projection not available
+            map.panTo(point);
+          }
+        } else {
+          // Desktop: simple center
+          map.panTo(point);
+        }
+      }
+    }
+  }, [map, directionsRoute, isMobile, setIsAnimating, setIsPaused]);
+
+  /**
+   * Stop animation (legacy - calls handleStopAnimation)
+   */
+  const stopAnimation = useCallback(() => {
+    handleStopAnimation(false);
+  }, [handleStopAnimation]);
 
   /**
    * Pause animation
@@ -780,12 +864,10 @@ export const useRouteAnimation = ({
       cancelAnimationFrame(animationRef.current);
     }
 
-    // Hide mode icon when paused
+    // Keep mode icon visible when paused - just mark as not actively animating
     window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
       detail: {
-        isAnimating: false,
-        currentModeIcon: null,
-        segmentColor: null
+        isAnimating: false
       }
     }));
   }, [setIsPaused]);
@@ -1049,6 +1131,7 @@ export const useRouteAnimation = ({
   return {
     startAnimation,
     stopAnimation,
+    handleStopAnimation,
     pauseAnimation,
     resumeAnimation,
     handleTimelineChange,

@@ -586,7 +586,7 @@ body {
   border: 2px solid #e2e8f0;
   color: var(--text-primary);
   padding: 0.35rem 0.75rem;
-  font-size: var(--font-base);
+  font-size: 16px;
 }
 
 .header-search .location-search-input:focus {
@@ -1522,7 +1522,7 @@ body {
   color: #1e293b !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
   padding: 0.35rem 0.75rem !important;
-  font-size: 0.8125rem !important;
+  font-size: 16px !important;
 }
 
 .header-search gmp-place-autocomplete::part(input):focus {
@@ -1931,7 +1931,7 @@ body {
   .header-mobile .location-search-input,
   .header-mobile gmp-place-autocomplete::part(input) {
     padding: 6px 10px;
-    font-size: var(--font-md);
+    font-size: 16px;
   }
 
   .header-mobile .donate-button {

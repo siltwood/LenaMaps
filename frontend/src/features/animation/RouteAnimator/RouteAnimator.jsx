@@ -92,6 +92,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
   const {
     startAnimation: startAnimationFromHook,
     stopAnimation,
+    handleStopAnimation,
     pauseAnimation,
     resumeAnimation,
     handleTimelineChange,
@@ -114,13 +115,14 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     getFollowModeZoom: () => getFollowModeZoom(),
     zoomLevelRef,
     playbackSpeedRef,
-    forceCenterOnNextFrameRef
+    forceCenterOnNextFrameRef,
+    isMobile
   });
 
   // Exit animation mode - clean up everything
   const exitAnimationMode = useCallback(() => {
-    // Stop animation and remove polyline
-    stopAnimation();
+    // Stop animation and remove polyline (don't recenter - user might be examining route)
+    handleStopAnimation(false);
 
     // Hide animated marker box (top-left transport icon)
     window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
@@ -135,7 +137,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     if (onClose) {
       onClose();
     }
-  }, [stopAnimation, onClose]);
+  }, [handleStopAnimation, onClose]);
 
   // Listen for exit animation mode event (triggered by mobile X button)
   useEffect(() => {
@@ -147,19 +149,21 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     return () => window.removeEventListener('exitAnimationMode', handleExitAnimationMode);
   }, [exitAnimationMode]);
 
-  // Cleanup mode icon when component unmounts (e.g., switching mobile/desktop)
+  // Store handleStopAnimation in ref to avoid triggering cleanup on every change
+  const handleStopAnimationRef = useRef(handleStopAnimation);
+  useEffect(() => {
+    handleStopAnimationRef.current = handleStopAnimation;
+  }, [handleStopAnimation]);
+
+  // Cleanup when component unmounts (e.g., switching mobile/desktop)
   useEffect(() => {
     return () => {
-      // Hide mode icon when RouteAnimator unmounts
-      window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
-        detail: {
-          isAnimating: false,
-          currentModeIcon: null,
-          segmentColor: null
-        }
-      }));
+      // Call stop function to properly clean up animation state
+      if (handleStopAnimationRef.current) {
+        handleStopAnimationRef.current();
+      }
     };
-  }, []);
+  }, []); // Empty deps - only run on unmount
 
   // Use zoom manager hook
   const {
@@ -321,7 +325,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
                 onPlay={startAnimation}
                 onPause={pauseAnimation}
                 onResume={resumeAnimation}
-                onStop={stopAnimation}
+                onStop={handleStopAnimation}
                 isMobile={true}
                 disabled={!isRoutePlayable()}
               />
@@ -365,17 +369,38 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
             className="unified-icon animation"
             onClick={() => {
               
-              // When showing animation controls on mobile, center on first marker
+              // When showing animation controls on mobile, position marker at 1/3 from top
               if (map && directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
                 const firstLocation = directionsRoute.allLocations[0];
-                
+
                 if (firstLocation && firstLocation.lat && firstLocation.lng) {
-                  
-                  // Use panTo for smooth positioning
-                  const centerPoint = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-                  map.panTo(centerPoint);
-                  
-                  // Don't auto-zoom - let user control zoom
+                  const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
+                  const projection = map.getProjection();
+                  const mapDiv = map.getDiv();
+                  const mapHeight = mapDiv.offsetHeight;
+
+                  if (projection) {
+                    // Calculate offset to position marker at 1/3 from top vertically
+                    const scale = Math.pow(2, map.getZoom());
+                    const pixelOffsetY = mapHeight / 3;
+                    const worldOffsetY = pixelOffsetY / scale;
+
+                    // Get the world point for the location
+                    const worldPoint = projection.fromLatLngToPoint(point);
+
+                    // Create new center point offset downward (so marker moves up)
+                    const newWorldPoint = new window.google.maps.Point(
+                      worldPoint.x,
+                      worldPoint.y + worldOffsetY
+                    );
+
+                    // Convert back to lat/lng
+                    const newCenter = projection.fromPointToLatLng(newWorldPoint);
+                    map.panTo(newCenter);
+                  } else {
+                    // Fallback to simple pan if projection not available
+                    map.panTo(point);
+                  }
                 }
               }
               
@@ -463,7 +488,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
                 onPlay={startAnimation}
                 onPause={pauseAnimation}
                 onResume={resumeAnimation}
-                onStop={stopAnimation}
+                onStop={handleStopAnimation}
                 isMobile={false}
                 disabled={!isRoutePlayable()}
               />
