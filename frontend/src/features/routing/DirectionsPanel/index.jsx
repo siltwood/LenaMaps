@@ -891,18 +891,32 @@ const DirectionsPanel = ({
                     style={{ cursor: 'pointer' }}
                   >
                     <span>📍 {location.name || location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}</span>
-                    <button
-                      className="remove-location-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeLocation(index);
-                      }}
-                      title="Remove location"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <button
+                        className="edit-location-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveInput(index);
+                        }}
+                        title="Edit location"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M10.5 1.5L12.5 3.5M1 13L1.5 10.5L9.5 2.5L11.5 4.5L3.5 12.5L1 13Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      <button
+                        className="remove-location-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeLocation(index);
+                        }}
+                        title="Remove location"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
