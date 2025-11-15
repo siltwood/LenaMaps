@@ -864,12 +864,7 @@ export const useRouteAnimation = ({
       cancelAnimationFrame(animationRef.current);
     }
 
-    // Keep mode icon visible when paused - just mark as not actively animating
-    window.dispatchEvent(new CustomEvent('routeAnimationUpdate', {
-      detail: {
-        isAnimating: false
-      }
-    }));
+    // Don't dispatch any event - keep mode icon visible as-is when paused
   }, [setIsPaused]);
 
   /**
