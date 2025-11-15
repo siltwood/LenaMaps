@@ -181,6 +181,30 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     polylineRef
   );
 
+  // Handle zoom level changes - both before and during animation
+  useEffect(() => {
+    if (!map || !directionsRoute?.allLocations?.[0]) return;
+
+    if (zoomLevel === 'follow') {
+      // Zoom in and center on appropriate position
+      map.setZoom(getFollowModeZoom());
+
+      if (isAnimating && !isPaused) {
+        // During animation: center on current marker position on next frame
+        forceCenterOnNextFrameRef.current = true;
+      } else {
+        // Before animation or when paused: center on start marker
+        const firstLocation = directionsRoute.allLocations[0];
+        if (firstLocation?.lat && firstLocation?.lng) {
+          map.panTo(new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng));
+        }
+      }
+    } else if (zoomLevel === 'whole') {
+      // Fit whole route in view
+      fitWholeRoute();
+    }
+  }, [zoomLevel, map, directionsRoute, isAnimating, isPaused, getFollowModeZoom, fitWholeRoute]);
+
   // Check if route is playable
   const isRoutePlayable = useCallback(() => {
     if (!directionsRoute || !directionsRoute.allLocations || directionsRoute.allLocations.length < 2) {
