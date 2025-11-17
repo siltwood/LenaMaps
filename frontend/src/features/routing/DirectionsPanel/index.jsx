@@ -819,7 +819,7 @@ const DirectionsPanel = ({
         )}
 
         {/* Mileage display - shows distance breakdown by transport mode */}
-        {showMileage && (
+        {!isMobile && showMileage && (
           <MileageDisplay
             directionsRoute={directionsRoute}
             onDisplayModeChange={setDistanceDisplayInfo}
@@ -827,7 +827,7 @@ const DirectionsPanel = ({
         )}
 
         {/* Effects menu - toggle animation effects */}
-        {showEffects && (
+        {!isMobile && showEffects && (
           <EffectsMenu
             enabledEffects={enabledEffects}
             onEffectsChange={setEnabledEffects}
