@@ -38,6 +38,9 @@ function AppContent() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
 
+  // Distance display on map
+  const [distanceDisplayInfo, setDistanceDisplayInfo] = useState(null);
+
   // Authentication state
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
@@ -318,6 +321,7 @@ function AppContent() {
               // When routes are auto-switched to flight, update the UI modes
               setDirectionsLegModes(updatedModes);
             }}
+            distanceDisplayInfo={distanceDisplayInfo}
             // DISCONNECTED: Usage tracking paused for release - see STATUS.md
             // usageTracking={usageTracking}
           />
@@ -378,6 +382,7 @@ function AppContent() {
         isAnimating={isAnimating}
         isMobile={isMobile}
         onAnimationStateChange={setIsAnimating}
+        onDistanceDisplayChange={setDistanceDisplayInfo}
         sharedEffects={sharedEffects}
       />
       

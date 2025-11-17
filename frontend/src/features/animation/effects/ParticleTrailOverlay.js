@@ -40,14 +40,15 @@ export function initParticleTrailOverlay() {
       div.style.width = '100%';
       div.style.height = '100%';
       div.style.pointerEvents = 'none'; // Don't block map interactions
+      div.style.overflow = 'visible'; // Ensure particles aren't clipped
 
       // Create canvas
       const canvas = document.createElement('canvas');
       canvas.style.position = 'absolute';
       canvas.style.left = '0';
       canvas.style.top = '0';
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
+      canvas.style.overflow = 'visible'; // Ensure particles aren't clipped
+      // Don't set CSS width/height - let bitmap size control it
 
       div.appendChild(canvas);
       this.div_ = div;
@@ -78,9 +79,12 @@ export function initParticleTrailOverlay() {
       const width = mapDiv.offsetWidth;
       const height = mapDiv.offsetHeight;
 
+      // Set both bitmap size AND CSS size to match exactly (no scaling)
       if (this.canvas_.width !== width || this.canvas_.height !== height) {
         this.canvas_.width = width;
         this.canvas_.height = height;
+        this.canvas_.style.width = width + 'px';
+        this.canvas_.style.height = height + 'px';
       }
 
       // Position overlay to cover entire map

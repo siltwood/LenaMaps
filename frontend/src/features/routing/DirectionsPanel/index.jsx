@@ -32,6 +32,7 @@ const DirectionsPanel = ({
   isAnimating = false,
   isMobile = false,
   onAnimationStateChange,
+  onDistanceDisplayChange,
   // Controlled component props - parent manages state
   locations: propsLocations = [null, null],
   legModes: propsLegModes = ['walk'],
@@ -82,6 +83,16 @@ const DirectionsPanel = ({
   const [customDrawEnabled, setCustomDrawEnabled] = useState([]);
   // Removed: snapToRoads, customPoints (draw mode now = simple straight line)
   const [lockedSegments, setLockedSegments] = useState([]);
+
+  // Distance display on map state
+  const [distanceDisplayInfo, setDistanceDisplayInfo] = useState(null);
+
+  // Notify parent when distance display info changes
+  useEffect(() => {
+    if (onDistanceDisplayChange) {
+      onDistanceDisplayChange(distanceDisplayInfo);
+    }
+  }, [distanceDisplayInfo, onDistanceDisplayChange]);
 
   const prevClickedLocationRef = useRef(null);
   const isEditingRef = useRef(false);
@@ -807,7 +818,10 @@ const DirectionsPanel = ({
 
         {/* Mileage display - shows distance breakdown by transport mode */}
         {!isMobile && showMileage && (
-          <MileageDisplay directionsRoute={directionsRoute} />
+          <MileageDisplay
+            directionsRoute={directionsRoute}
+            onDisplayModeChange={setDistanceDisplayInfo}
+          />
         )}
 
         {/* Effects menu - toggle animation effects */}
@@ -1271,7 +1285,10 @@ const DirectionsPanel = ({
 
             {/* Mileage display - shows distance breakdown by transport mode */}
             {showMileage && (
-              <MileageDisplay directionsRoute={directionsRoute} />
+              <MileageDisplay
+                directionsRoute={directionsRoute}
+                onDisplayModeChange={setDistanceDisplayInfo}
+              />
             )}
 
             {/* Effects menu - toggle animation effects */}

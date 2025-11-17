@@ -458,3 +458,37 @@
   font-size: var(--font-xs);
   margin-top: var(--compact-xxs);
 }
+
+/* Map Display Toggles */
+.map-display-toggles {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.map-display-toggles .toggle-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.map-display-toggles .toggle-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.map-display-toggles .toggle-option input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.map-display-toggles .toggle-option:hover {
+  color: #1f2937;
+}

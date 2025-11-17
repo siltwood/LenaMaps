@@ -5,7 +5,7 @@ import { TRANSPORT_ICONS } from '../../../../constants/transportationModes';
  * MileageDisplay - Shows distance breakdown by transport mode
  * Supports km/miles toggle with localStorage persistence
  */
-const MileageDisplay = ({ directionsRoute }) => {
+const MileageDisplay = ({ directionsRoute, onDisplayModeChange }) => {
   // Get segments from window._routeSegments or directionsRoute
   const segments = useMemo(() => {
     return window._routeSegments || [];
@@ -14,6 +14,9 @@ const MileageDisplay = ({ directionsRoute }) => {
   const [unit, setUnit] = useState(() => {
     return localStorage.getItem('distanceUnit') || 'km';
   });
+
+  // Display mode for on-map distance display
+  const [displayMode, setDisplayMode] = useState('none'); // 'none', 'byLeg', 'byMode', 'total'
 
   // Save unit preference to localStorage when it changes
   useEffect(() => {
@@ -91,6 +94,23 @@ const MileageDisplay = ({ directionsRoute }) => {
   // Calculate total distance
   const totalKm = legBreakdown.reduce((sum, leg) => sum + leg.distance, 0);
 
+  // Calculate distance breakdown by transport mode
+  const modeBreakdown = useMemo(() => {
+    const breakdown = {};
+
+    legBreakdown.forEach(leg => {
+      if (!breakdown[leg.mode]) {
+        breakdown[leg.mode] = 0;
+      }
+      breakdown[leg.mode] += leg.distance;
+    });
+
+    return Object.entries(breakdown).map(([mode, distance]) => ({
+      mode,
+      distance
+    }));
+  }, [legBreakdown]);
+
   // Mode display names
   const modeNames = {
     walk: 'Walk',
@@ -100,6 +120,45 @@ const MileageDisplay = ({ directionsRoute }) => {
     transit: 'Rail',
     ferry: 'Ferry',
     flight: 'Flight'
+  };
+
+  // Notify parent when display mode or data changes
+  useEffect(() => {
+    if (onDisplayModeChange) {
+      let data = null;
+
+      if (displayMode === 'byLeg') {
+        data = legBreakdown.map(leg => ({
+          label: `${leg.startLabel} → ${leg.endLabel}`,
+          mode: leg.mode,
+          distance: formatDistance(leg.distance),
+          unit
+        }));
+      } else if (displayMode === 'byMode') {
+        data = modeBreakdown.map(item => ({
+          label: modeNames[item.mode] || item.mode,
+          mode: item.mode,
+          distance: formatDistance(item.distance),
+          unit
+        }));
+      } else if (displayMode === 'total') {
+        data = [{
+          label: 'Total Distance',
+          distance: formatDistance(totalKm),
+          unit
+        }];
+      }
+
+      onDisplayModeChange({
+        mode: displayMode,
+        data,
+        unit
+      });
+    }
+  }, [displayMode, legBreakdown, modeBreakdown, totalKm, unit, onDisplayModeChange]);
+
+  const handleDisplayModeChange = (mode) => {
+    setDisplayMode(prev => prev === mode ? 'none' : mode);
   };
 
   if (totalKm === 0 || legBreakdown.length === 0) {
@@ -147,6 +206,34 @@ const MileageDisplay = ({ directionsRoute }) => {
         <span className="total-distance">
           {formatDistance(totalKm)} {unit}
         </span>
+      </div>
+
+      <div className="map-display-toggles">
+        <div className="toggle-label">Display on map:</div>
+        <label className="toggle-option">
+          <input
+            type="checkbox"
+            checked={displayMode === 'byLeg'}
+            onChange={() => handleDisplayModeChange('byLeg')}
+          />
+          <span>By leg</span>
+        </label>
+        <label className="toggle-option">
+          <input
+            type="checkbox"
+            checked={displayMode === 'byMode'}
+            onChange={() => handleDisplayModeChange('byMode')}
+          />
+          <span>By mode</span>
+        </label>
+        <label className="toggle-option">
+          <input
+            type="checkbox"
+            checked={displayMode === 'total'}
+            onChange={() => handleDisplayModeChange('total')}
+          />
+          <span>Total</span>
+        </label>
       </div>
     </div>
   );
