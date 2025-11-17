@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { TRANSPORT_ICONS, TRANSPORTATION_COLORS } from '../../../../constants/transportationModes';
 import { ANIMATION_PADDING } from '../../../../constants/animationConstants';
-import { ParticleTrailOverlay } from '../../effects/ParticleTrailOverlay';
+import { ParticleTrailOverlay, initParticleTrailOverlay } from '../../effects/ParticleTrailOverlay';
 import { centerMapOnLocation } from '../../../../utils/mapCenteringUtils';
 
 /**
@@ -60,10 +60,12 @@ export const useRouteAnimation = ({
     if (!isAnimating) return;
 
     if (enabledEffects.particleTrail && !particleOverlayRef.current && map && window.google?.maps?.OverlayView) {
-      // Create overlay when toggled ON during animation
-      particleOverlayRef.current = new ParticleTrailOverlay();
-      particleOverlayRef.current.setMap(map);
-      frameCountRef.current = 0;
+      // Initialize prototype and create overlay when toggled ON during animation
+      if (initParticleTrailOverlay()) {
+        particleOverlayRef.current = new ParticleTrailOverlay();
+        particleOverlayRef.current.setMap(map);
+        frameCountRef.current = 0;
+      }
     } else if (!enabledEffects.particleTrail && particleOverlayRef.current) {
       // Destroy overlay when toggled OFF during animation
       particleOverlayRef.current.setMap(null);
@@ -544,10 +546,10 @@ export const useRouteAnimation = ({
             // Spawn particles if particle trail effect is enabled
             if (enabledEffects.particleTrail && particleOverlayRef.current) {
               frameCountRef.current++;
-              // Spawn particles every 2-3 frames
-              if (frameCountRef.current % 3 === 0) {
+              // Spawn particles every 2 frames for denser trail
+              if (frameCountRef.current % 2 === 0) {
                 const currentPosition = path[currentPathIndex];
-                particleOverlayRef.current.spawnParticlesAtPosition(currentPosition, 3);
+                particleOverlayRef.current.spawnParticlesAtPosition(currentPosition, 6);
               }
             }
           }
@@ -652,9 +654,11 @@ export const useRouteAnimation = ({
 
     // Initialize particle overlay if particle trail effect is enabled
     if (enabledEffects.particleTrail && !particleOverlayRef.current && map && window.google?.maps?.OverlayView) {
-      particleOverlayRef.current = new ParticleTrailOverlay();
-      particleOverlayRef.current.setMap(map);
-      frameCountRef.current = 0;
+      if (initParticleTrailOverlay()) {
+        particleOverlayRef.current = new ParticleTrailOverlay();
+        particleOverlayRef.current.setMap(map);
+        frameCountRef.current = 0;
+      }
     }
 
     // Center on first marker (1/3 from top on mobile)

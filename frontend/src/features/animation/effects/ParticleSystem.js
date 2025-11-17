@@ -24,17 +24,17 @@ export class Particle {
     this.vy = 0;
     this.ax = 0;
     this.ay = 0;
-    this.drag = 0.92 + Math.random() * 0.06; // 0.92-0.98
-    this.topSpeed = 3;
+    this.drag = 0.95 + Math.random() * 0.03; // 0.95-0.98 (less drag)
+    this.topSpeed = 5;
 
     // Lifecycle
     this.startTime = Date.now();
     this.lifespan = 800 + Math.random() * 400; // 800-1200ms
-    this.baseSize = 3 + Math.random() * 4; // 3-7px
+    this.baseSize = 2 + Math.random() * 3; // 2-5px
 
-    // Initial burst force - random direction
+    // Initial burst force - random direction in full 360 degrees
     const angle = Math.random() * Math.PI * 2;
-    const force = 3 + Math.random() * 3;
+    const force = 5 + Math.random() * 4; // Stronger burst: 5-9
     this.addForce(Math.cos(angle) * force, Math.sin(angle) * force);
   }
 
@@ -67,13 +67,16 @@ export class Particle {
     this.ax = 0;
     this.ay = 0;
 
-    // Add slight upward drift
-    this.addForce(0, -0.08);
+    // Add very slight upward drift (reduced to not override random burst)
+    this.addForce(0, -0.03);
 
     return !this.isDead();
   }
 
   draw(ctx) {
+    // Don't draw dead particles
+    if (this.isDead()) return;
+
     const age = Date.now() - this.startTime;
     const lifeRatio = age / this.lifespan;
 
@@ -85,11 +88,17 @@ export class Particle {
       scale = 1 - (age - this.lifespan * 0.5) / (this.lifespan * 0.5);
     }
 
+    // Clamp scale to prevent negative values
+    scale = Math.max(0, scale);
+
     // Size based on velocity (faster = slightly bigger)
     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
     const velocityScale = 0.5 + (speed / this.topSpeed) * 0.7; // 0.5-1.2
 
     const size = this.baseSize * scale * velocityScale;
+
+    // Don't draw if size is too small
+    if (size <= 0) return;
 
     ctx.save();
     ctx.globalAlpha = scale;
