@@ -5,7 +5,6 @@ import RouteSegmentManager from './RouteSegmentManager';
 import RouteAnimator from '../../../animation/RouteAnimator';
 import AnimatedMarkerBox from '../../../animation/RouteAnimator/AnimatedMarkerBox';
 import MapErrorBoundary from '../MapErrorBoundary';
-import MapDistanceDisplay from '../../../../components/Shared/MapDistanceDisplay';
 
 const MapComponent = ({
   onMapClick,
@@ -22,7 +21,6 @@ const MapComponent = ({
   onHideRouteAnimator,
   onMapReady,
   onModesAutoUpdate,
-  distanceDisplayInfo,
   // DISCONNECTED: Usage tracking paused for release - see STATUS.md
   // usageTracking
 }) => {
@@ -232,9 +230,6 @@ const MapComponent = ({
           isMobile={false}
         />
       )}
-
-      {/* Distance Display on Map */}
-      <MapDistanceDisplay displayInfo={distanceDisplayInfo} />
 
     </div>
   );

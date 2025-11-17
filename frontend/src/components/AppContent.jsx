@@ -9,6 +9,7 @@ import { SaveRouteModal } from '../features/saved-routes/SaveRouteModal';
 import { SavedRoutesModal } from '../features/saved-routes/SavedRoutesModal';
 import { supabase, isSupabaseConfigured } from '../utils/supabaseClient';
 import { initFingerprint } from '../utils/fingerprint';
+import MapDistanceDisplay from '../components/Shared/MapDistanceDisplay';
 // DISCONNECTED: Usage tracking paused for release - see STATUS.md
 // import { useUsageTracking } from '../hooks/useUsageTracking';
 // import UpgradeModal from './UpgradeModal';
@@ -40,6 +41,11 @@ function AppContent() {
 
   // Distance display on map
   const [distanceDisplayInfo, setDistanceDisplayInfo] = useState(null);
+
+  // Debug: Log when distanceDisplayInfo changes
+  useEffect(() => {
+    console.log('AppContent distanceDisplayInfo changed:', distanceDisplayInfo);
+  }, [distanceDisplayInfo]);
 
   // Authentication state
   const [user, setUser] = useState(null);
@@ -321,10 +327,13 @@ function AppContent() {
               // When routes are auto-switched to flight, update the UI modes
               setDirectionsLegModes(updatedModes);
             }}
-            distanceDisplayInfo={distanceDisplayInfo}
             // DISCONNECTED: Usage tracking paused for release - see STATUS.md
             // usageTracking={usageTracking}
           />
+
+          {/* Distance Display on Map - render directly here */}
+          <MapDistanceDisplay displayInfo={distanceDisplayInfo} />
+
           {!isAnimating && (
             <>
               <div className="bmc-button-container" style={{

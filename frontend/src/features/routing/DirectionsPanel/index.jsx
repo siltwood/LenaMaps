@@ -89,7 +89,9 @@ const DirectionsPanel = ({
 
   // Notify parent when distance display info changes
   useEffect(() => {
+    console.log('DirectionsPanel distanceDisplayInfo changed:', distanceDisplayInfo);
     if (onDistanceDisplayChange) {
+      console.log('DirectionsPanel calling onDistanceDisplayChange with:', distanceDisplayInfo);
       onDistanceDisplayChange(distanceDisplayInfo);
     }
   }, [distanceDisplayInfo, onDistanceDisplayChange]);
@@ -817,7 +819,7 @@ const DirectionsPanel = ({
         )}
 
         {/* Mileage display - shows distance breakdown by transport mode */}
-        {!isMobile && showMileage && (
+        {showMileage && (
           <MileageDisplay
             directionsRoute={directionsRoute}
             onDisplayModeChange={setDistanceDisplayInfo}
@@ -825,7 +827,7 @@ const DirectionsPanel = ({
         )}
 
         {/* Effects menu - toggle animation effects */}
-        {!isMobile && showEffects && (
+        {showEffects && (
           <EffectsMenu
             enabledEffects={enabledEffects}
             onEffectsChange={setEnabledEffects}
@@ -1282,7 +1284,10 @@ const DirectionsPanel = ({
               onToggleEffects={() => setShowEffects(!showEffects)}
               hasEnabledEffects={hasEnabledEffects}
             />
+          </div>
 
+          {/* Scrollable locations list or animation controls */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '4px 12px 12px 12px', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             {/* Mileage display - shows distance breakdown by transport mode */}
             {showMileage && (
               <MileageDisplay
@@ -1298,10 +1303,7 @@ const DirectionsPanel = ({
                 onEffectsChange={setEnabledEffects}
               />
             )}
-          </div>
 
-          {/* Scrollable locations list or animation controls */}
-          <div style={{ flex: 1, overflow: 'auto', padding: showAnimationPanel ? '0' : '4px 12px 12px 12px', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             {showAnimationPanel && isMobile ? (
               <RouteAnimator
                 key="route-animator-mobile"

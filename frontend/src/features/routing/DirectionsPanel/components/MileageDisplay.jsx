@@ -149,16 +149,23 @@ const MileageDisplay = ({ directionsRoute, onDisplayModeChange }) => {
         }];
       }
 
-      onDisplayModeChange({
+      const displayInfo = {
         mode: displayMode,
         data,
         unit
-      });
+      };
+
+      console.log('MileageDisplay sending displayInfo:', displayInfo);
+      onDisplayModeChange(displayInfo);
     }
   }, [displayMode, legBreakdown, modeBreakdown, totalKm, unit, onDisplayModeChange]);
 
   const handleDisplayModeChange = (mode) => {
-    setDisplayMode(prev => prev === mode ? 'none' : mode);
+    console.log('handleDisplayModeChange called with mode:', mode);
+    console.log('Current displayMode:', displayMode);
+    const newMode = displayMode === mode ? 'none' : mode;
+    console.log('Setting displayMode to:', newMode);
+    setDisplayMode(newMode);
   };
 
   if (totalKm === 0 || legBreakdown.length === 0) {
@@ -210,30 +217,32 @@ const MileageDisplay = ({ directionsRoute, onDisplayModeChange }) => {
 
       <div className="map-display-toggles">
         <div className="toggle-label">Display on map:</div>
-        <label className="toggle-option">
-          <input
-            type="checkbox"
-            checked={displayMode === 'byLeg'}
-            onChange={() => handleDisplayModeChange('byLeg')}
-          />
-          <span>By leg</span>
-        </label>
-        <label className="toggle-option">
-          <input
-            type="checkbox"
-            checked={displayMode === 'byMode'}
-            onChange={() => handleDisplayModeChange('byMode')}
-          />
-          <span>By mode</span>
-        </label>
-        <label className="toggle-option">
-          <input
-            type="checkbox"
-            checked={displayMode === 'total'}
-            onChange={() => handleDisplayModeChange('total')}
-          />
-          <span>Total</span>
-        </label>
+        <div className="toggle-options-row">
+          <label className="toggle-option">
+            <input
+              type="checkbox"
+              checked={displayMode === 'byLeg'}
+              onChange={() => handleDisplayModeChange('byLeg')}
+            />
+            <span>By leg</span>
+          </label>
+          <label className="toggle-option">
+            <input
+              type="checkbox"
+              checked={displayMode === 'byMode'}
+              onChange={() => handleDisplayModeChange('byMode')}
+            />
+            <span>By mode</span>
+          </label>
+          <label className="toggle-option">
+            <input
+              type="checkbox"
+              checked={displayMode === 'total'}
+              onChange={() => handleDisplayModeChange('total')}
+            />
+            <span>Total</span>
+          </label>
+        </div>
       </div>
     </div>
   );

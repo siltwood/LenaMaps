@@ -464,6 +464,8 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #e5e7eb;
+  overflow: visible;
+  touch-action: auto;
 }
 
 .map-display-toggles .toggle-label {
@@ -473,20 +475,32 @@
   margin-bottom: 8px;
 }
 
+.map-display-toggles .toggle-options-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .map-display-toggles .toggle-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 6px;
   cursor: pointer;
   font-size: 14px;
   color: #374151;
+  touch-action: auto;
 }
 
 .map-display-toggles .toggle-option input[type="checkbox"] {
   cursor: pointer;
   width: 16px;
   height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.map-display-toggles .toggle-option span {
+  white-space: nowrap;
 }
 
 .map-display-toggles .toggle-option:hover {

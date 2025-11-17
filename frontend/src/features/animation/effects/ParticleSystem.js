@@ -35,7 +35,19 @@ export class Particle {
     // Initial burst force - random direction in full 360 degrees
     const angle = Math.random() * Math.PI * 2;
     const force = 5 + Math.random() * 4; // Stronger burst: 5-9
-    this.addForce(Math.cos(angle) * force, Math.sin(angle) * force);
+    const fx = Math.cos(angle) * force;
+    const fy = Math.sin(angle) * force;
+
+    // Debug logging (first few particles only)
+    if (Math.random() < 0.05) { // Log ~5% of particles
+      console.log('Particle spawn:', {
+        position: { x, y },
+        angle: (angle * 180 / Math.PI).toFixed(1) + '°',
+        force: { fx: fx.toFixed(2), fy: fy.toFixed(2) }
+      });
+    }
+
+    this.addForce(fx, fy);
   }
 
   addForce(fx, fy) {
