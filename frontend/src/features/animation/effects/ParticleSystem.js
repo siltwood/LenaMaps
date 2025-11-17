@@ -1,46 +1,107 @@
+// Vibrant color palette (same as CodePen)
+const COLORS = [
+  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
+  '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50',
+  '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800',
+  '#FF5722'
+];
+
 /**
  * Particle - Individual particle with physics
  */
 export class Particle {
-  constructor(x, y, color) {
+  constructor(x, y) {
+    this.spawnX = x;
+    this.spawnY = y;
     this.x = x;
     this.y = y;
-    this.vx = (Math.random() - 0.5) * 2; // Random horizontal velocity
-    this.vy = (Math.random() - 0.5) * 2; // Random vertical velocity
-    this.life = 1.0; // 1.0 = fully alive, 0.0 = dead
-    this.decay = 0.015 + Math.random() * 0.015; // How fast it fades (0.015-0.03 per frame)
-    this.size = 3 + Math.random() * 3; // 3-6px
-    this.color = color;
+
+    // Random color from palette
+    this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+    // Physics properties
+    this.vx = 0;
+    this.vy = 0;
+    this.ax = 0;
+    this.ay = 0;
+    this.drag = 0.92 + Math.random() * 0.06; // 0.92-0.98
+    this.topSpeed = 3;
+
+    // Lifecycle
+    this.startTime = Date.now();
+    this.lifespan = 800 + Math.random() * 400; // 800-1200ms
+    this.baseSize = 3 + Math.random() * 4; // 3-7px
+
+    // Initial burst force - random direction
+    const angle = Math.random() * Math.PI * 2;
+    const force = 3 + Math.random() * 3;
+    this.addForce(Math.cos(angle) * force, Math.sin(angle) * force);
+  }
+
+  addForce(fx, fy) {
+    this.ax += fx;
+    this.ay += fy;
   }
 
   update() {
+    // Apply acceleration to velocity
+    this.vx += this.ax;
+    this.vy += this.ay;
+
+    // Limit speed
+    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    if (speed > this.topSpeed) {
+      this.vx = (this.vx / speed) * this.topSpeed;
+      this.vy = (this.vy / speed) * this.topSpeed;
+    }
+
+    // Apply drag
+    this.vx *= this.drag;
+    this.vy *= this.drag;
+
     // Update position
     this.x += this.vx;
     this.y += this.vy;
 
-    // Apply slight gravity
-    this.vy += 0.05;
+    // Reset acceleration
+    this.ax = 0;
+    this.ay = 0;
 
-    // Air resistance
-    this.vx *= 0.98;
-    this.vy *= 0.98;
+    // Add slight upward drift
+    this.addForce(0, -0.08);
 
-    // Fade out
-    this.life -= this.decay;
-
-    return this.life > 0;
+    return !this.isDead();
   }
 
   draw(ctx) {
-    if (this.life <= 0) return;
+    const age = Date.now() - this.startTime;
+    const lifeRatio = age / this.lifespan;
+
+    // Scale animation: fade in first 10%, fade out last 50%
+    let scale = 1;
+    if (age < this.lifespan * 0.1) {
+      scale = age / (this.lifespan * 0.1);
+    } else if (age > this.lifespan * 0.5) {
+      scale = 1 - (age - this.lifespan * 0.5) / (this.lifespan * 0.5);
+    }
+
+    // Size based on velocity (faster = slightly bigger)
+    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    const velocityScale = 0.5 + (speed / this.topSpeed) * 0.7; // 0.5-1.2
+
+    const size = this.baseSize * scale * velocityScale;
 
     ctx.save();
-    ctx.globalAlpha = this.life;
+    ctx.globalAlpha = scale;
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+  }
+
+  isDead() {
+    return Date.now() - this.startTime > this.lifespan;
   }
 }
 
@@ -52,9 +113,9 @@ export class ParticleSystem {
     this.particles = [];
   }
 
-  spawn(x, y, color, count = 1) {
+  spawn(x, y, count = 1) {
     for (let i = 0; i < count; i++) {
-      this.particles.push(new Particle(x, y, color));
+      this.particles.push(new Particle(x, y));
     }
   }
 

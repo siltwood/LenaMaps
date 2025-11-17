@@ -36,7 +36,8 @@ const DirectionsPanel = ({
   locations: propsLocations = [null, null],
   legModes: propsLegModes = ['walk'],
   onLocationsChange,
-  onLegModesChange
+  onLegModesChange,
+  sharedEffects = null
 }) => {
   const [transportationModes] = useState(TRANSPORTATION_MODES);
   const [isMinimized, setIsMinimized] = useState(false); // Start open
@@ -47,29 +48,19 @@ const DirectionsPanel = ({
   const [expandedWaypoints, setExpandedWaypoints] = useState([]);
   const [showMileage, setShowMileage] = useState(false);
   const [showEffects, setShowEffects] = useState(false);
-  const [enabledEffects, setEnabledEffects] = useState(() => {
-    // Load from localStorage - default all effects to false
-    const saved = localStorage.getItem('animationEffects');
-    return saved ? JSON.parse(saved) : {
-      particleTrail: false,
-      confetti: false,
-      modeTransitions: false,
-      routeDrawIn: false
-    };
+  const [enabledEffects, setEnabledEffects] = useState({
+    particleTrail: false,
+    confetti: false,
+    modeTransitions: false,
+    routeDrawIn: false
   });
 
-  // Listen for effects changes from shared URLs
+  // Apply shared effects from URL when they come in
   useEffect(() => {
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem('animationEffects');
-      if (saved) {
-        setEnabledEffects(JSON.parse(saved));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    if (sharedEffects) {
+      setEnabledEffects(sharedEffects);
+    }
+  }, [sharedEffects]);
 
   // Mobile-specific state
   const [showCard, setShowCard] = useState(true);
@@ -96,10 +87,6 @@ const DirectionsPanel = ({
   const isEditingRef = useRef(false);
   const lastRouteIdRef = useRef(null);
 
-  // Save effects to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('animationEffects', JSON.stringify(enabledEffects));
-  }, [enabledEffects]);
 
   // Check if any effects are enabled
   const hasEnabledEffects = Object.values(enabledEffects).some(val => val === true);
@@ -511,7 +498,6 @@ const DirectionsPanel = ({
     // Restore animation effects
     if (route.effects) {
       setEnabledEffects(route.effects);
-      localStorage.setItem('animationEffects', JSON.stringify(route.effects));
     }
 
     // Notify parent (controlled component pattern)

@@ -26,6 +26,7 @@ function AppContent() {
   // Route state - managed here and passed to DirectionsPanel as controlled component
   const [directionsLocations, setDirectionsLocations] = useState([null, null]);
   const [directionsLegModes, setDirectionsLegModes] = useState(['walk']);
+  const [sharedEffects, setSharedEffects] = useState(null);
   
   // Route error modal
   const [routeErrorModal, setRouteErrorModal] = useState({
@@ -118,11 +119,7 @@ function AppContent() {
 
         // Load effects from shared trip if present
         if (sharedTrip.effects) {
-          localStorage.setItem('animationEffects', JSON.stringify(sharedTrip.effects));
-          // Force a small delay to ensure DirectionsPanel picks up the new effects
-          setTimeout(() => {
-            window.dispatchEvent(new Event('storage'));
-          }, 100);
+          setSharedEffects(sharedTrip.effects);
         }
         
         // Auto-calculate the route
@@ -381,6 +378,7 @@ function AppContent() {
         isAnimating={isAnimating}
         isMobile={isMobile}
         onAnimationStateChange={setIsAnimating}
+        sharedEffects={sharedEffects}
       />
       
       {/* Route Error Modal */}

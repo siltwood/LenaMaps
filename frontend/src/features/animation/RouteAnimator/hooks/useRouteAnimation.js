@@ -54,6 +54,23 @@ export const useRouteAnimation = ({
     mapRef.current = map;
   }
 
+  // Handle particle overlay toggle during animation
+  useEffect(() => {
+    // Only manage overlay if animation is running
+    if (!isAnimating) return;
+
+    if (enabledEffects.particleTrail && !particleOverlayRef.current && map && window.google?.maps?.OverlayView) {
+      // Create overlay when toggled ON during animation
+      particleOverlayRef.current = new ParticleTrailOverlay();
+      particleOverlayRef.current.setMap(map);
+      frameCountRef.current = 0;
+    } else if (!enabledEffects.particleTrail && particleOverlayRef.current) {
+      // Destroy overlay when toggled OFF during animation
+      particleOverlayRef.current.setMap(null);
+      particleOverlayRef.current = null;
+    }
+  }, [enabledEffects.particleTrail, isAnimating, map]);
+
   /**
    * Get interpolated position along the path based on distance traveled
    */
@@ -530,8 +547,7 @@ export const useRouteAnimation = ({
               // Spawn particles every 2-3 frames
               if (frameCountRef.current % 3 === 0) {
                 const currentPosition = path[currentPathIndex];
-                const color = TRANSPORTATION_COLORS[newMode] || '#3b82f6';
-                particleOverlayRef.current.spawnParticlesAtPosition(currentPosition, color, 2);
+                particleOverlayRef.current.spawnParticlesAtPosition(currentPosition, 3);
               }
             }
           }

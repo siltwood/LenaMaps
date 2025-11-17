@@ -148,10 +148,9 @@ ParticleTrailOverlay.prototype.animate = function() {
 /**
  * Spawn particles at a lat/lng position
  * @param {google.maps.LatLng} latLng - Position to spawn particles
- * @param {string} color - Color of particles
  * @param {number} count - Number of particles to spawn
  */
-ParticleTrailOverlay.prototype.spawnParticlesAtPosition = function(latLng, color, count = 2) {
+ParticleTrailOverlay.prototype.spawnParticlesAtPosition = function(latLng, count = 3) {
   if (!this.ctx_ || !latLng) return;
 
   // Convert lat/lng to pixel coordinates
@@ -162,7 +161,7 @@ ParticleTrailOverlay.prototype.spawnParticlesAtPosition = function(latLng, color
   if (!point) return;
 
   // Spawn particles at pixel position
-  this.particleSystem.spawn(point.x, point.y, color, count);
+  this.particleSystem.spawn(point.x, point.y, count);
 };
 
 /**
