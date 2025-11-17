@@ -20,10 +20,11 @@ import ZoomControl from './components/ZoomControl';
 import TimelineScrubber from './components/TimelineScrubber';
 import { useMarkerAnimation, useZoomManager, useRouteAnimation } from './hooks';
 import { isMobileDevice } from '../../../utils/deviceDetection';
+import { centerMapOnLocation } from '../../../utils/mapCenteringUtils';
 import '../../../styles/unified-icons.css';
 import './RouteAnimator.css';
 
-const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimationStart, isMobile = false, forceShow = false, onClose, embeddedInModal = false, onMinimize, isMinimized: propsIsMinimized, setIsMinimized: propsSetIsMinimized }) => {
+const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimationStart, isMobile = false, forceShow = false, onClose, embeddedInModal = false, onMinimize, isMinimized: propsIsMinimized, setIsMinimized: propsSetIsMinimized, enabledEffects = {} }) => {
 
   // Use props if provided (embedded mode), otherwise manage internally
   const [internalIsMinimized, setInternalIsMinimized] = useState(false);
@@ -60,7 +61,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
       onAnimationStateChange(value);
     }
   }
-  const [zoomLevel, setZoomLevel] = useState('whole'); // 'follow', 'whole'
+  const [zoomLevel, setZoomLevel] = useState(isMobile ? 'follow' : 'whole'); // 'follow' on mobile, 'whole' on desktop
   const [playbackSpeed, setPlaybackSpeed] = useState('medium'); // 'slow', 'medium', 'fast'
   const [animationProgress, setAnimationProgress] = useState(0); // 0-100 for timeline
   const [currentSegmentMode, setCurrentSegmentMode] = useState(null); // Track current segment mode for animated marker box
@@ -116,7 +117,8 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     zoomLevelRef,
     playbackSpeedRef,
     forceCenterOnNextFrameRef,
-    isMobile
+    isMobile,
+    enabledEffects
   });
 
   // Exit animation mode - clean up everything
@@ -178,7 +180,8 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
     totalDistanceRef,
     zoomLevelRef,
     forceCenterOnNextFrameRef,
-    polylineRef
+    polylineRef,
+    isMobile
   );
 
   // Handle zoom level changes - both before and during animation
@@ -196,40 +199,7 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
         // Before animation or when paused: center on start marker
         const firstLocation = directionsRoute.allLocations[0];
         if (firstLocation?.lat && firstLocation?.lng) {
-          const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-
-          // On mobile, position marker at 1/3 from top (2/3 up the screen)
-          if (isMobile) {
-            const projection = map.getProjection();
-            const mapDiv = map.getDiv();
-            const mapHeight = mapDiv.offsetHeight;
-
-            if (projection) {
-              // Calculate offset to position marker at 1/3 from top vertically
-              const scale = Math.pow(2, map.getZoom());
-              const pixelOffsetY = mapHeight / 3;
-              const worldOffsetY = pixelOffsetY / scale;
-
-              // Get the world point for the location
-              const worldPoint = projection.fromLatLngToPoint(point);
-
-              // Create new center point offset downward (so marker moves up)
-              const newWorldPoint = new window.google.maps.Point(
-                worldPoint.x,
-                worldPoint.y + worldOffsetY
-              );
-
-              // Convert back to lat/lng
-              const newCenter = projection.fromPointToLatLng(newWorldPoint);
-              map.setCenter(newCenter); // Use setCenter for instant positioning
-            } else {
-              // Fallback to instant center if projection not available
-              map.setCenter(point);
-            }
-          } else {
-            // Desktop: instant center
-            map.setCenter(point);
-          }
+          centerMapOnLocation(map, firstLocation, isMobile, true);
         }
       }
     } else if (zoomLevel === 'whole') {
@@ -430,38 +400,11 @@ const RouteAnimator = ({ map, directionsRoute, onAnimationStateChange, onAnimati
               // When showing animation controls on mobile, position marker at 1/3 from top
               if (map && directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
                 const firstLocation = directionsRoute.allLocations[0];
-
                 if (firstLocation && firstLocation.lat && firstLocation.lng) {
-                  const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-                  const projection = map.getProjection();
-                  const mapDiv = map.getDiv();
-                  const mapHeight = mapDiv.offsetHeight;
-
-                  if (projection) {
-                    // Calculate offset to position marker at 1/3 from top vertically
-                    const scale = Math.pow(2, map.getZoom());
-                    const pixelOffsetY = mapHeight / 3;
-                    const worldOffsetY = pixelOffsetY / scale;
-
-                    // Get the world point for the location
-                    const worldPoint = projection.fromLatLngToPoint(point);
-
-                    // Create new center point offset downward (so marker moves up)
-                    const newWorldPoint = new window.google.maps.Point(
-                      worldPoint.x,
-                      worldPoint.y + worldOffsetY
-                    );
-
-                    // Convert back to lat/lng
-                    const newCenter = projection.fromPointToLatLng(newWorldPoint);
-                    map.panTo(newCenter);
-                  } else {
-                    // Fallback to simple pan if projection not available
-                    map.panTo(point);
-                  }
+                  centerMapOnLocation(map, firstLocation, isMobile, false);
                 }
               }
-              
+
               setIsMinimized(false);
             }}
             title="Show Animation Controls"

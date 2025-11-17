@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { ANIMATION_ZOOM, ANIMATION_PADDING } from '../../../../constants/animationConstants';
+import { centerMapOnLocation } from '../../../../utils/mapCenteringUtils';
 
 /**
  * useZoomManager - Manages map zoom and camera positioning for route animation
@@ -18,6 +19,7 @@ import { ANIMATION_ZOOM, ANIMATION_PADDING } from '../../../../constants/animati
  * @param {React.RefObject} zoomLevelRef - Ref for zoom level ('follow' or 'whole')
  * @param {React.RefObject} forceCenterOnNextFrameRef - Ref to trigger centering in animation loop
  * @param {React.RefObject} polylineRef - Ref to the animated polyline
+ * @param {boolean} isMobile - Whether device is mobile
  * @returns {Object} Zoom management utilities
  */
 export const useZoomManager = (
@@ -28,7 +30,8 @@ export const useZoomManager = (
   totalDistanceRef,
   zoomLevelRef,
   forceCenterOnNextFrameRef,
-  polylineRef
+  polylineRef,
+  isMobile
 ) => {
   /**
    * Calculate zoom level and center for given bounds
@@ -117,12 +120,13 @@ export const useZoomManager = (
 
   /**
    * Initialize by showing the whole route when component mounts
+   * Skip on mobile to preserve mobile-specific centering
    */
   useEffect(() => {
-    if (map && directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length >= 2) {
+    if (map && directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length >= 2 && !isMobile) {
       fitWholeRoute();
     }
-  }, [map, directionsRoute, fitWholeRoute]);
+  }, [map, directionsRoute, fitWholeRoute, isMobile]);
 
   /**
    * Handle zoom level changes (follow vs whole mode)
@@ -143,7 +147,7 @@ export const useZoomManager = (
         if (directionsRoute && directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
           const firstLoc = directionsRoute.allLocations[0];
           if (firstLoc && firstLoc.lat && firstLoc.lng) {
-            map.setCenter(new window.google.maps.LatLng(firstLoc.lat, firstLoc.lng));
+            centerMapOnLocation(map, firstLoc, isMobile, true);
             map.setZoom(getFollowModeZoom());
           }
         }

@@ -44,6 +44,8 @@ export const saveRoute = (routeData) => {
       customPoints: routeData.customPoints || {},
       snapToRoads: routeData.snapToRoads || [],
       lockedSegments: routeData.lockedSegments || [],
+      // Save animation effects
+      effects: routeData.effects || {},
       savedAt: new Date().toISOString(),
       description: routeData.description || '',
       // Add expiration timestamp (30 days from now - Google ToS compliant)

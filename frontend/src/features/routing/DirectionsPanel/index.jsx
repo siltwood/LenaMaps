@@ -13,6 +13,8 @@ import { useRouteSegments, useRouteActions } from '../hooks';
 import ActionButtons from './components/ActionButtons';
 import RouteAnimator from '../../animation/RouteAnimator';
 import MileageDisplay from './components/MileageDisplay';
+import EffectsMenu from './components/EffectsMenu';
+import { centerMapOnLocation } from '../../../utils/mapCenteringUtils';
 import '../../../styles/unified-icons.css';
 
 const DirectionsPanel = ({
@@ -44,6 +46,30 @@ const DirectionsPanel = ({
   const [showSavedRoutesModal, setShowSavedRoutesModal] = useState(false);
   const [expandedWaypoints, setExpandedWaypoints] = useState([]);
   const [showMileage, setShowMileage] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
+  const [enabledEffects, setEnabledEffects] = useState(() => {
+    // Load from localStorage - default all effects to false
+    const saved = localStorage.getItem('animationEffects');
+    return saved ? JSON.parse(saved) : {
+      particleTrail: false,
+      confetti: false,
+      modeTransitions: false,
+      routeDrawIn: false
+    };
+  });
+
+  // Listen for effects changes from shared URLs
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('animationEffects');
+      if (saved) {
+        setEnabledEffects(JSON.parse(saved));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Mobile-specific state
   const [showCard, setShowCard] = useState(true);
@@ -69,6 +95,14 @@ const DirectionsPanel = ({
   const prevClickedLocationRef = useRef(null);
   const isEditingRef = useRef(false);
   const lastRouteIdRef = useRef(null);
+
+  // Save effects to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('animationEffects', JSON.stringify(enabledEffects));
+  }, [enabledEffects]);
+
+  // Check if any effects are enabled
+  const hasEnabledEffects = Object.values(enabledEffects).some(val => val === true);
 
   // Sync with prop changes (for shared routes and loaded routes)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -453,12 +487,13 @@ const DirectionsPanel = ({
           name: routeData.name,
           description: routeData.description,
           locations: filledLocations,
-          modes: legModes
+          modes: legModes,
+          effects: enabledEffects
         });
       } catch (error) {
       }
     }
-  }, [locations, legModes]);
+  }, [locations, legModes, enabledEffects]);
 
   const handleLoadRoute = useCallback((route) => {
     const loadedLocations = [...route.locations];
@@ -472,6 +507,12 @@ const DirectionsPanel = ({
     // Restore custom drawing state with backward compatibility
     setCustomDrawEnabled(route.customDrawEnabled || []);
     setLockedSegments(route.lockedSegments || []);
+
+    // Restore animation effects
+    if (route.effects) {
+      setEnabledEffects(route.effects);
+      localStorage.setItem('animationEffects', JSON.stringify(route.effects));
+    }
 
     // Notify parent (controlled component pattern)
     if (onLocationsChange) {
@@ -511,7 +552,7 @@ const DirectionsPanel = ({
   }, [onLocationsChange, onLegModesChange, onDirectionsCalculated]);
 
   const handleShare = async () => {
-    const shareableURL = generateShareableURL(locations, legModes);
+    const shareableURL = generateShareableURL(locations, legModes, enabledEffects);
 
     if (!shareableURL) {
       return;
@@ -597,28 +638,7 @@ const DirectionsPanel = ({
         const mapHeight = mapDiv.offsetHeight;
 
         if (projection) {
-          // Center on the first location with vertical offset
-          const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-
-          // Calculate offset to position marker at 1/3 from top vertically
-          const scale = Math.pow(2, map.getZoom());
-          const pixelOffsetY = mapHeight / 3;
-          const worldOffsetY = pixelOffsetY / scale;
-
-          // Get the world point for the location
-          const worldPoint = projection.fromLatLngToPoint(point);
-
-          // Create new center point offset downward (so marker moves up)
-          const newWorldPoint = new window.google.maps.Point(
-            worldPoint.x,
-            worldPoint.y + worldOffsetY
-          );
-
-          // Convert back to lat/lng
-          const newCenter = projection.fromPointToLatLng(newWorldPoint);
-
-          // Single pan operation to center horizontally and position vertically at 1/3 from top
-          map.panTo(newCenter);
+          centerMapOnLocation(map, firstLocation, true, false);
         }
       }
     }
@@ -793,12 +813,23 @@ const DirectionsPanel = ({
             onShare={handleShare}
             showMileage={showMileage}
             onToggleMileage={() => setShowMileage(!showMileage)}
+            showEffects={showEffects}
+            onToggleEffects={() => setShowEffects(!showEffects)}
+            hasEnabledEffects={hasEnabledEffects}
           />
         )}
 
         {/* Mileage display - shows distance breakdown by transport mode */}
         {!isMobile && showMileage && (
           <MileageDisplay directionsRoute={directionsRoute} />
+        )}
+
+        {/* Effects menu - toggle animation effects */}
+        {!isMobile && showEffects && (
+          <EffectsMenu
+            enabledEffects={enabledEffects}
+            onEffectsChange={setEnabledEffects}
+          />
         )}
 
         <div className="route-inputs">
@@ -1247,11 +1278,22 @@ const DirectionsPanel = ({
               }}
               showMileage={showMileage}
               onToggleMileage={() => setShowMileage(!showMileage)}
+              showEffects={showEffects}
+              onToggleEffects={() => setShowEffects(!showEffects)}
+              hasEnabledEffects={hasEnabledEffects}
             />
 
             {/* Mileage display - shows distance breakdown by transport mode */}
             {showMileage && (
               <MileageDisplay directionsRoute={directionsRoute} />
+            )}
+
+            {/* Effects menu - toggle animation effects */}
+            {showEffects && (
+              <EffectsMenu
+                enabledEffects={enabledEffects}
+                onEffectsChange={setEnabledEffects}
+              />
             )}
           </div>
 
@@ -1271,6 +1313,7 @@ const DirectionsPanel = ({
                 onClose={() => setShowAnimationPanel(false)}
                 isMinimized={animationControlsMinimized}
                 setIsMinimized={setAnimationControlsMinimized}
+                enabledEffects={enabledEffects}
               />
             ) : (
               renderPanelContent

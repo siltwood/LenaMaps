@@ -1,14 +1,14 @@
 // Utility functions for sharing trips via URL
 
 // Encode trip data to a compressed URL-safe string
-export const encodeTripToURL = (locations, modes) => {
+export const encodeTripToURL = (locations, modes, effects = {}) => {
   // Filter out null locations
   const validLocations = locations.filter(loc => loc !== null);
-  
+
   if (validLocations.length === 0) {
     return null;
   }
-  
+
   // Create a compact trip object
   const tripData = {
     v: 1, // Version for future compatibility
@@ -19,7 +19,8 @@ export const encodeTripToURL = (locations, modes) => {
       lng: Math.round(loc.lng * 100000) / 100000,
       p: loc.place_id || undefined // Optional place_id for better accuracy
     })),
-    m: modes || ['walk'] // Transportation modes
+    m: modes || ['walk'], // Transportation modes
+    e: effects || {} // Animation effects
   };
   
   // Convert to JSON and compress
@@ -72,24 +73,25 @@ export const decodeTripFromURL = (encodedString) => {
     }));
     
     const modes = tripData.m || ['walk'];
-    
-    return { locations, modes };
+    const effects = tripData.e || {};
+
+    return { locations, modes, effects };
   } catch (error) {
     return null;
   }
 };
 
 // Generate a shareable URL for the current trip
-export const generateShareableURL = (locations, modes) => {
-  const encodedTrip = encodeTripToURL(locations, modes);
-  
+export const generateShareableURL = (locations, modes, effects = {}) => {
+  const encodedTrip = encodeTripToURL(locations, modes, effects);
+
   if (!encodedTrip) {
     return null;
   }
-  
+
   // Get the base URL without any existing query parameters
   const baseURL = window.location.origin + window.location.pathname;
-  
+
   // Create the shareable URL
   return `${baseURL}?trip=${encodedTrip}`;
 };

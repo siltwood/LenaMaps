@@ -1,6 +1,8 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { TRANSPORT_ICONS, TRANSPORTATION_COLORS } from '../../../../constants/transportationModes';
 import { ANIMATION_PADDING } from '../../../../constants/animationConstants';
+import { ParticleTrailOverlay } from '../../effects/ParticleTrailOverlay';
+import { centerMapOnLocation } from '../../../../utils/mapCenteringUtils';
 
 /**
  * useRouteAnimation - Manages route animation state and loop
@@ -28,7 +30,8 @@ export const useRouteAnimation = ({
   zoomLevelRef,
   playbackSpeedRef,
   forceCenterOnNextFrameRef,
-  isMobile
+  isMobile,
+  enabledEffects = {}
 }) => {
   // Animation refs
   const animationRef = useRef(null);
@@ -43,6 +46,8 @@ export const useRouteAnimation = ({
   const visualOffsetRef = useRef(0);
   const totalDistanceRef = useRef(0);
   const mapRef = useRef(map);
+  const particleOverlayRef = useRef(null);
+  const frameCountRef = useRef(0);
 
   // Update map ref when prop changes
   if (map) {
@@ -518,6 +523,17 @@ export const useRouteAnimation = ({
                 segmentColor: TRANSPORTATION_COLORS[newMode]
               }
             }));
+
+            // Spawn particles if particle trail effect is enabled
+            if (enabledEffects.particleTrail && particleOverlayRef.current) {
+              frameCountRef.current++;
+              // Spawn particles every 2-3 frames
+              if (frameCountRef.current % 3 === 0) {
+                const currentPosition = path[currentPathIndex];
+                const color = TRANSPORTATION_COLORS[newMode] || '#3b82f6';
+                particleOverlayRef.current.spawnParticlesAtPosition(currentPosition, color, 2);
+              }
+            }
           }
         }
       }
@@ -618,44 +634,18 @@ export const useRouteAnimation = ({
     isAnimatingRef.current = true;
     isPausedRef.current = false;
 
+    // Initialize particle overlay if particle trail effect is enabled
+    if (enabledEffects.particleTrail && !particleOverlayRef.current && map && window.google?.maps?.OverlayView) {
+      particleOverlayRef.current = new ParticleTrailOverlay();
+      particleOverlayRef.current.setMap(map);
+      frameCountRef.current = 0;
+    }
+
     // Center on first marker (1/3 from top on mobile)
     if (directionsRoute.allLocations && directionsRoute.allLocations.length > 0) {
       const firstLocation = directionsRoute.allLocations[0];
       if (firstLocation && firstLocation.lat && firstLocation.lng) {
-        const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-
-        // On mobile, position marker at 1/3 from top
-        if (isMobile) {
-          const projection = map.getProjection();
-          const mapDiv = map.getDiv();
-          const mapHeight = mapDiv.offsetHeight;
-
-          if (projection) {
-            // Calculate offset to position marker at 1/3 from top vertically
-            const scale = Math.pow(2, map.getZoom());
-            const pixelOffsetY = mapHeight / 3;
-            const worldOffsetY = pixelOffsetY / scale;
-
-            // Get the world point for the location
-            const worldPoint = projection.fromLatLngToPoint(point);
-
-            // Create new center point offset downward (so marker moves up)
-            const newWorldPoint = new window.google.maps.Point(
-              worldPoint.x,
-              worldPoint.y + worldOffsetY
-            );
-
-            // Convert back to lat/lng
-            const newCenter = projection.fromPointToLatLng(newWorldPoint);
-            map.panTo(newCenter);
-          } else {
-            // Fallback to simple pan if projection not available
-            map.panTo(point);
-          }
-        } else {
-          // Desktop: simple center
-          map.panTo(point);
-        }
+        centerMapOnLocation(map, firstLocation, isMobile, false);
 
         if (zoomLevel === 'follow') {
           map.setZoom(getFollowModeZoom());
@@ -776,9 +766,16 @@ export const useRouteAnimation = ({
       polylineRef.current = null;
     }
 
+    // Clean up particle overlay
+    if (particleOverlayRef.current) {
+      particleOverlayRef.current.setMap(null);
+      particleOverlayRef.current = null;
+    }
+
     offsetRef.current = 0;
     countRef.current = 0;
     visualOffsetRef.current = 0;
+    frameCountRef.current = 0;
 
     isAnimatingRef.current = false;
     isPausedRef.current = false;
@@ -809,40 +806,7 @@ export const useRouteAnimation = ({
     if (shouldRecenter && map && directionsRoute?.allLocations?.[0]) {
       const firstLocation = directionsRoute.allLocations[0];
       if (firstLocation?.lat && firstLocation?.lng) {
-        const point = new window.google.maps.LatLng(firstLocation.lat, firstLocation.lng);
-
-        // On mobile, position marker at 1/3 from top (same as when entering animation mode)
-        if (isMobile) {
-          const projection = map.getProjection();
-          const mapDiv = map.getDiv();
-          const mapHeight = mapDiv.offsetHeight;
-
-          if (projection) {
-            // Calculate offset to position marker at 1/3 from top vertically
-            const scale = Math.pow(2, map.getZoom());
-            const pixelOffsetY = mapHeight / 3;
-            const worldOffsetY = pixelOffsetY / scale;
-
-            // Get the world point for the location
-            const worldPoint = projection.fromLatLngToPoint(point);
-
-            // Create new center point offset downward (so marker moves up)
-            const newWorldPoint = new window.google.maps.Point(
-              worldPoint.x,
-              worldPoint.y + worldOffsetY
-            );
-
-            // Convert back to lat/lng
-            const newCenter = projection.fromPointToLatLng(newWorldPoint);
-            map.panTo(newCenter);
-          } else {
-            // Fallback to simple pan if projection not available
-            map.panTo(point);
-          }
-        } else {
-          // Desktop: simple center
-          map.panTo(point);
-        }
+        centerMapOnLocation(map, firstLocation, isMobile, true);
       }
     }
   }, [map, directionsRoute, isMobile, setIsAnimating, setIsPaused]);

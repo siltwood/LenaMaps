@@ -15,12 +15,17 @@ const ActionButtons = ({
   showAnimationPanel,
   onCloseAnimationPanel,
   showMileage,
-  onToggleMileage
+  onToggleMileage,
+  showEffects,
+  onToggleEffects,
+  hasEnabledEffects
 }) => {
   const buttonBaseStyle = {
     padding: '4px 8px',
     backgroundColor: '#f3f4f6',
-    border: '1px solid #d1d5db',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#d1d5db',
     borderRadius: '4px',
     fontSize: '14px',
     cursor: 'pointer',
@@ -35,7 +40,7 @@ const ActionButtons = ({
   const disabledStyle = {
     ...buttonBaseStyle,
     color: '#d1d5db',
-    border: '1px solid #e5e7eb',
+    borderColor: '#e5e7eb',
     cursor: 'not-allowed',
     opacity: 0.5
   };
@@ -45,22 +50,31 @@ const ActionButtons = ({
     color: '#374151'
   };
 
-  const handleMouseEnter = (e) => {
+  const handleMouseEnter = (e, isHighlighted, highlightColor, highlightBorder) => {
     if (!e.currentTarget.disabled) {
-      e.currentTarget.style.backgroundColor = '#e5e7eb';
-      e.currentTarget.style.borderColor = '#9ca3af';
+      if (!isHighlighted) {
+        e.currentTarget.style.backgroundColor = '#e5e7eb';
+        e.currentTarget.style.borderColor = '#9ca3af';
+      }
     }
   };
 
-  const handleMouseLeave = (e, isDisabled) => {
-    e.currentTarget.style.backgroundColor = '#f3f4f6';
-    e.currentTarget.style.borderColor = isDisabled ? '#e5e7eb' : '#d1d5db';
+  const handleMouseLeave = (e, isDisabled, isHighlighted, highlightColor, highlightBorder) => {
+    if (isHighlighted) {
+      e.currentTarget.style.backgroundColor = highlightColor;
+      e.currentTarget.style.borderColor = highlightBorder;
+    } else {
+      e.currentTarget.style.backgroundColor = '#f3f4f6';
+      e.currentTarget.style.borderColor = isDisabled ? '#e5e7eb' : '#d1d5db';
+    }
   };
 
   const animateButtonStyle = {
     padding: '8px 16px',
     backgroundColor: '#10b981',
-    border: '1px solid #059669',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#059669',
     borderRadius: '4px',
     fontSize: '14px',
     fontWeight: '500',
@@ -152,10 +166,28 @@ const ActionButtons = ({
               borderColor: showMileage ? '#818cf8' : (hasRoute ? '#d1d5db' : '#e5e7eb')
             }}
             title="Toggle distance breakdown"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={(e) => handleMouseLeave(e, !hasRoute)}
+            onMouseEnter={(e) => handleMouseEnter(e, showMileage, '#e0e7ff', '#818cf8')}
+            onMouseLeave={(e) => handleMouseLeave(e, !hasRoute, showMileage, '#e0e7ff', '#818cf8')}
           >
             📏
+          </button>
+        )}
+
+        {/* Effects toggle button */}
+        {onToggleEffects && (
+          <button
+            onClick={onToggleEffects}
+            disabled={!hasRoute}
+            style={{
+              ...(hasRoute ? enabledStyle : disabledStyle),
+              backgroundColor: showEffects ? '#fef3c7' : (hasRoute ? '#f3f4f6' : '#f3f4f6'),
+              borderColor: showEffects ? '#fbbf24' : (hasRoute ? '#d1d5db' : '#e5e7eb')
+            }}
+            title="Toggle animation effects"
+            onMouseEnter={(e) => handleMouseEnter(e, showEffects, '#fef3c7', '#fbbf24')}
+            onMouseLeave={(e) => handleMouseLeave(e, !hasRoute, showEffects, '#fef3c7', '#fbbf24')}
+          >
+            ✨
           </button>
         )}
         </div>

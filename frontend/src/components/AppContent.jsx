@@ -115,6 +115,15 @@ function AppContent() {
         // Set the locations and modes
         setDirectionsLocations(sharedTrip.locations);
         setDirectionsLegModes(sharedTrip.modes);
+
+        // Load effects from shared trip if present
+        if (sharedTrip.effects) {
+          localStorage.setItem('animationEffects', JSON.stringify(sharedTrip.effects));
+          // Force a small delay to ensure DirectionsPanel picks up the new effects
+          setTimeout(() => {
+            window.dispatchEvent(new Event('storage'));
+          }, 100);
+        }
         
         // Auto-calculate the route
         if (sharedTrip.locations.length >= 2) {
