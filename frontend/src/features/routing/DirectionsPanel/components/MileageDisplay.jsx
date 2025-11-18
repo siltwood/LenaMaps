@@ -6,10 +6,32 @@ import { TRANSPORT_ICONS } from '../../../../constants/transportationModes';
  * Supports km/miles toggle with localStorage persistence
  */
 const MileageDisplay = ({ directionsRoute, onDisplayModeChange }) => {
-  // Get segments from window._routeSegments or directionsRoute
+  // Force re-render when window._routeSegments changes
+  const [segmentsVersion, setSegmentsVersion] = useState(0);
+
+  // Poll for changes to window._routeSegments
+  useEffect(() => {
+    let lastLength = window._routeSegments?.length || 0;
+
+    const checkForUpdates = () => {
+      const currentLength = window._routeSegments?.length || 0;
+      if (currentLength !== lastLength) {
+        lastLength = currentLength;
+        setSegmentsVersion(prev => prev + 1);
+      }
+    };
+
+    // Check every 100ms for segment updates
+    const interval = setInterval(checkForUpdates, 100);
+
+    return () => clearInterval(interval);
+  }, [directionsRoute]);
+
+  // Get segments from window._routeSegments
   const segments = useMemo(() => {
     return window._routeSegments || [];
-  }, [directionsRoute]); // Recalculate when directionsRoute changes
+  }, [segmentsVersion]); // Recalculate when segments update
+
   // Get unit preference from localStorage, default to 'km'
   const [unit, setUnit] = useState(() => {
     return localStorage.getItem('distanceUnit') || 'km';

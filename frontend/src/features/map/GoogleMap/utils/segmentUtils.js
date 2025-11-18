@@ -168,8 +168,15 @@ export const validateRouteProximity = (result, requestedOrigin, requestedDestina
  * Returns a mock route object that works with DirectionsRenderer
  */
 export const createStraightLineRoute = (origin, destination) => {
+  // Calculate actual straight-line distance
+  const distanceMeters = calculateDistance(origin, destination);
+  const distanceKm = distanceMeters / 1000;
+  const distanceText = distanceKm < 1
+    ? `${Math.round(distanceMeters)} m`
+    : `${distanceKm.toFixed(1)} km`;
+
   const step = {
-    distance: { text: '0 m', value: 0 },
+    distance: { text: distanceText, value: distanceMeters },
     duration: { text: '0 mins', value: 0 },
     end_location: destination,
     start_location: origin,
@@ -190,7 +197,7 @@ export const createStraightLineRoute = (origin, destination) => {
         start_address: '',
         end_address: '',
         steps: [step],
-        distance: { text: '0 m', value: 0 },
+        distance: { text: distanceText, value: distanceMeters },
         duration: { text: '0 mins', value: 0 },
         via_waypoints: []
       }],

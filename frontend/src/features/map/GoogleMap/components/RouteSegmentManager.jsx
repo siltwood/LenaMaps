@@ -1262,8 +1262,8 @@ const RouteSegmentManager = ({
 
           // IMPORTANT: Store segments globally so RouteAnimator can access them
           // This ensures animation follows the EXACT displayed route
-          // Include both regular segments (with route) AND custom segments (with customPath)
-          window._routeSegments = newSegments.filter(s => s && (s.route || s.isCustom));
+          // Include ALL segments (not just those with route data yet)
+          window._routeSegments = newSegments.filter(s => s);
 
           // DISCONNECTED: Usage tracking paused for release - see STATUS.md
           // Track usage if we have valid locations (2+)
