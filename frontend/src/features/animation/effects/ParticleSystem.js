@@ -38,15 +38,6 @@ export class Particle {
     const fx = Math.cos(angle) * force;
     const fy = Math.sin(angle) * force;
 
-    // Debug logging (first few particles only)
-    if (Math.random() < 0.05) { // Log ~5% of particles
-      console.log('Particle spawn:', {
-        position: { x, y },
-        angle: (angle * 180 / Math.PI).toFixed(1) + '°',
-        force: { fx: fx.toFixed(2), fy: fy.toFixed(2) }
-      });
-    }
-
     this.addForce(fx, fy);
   }
 

@@ -89,9 +89,7 @@ const DirectionsPanel = ({
 
   // Notify parent when distance display info changes
   useEffect(() => {
-    console.log('DirectionsPanel distanceDisplayInfo changed:', distanceDisplayInfo);
     if (onDistanceDisplayChange) {
-      console.log('DirectionsPanel calling onDistanceDisplayChange with:', distanceDisplayInfo);
       onDistanceDisplayChange(distanceDisplayInfo);
     }
   }, [distanceDisplayInfo, onDistanceDisplayChange]);

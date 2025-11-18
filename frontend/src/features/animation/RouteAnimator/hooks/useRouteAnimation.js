@@ -548,8 +548,26 @@ export const useRouteAnimation = ({
               frameCountRef.current++;
               // Spawn particles every 2 frames for denser trail
               if (frameCountRef.current % 2 === 0) {
-                const currentPosition = path[currentPathIndex];
-                particleOverlayRef.current.spawnParticlesAtPosition(currentPosition, 6);
+                // Use visual offset percentage to index into path array
+                const symbolProgress = visualOffsetRef.current / 100;
+                const path = pathRef.current;
+
+                if (path && path.length > 1) {
+                  // Calculate index in path array based on visual progress
+                  const exactIndex = symbolProgress * (path.length - 1);
+                  const lowerIndex = Math.floor(exactIndex);
+                  const upperIndex = Math.min(lowerIndex + 1, path.length - 1);
+                  const fraction = exactIndex - lowerIndex;
+
+                  // Interpolate between the two nearest path points
+                  const markerPosition = window.google.maps.geometry.spherical.interpolate(
+                    path[lowerIndex],
+                    path[upperIndex],
+                    fraction
+                  );
+
+                  particleOverlayRef.current.spawnParticlesAtPosition(markerPosition, 6);
+                }
               }
             }
           }

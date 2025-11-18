@@ -208,12 +208,12 @@ const ActionButtons = ({
         {showAnimationPanel && onCloseAnimationPanel && (
           <button
             onClick={onCloseAnimationPanel}
-            style={enabledStyle}
-            title="Close animation controls"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={(e) => handleMouseLeave(e, false)}
+            style={animateButtonStyle}
+            title="Back to directions"
+            onMouseEnter={handleAnimateMouseEnter}
+            onMouseLeave={handleAnimateMouseLeave}
           >
-            ✕
+            Directions Controls
           </button>
         )}
       </div>

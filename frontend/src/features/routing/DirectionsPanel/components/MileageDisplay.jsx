@@ -155,16 +155,12 @@ const MileageDisplay = ({ directionsRoute, onDisplayModeChange }) => {
         unit
       };
 
-      console.log('MileageDisplay sending displayInfo:', displayInfo);
       onDisplayModeChange(displayInfo);
     }
   }, [displayMode, legBreakdown, modeBreakdown, totalKm, unit, onDisplayModeChange]);
 
   const handleDisplayModeChange = (mode) => {
-    console.log('handleDisplayModeChange called with mode:', mode);
-    console.log('Current displayMode:', displayMode);
     const newMode = displayMode === mode ? 'none' : mode;
-    console.log('Setting displayMode to:', newMode);
     setDisplayMode(newMode);
   };
 

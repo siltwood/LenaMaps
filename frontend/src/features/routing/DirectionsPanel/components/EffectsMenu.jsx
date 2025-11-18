@@ -10,7 +10,8 @@ const EffectsMenu = ({ enabledEffects, onEffectsChange }) => {
       id: 'particleTrail',
       name: 'Particle Trail',
       icon: '✨',
-      description: 'Colorful particles follow the marker'
+      description: 'Colorful particles follow the marker',
+      disabled: true // Coming soon
     },
     {
       id: 'confetti',

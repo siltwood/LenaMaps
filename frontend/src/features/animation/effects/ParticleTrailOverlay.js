@@ -85,7 +85,6 @@ export function initParticleTrailOverlay() {
         this.canvas_.height = height;
         this.canvas_.style.width = width + 'px';
         this.canvas_.style.height = height + 'px';
-        console.log('Canvas resized:', { width, height });
       }
 
       // Position overlay to cover entire map
@@ -167,17 +166,8 @@ export function initParticleTrailOverlay() {
       const projection = this.getProjection();
       if (!projection) return;
 
-      const point = projection.fromLatLngToDivPixel(latLng);
+      const point = projection.fromLatLngToContainerPixel(latLng);
       if (!point) return;
-
-      // Debug logging (occasionally)
-      if (Math.random() < 0.02) { // Log ~2% of spawns
-        console.log('Spawning at pixel:', {
-          x: point.x.toFixed(1),
-          y: point.y.toFixed(1),
-          canvasSize: { w: this.canvas_.width, h: this.canvas_.height }
-        });
-      }
 
       // Spawn particles at pixel position
       this.particleSystem.spawn(point.x, point.y, count);
