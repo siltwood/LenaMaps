@@ -48,7 +48,6 @@ export const useUsageTracking = () => {
 
     // Check if we already tracked this exact route
     if (trackedRoutes.current.has(hash)) {
-      console.log('Route already tracked, skipping');
       return { success: true, limitReached: false, alreadyTracked: true };
     }
 
@@ -69,8 +68,6 @@ export const useUsageTracking = () => {
       });
 
       setLimitReached(result.remaining === 0);
-
-      console.log(`✅ Route tracked (${trigger}): ${result.newCount}/${result.dailyLimit}`);
 
       return {
         success: true,
@@ -103,7 +100,6 @@ export const useUsageTracking = () => {
    */
   const clearTrackedRoutes = useCallback(() => {
     trackedRoutes.current.clear();
-    console.log('Cleared tracked routes');
   }, []);
 
   /**

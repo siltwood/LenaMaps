@@ -6,14 +6,7 @@ import './MapDistanceDisplay.css';
  * MapDistanceDisplay - Shows distance info in top-right corner of map
  */
 const MapDistanceDisplay = ({ displayInfo }) => {
-  console.log('MapDistanceDisplay received displayInfo:', displayInfo);
-
   if (!displayInfo || !displayInfo.data || displayInfo.mode === 'none') {
-    console.log('MapDistanceDisplay returning null because:', {
-      hasDisplayInfo: !!displayInfo,
-      hasData: !!displayInfo?.data,
-      mode: displayInfo?.mode
-    });
     return null;
   }
 

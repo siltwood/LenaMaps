@@ -42,11 +42,6 @@ function AppContent() {
   // Distance display on map
   const [distanceDisplayInfo, setDistanceDisplayInfo] = useState(null);
 
-  // Debug: Log when distanceDisplayInfo changes
-  useEffect(() => {
-    console.log('AppContent distanceDisplayInfo changed:', distanceDisplayInfo);
-  }, [distanceDisplayInfo]);
-
   // Authentication state
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
