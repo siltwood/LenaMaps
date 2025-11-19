@@ -192,7 +192,7 @@ const ActionButtons = ({
         )}
         </div>
 
-        {/* Right side: Animate button or Close button */}
+        {/* Right side: Play button or Back button */}
         {hasRoute && onPlayClick && !showAnimationPanel && (
           <button
             onClick={onPlayClick}
@@ -201,7 +201,7 @@ const ActionButtons = ({
             onMouseEnter={handleAnimateMouseEnter}
             onMouseLeave={handleAnimateMouseLeave}
           >
-            Animate your route!
+            Play
           </button>
         )}
 
@@ -213,7 +213,7 @@ const ActionButtons = ({
             onMouseEnter={handleAnimateMouseEnter}
             onMouseLeave={handleAnimateMouseLeave}
           >
-            Directions Controls
+            Back
           </button>
         )}
       </div>
