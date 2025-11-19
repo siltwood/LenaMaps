@@ -115,16 +115,8 @@ export const useZoomManager = (
     if (centerAndZoom) {
       map.setCenter(centerAndZoom.center);
       map.setZoom(centerAndZoom.zoom - 1); // Subtract 1 for padding effect
-
-      // On mobile, shift map down so route is positioned 180px from top
-      if (isMobile) {
-        const mapDiv = map.getDiv();
-        const mapHeight = mapDiv.offsetHeight;
-        const pixelOffsetY = (mapHeight / 2) - 180;
-        map.panBy(0, pixelOffsetY);
-      }
     }
-  }, [map, directionsRoute, calculateBoundsZoomLevel, isMobile]);
+  }, [map, directionsRoute, calculateBoundsZoomLevel]);
 
   /**
    * Initialize by showing the whole route when component mounts
