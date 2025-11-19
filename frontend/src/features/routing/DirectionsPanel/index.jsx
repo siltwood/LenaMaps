@@ -213,6 +213,9 @@ const DirectionsPanel = ({
           // Camera FAB will show when card is hidden and animation is playing
         }, 400);
       }
+
+      // Save the current height so it persists for next drag
+      initialDragHeight.current = cardHeight;
     };
 
     document.addEventListener('mousemove', handleGlobalMove);
