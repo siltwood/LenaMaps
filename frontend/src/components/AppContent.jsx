@@ -265,7 +265,7 @@ function AppContent() {
             justifyContent: 'space-between',
             alignItems: 'center',
             width: '100%',
-            padding: '0 1rem'
+            padding: isMobile ? '0' : '0 1rem'
           }}>
             <div style={{
               display: 'flex',
@@ -344,7 +344,7 @@ function AppContent() {
           {/* Watermark - Always visible */}
           <div style={{
             position: 'absolute',
-            top: '60px',
+            top: '50px',
             right: '10px',
             fontFamily: 'Baconfarm, sans-serif',
             fontSize: isMobile ? '40px' : '80px',
