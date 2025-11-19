@@ -268,6 +268,9 @@ function AppContent() {
             padding: '0 1rem'
           }}>
             <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
               fontSize: '1rem',
               color: '#000000',
               fontWeight: 700,
@@ -275,7 +278,16 @@ function AppContent() {
               marginTop: '6px',
               marginBottom: '6px'
             }}>
-              💋 LenaMaps{!isMobile && ' - Animate your Google Maps Route'}
+              <img
+                src="/lenamaps-logo.png"
+                alt="LenaMaps Logo"
+                style={{
+                  height: '24px',
+                  width: 'auto',
+                  verticalAlign: 'middle'
+                }}
+              />
+              LenaMaps{!isMobile && ' - Animate your Google Maps Route'}
             </div>
             <div className="header-search">
             {import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
@@ -328,6 +340,23 @@ function AppContent() {
 
           {/* Distance Display on Map - render directly here */}
           <MapDistanceDisplay displayInfo={distanceDisplayInfo} />
+
+          {/* Watermark - Always visible */}
+          <div style={{
+            position: 'absolute',
+            top: '60px',
+            right: '10px',
+            fontFamily: 'Baconfarm, sans-serif',
+            fontSize: isMobile ? '40px' : '80px',
+            color: '#000000',
+            fontWeight: 'bold',
+            zIndex: 1001,
+            opacity: 1,
+            pointerEvents: 'none',
+            userSelect: 'none'
+          }}>
+            Lenamaps.com
+          </div>
 
           {!isAnimating && (
             <>
