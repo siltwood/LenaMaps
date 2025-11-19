@@ -1,6 +1,6 @@
 .map-distance-display {
   position: absolute;
-  top: 90px;
+  top: 115px;
   right: 18px;
   background: white;
   border-radius: 8px;
@@ -44,7 +44,7 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
   .map-distance-display {
-    top: 60px;
+    top: 85px;
     right: 10px;
     font-size: 13px;
     padding: 10px 12px;
