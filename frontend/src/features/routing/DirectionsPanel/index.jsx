@@ -206,7 +206,7 @@ const DirectionsPanel = ({
         }, 400);
       } else if (cardTranslateY > 0) {
         setCardTranslateY(0);
-      } else if (cardHeight < 15) {
+      } else if (cardHeight < 8) {
         setCardTranslateY(window.innerHeight);
         setTimeout(() => {
           setShowCard(false);
