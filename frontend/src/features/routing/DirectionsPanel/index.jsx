@@ -177,6 +177,13 @@ const DirectionsPanel = ({
     }
   }, [showCard, isMobile]);
 
+  // Reset minimized state when switching to mobile
+  useEffect(() => {
+    if (isMobile && isMinimized) {
+      setIsMinimized(false);
+    }
+  }, [isMobile, isMinimized]);
+
   // Add global drag listeners for mobile
   useEffect(() => {
     if (!isMobile || !isDragging) return;
