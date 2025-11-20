@@ -354,7 +354,7 @@ function AppContent() {
             opacity: 1,
             pointerEvents: 'none',
             userSelect: 'none',
-            textShadow: '-2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white, 2px 2px 0 white'
+            textShadow: '-2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white, 2px 2px 0 white, 0 -2px 0 white, 0 2px 0 white, -2px 0 0 white, 2px 0 0 white'
           }}>
             Lenamaps.com
           </div>
