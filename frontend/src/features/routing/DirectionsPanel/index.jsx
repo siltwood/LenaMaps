@@ -192,28 +192,20 @@ const DirectionsPanel = ({
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       const deltaY = dragStartY - clientY;
 
-      if (initialDragHeight.current <= 40 && deltaY < 0) {
-        setCardTranslateY(-deltaY);
-      } else {
-        setCardTranslateY(0);
-        const heightDelta = deltaY * 0.1;
-        const newHeight = Math.max(25, Math.min(90, initialDragHeight.current + heightDelta));
-        setCardHeight(newHeight);
-      }
+      // Always adjust height, no translate behavior
+      const heightDelta = deltaY * 0.1;
+      const newHeight = Math.max(5, Math.min(90, initialDragHeight.current + heightDelta));
+      setCardHeight(newHeight);
     };
 
     const handleGlobalEnd = () => {
       setIsDragging(false);
 
-      if (cardTranslateY > 80) {
-        setCardTranslateY(window.innerHeight);
-        setTimeout(() => {
-          setShowCard(false);
-          // Camera FAB will show when card is hidden and animation is playing
-        }, 400);
-      } else if (cardTranslateY > 0) {
-        setCardTranslateY(0);
-      } else if (cardHeight < 8) {
+      // Calculate vh threshold for 100px from bottom
+      const dismissThreshold = (100 / window.innerHeight) * 100;
+
+      // Only dismiss if panel is within 100px from bottom
+      if (cardHeight < dismissThreshold) {
         setCardTranslateY(window.innerHeight);
         setTimeout(() => {
           setShowCard(false);
@@ -236,7 +228,7 @@ const DirectionsPanel = ({
       document.removeEventListener('touchmove', handleGlobalMove);
       document.removeEventListener('touchend', handleGlobalEnd);
     };
-  }, [isMobile, isDragging, dragStartY, cardTranslateY, cardHeight]);
+  }, [isMobile, isDragging, dragStartY, cardHeight]);
 
   const handleDragStart = useCallback((e) => {
     if (!isMobile) return;
