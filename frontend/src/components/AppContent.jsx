@@ -353,7 +353,8 @@ function AppContent() {
             zIndex: 1001,
             opacity: 1,
             pointerEvents: 'none',
-            userSelect: 'none'
+            userSelect: 'none',
+            textShadow: '-2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white, 2px 2px 0 white'
           }}>
             Lenamaps.com
           </div>
